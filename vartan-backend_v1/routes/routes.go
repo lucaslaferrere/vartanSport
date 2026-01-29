@@ -1,0 +1,74 @@
+package routes
+
+import (
+	"vartan-backend/controllers"
+	"vartan-backend/middleware"
+
+	"github.com/gin-gonic/gin"
+)
+
+func SetupRoutes(router *gin.Engine) {
+	router.GET("/health", func(c *gin.Context) {
+		c.JSON(200, gin.H{"status": "ok", "message": "Servidor funcionando correctamente"})
+	})
+
+	auth := router.Group("/auth")
+	{
+		auth.POST("/login", controllers.Login)
+		auth.POST("/register", controllers.Register)
+	}
+
+	api := router.Group("/api")
+	api.Use(middleware.AuthMiddleware())
+	{
+		api.GET("/profile", controllers.GetProfile)
+
+		api.GET("/productos", controllers.GetProductos)
+		api.GET("/productos/:id", controllers.GetProducto)
+		api.GET("/stock", controllers.GetStock)
+		api.GET("/stock/producto/:id", controllers.GetStockByProducto)
+
+		api.GET("/clientes", controllers.GetClientes)
+		api.GET("/clientes/:id", controllers.GetCliente)
+		api.POST("/clientes", controllers.CreateCliente)
+		api.PUT("/clientes/:id", controllers.UpdateCliente)
+
+		api.GET("/mis-ventas", controllers.GetMisVentas)
+		api.POST("/ventas", controllers.CreateVenta)
+
+		api.GET("/mis-pedidos", controllers.GetMisPedidos)
+		api.PUT("/pedidos/:id", controllers.UpdatePedidoEstado)
+
+		api.GET("/mis-comisiones", controllers.GetMisComisiones)
+	}
+
+	owner := router.Group("/api/owner")
+	owner.Use(middleware.AuthMiddleware(), middleware.RequireDueño())
+	{
+		// Productos
+		owner.POST("/productos", controllers.CreateProducto)
+		owner.PUT("/productos/:id", controllers.UpdateProducto)
+		owner.DELETE("/productos/:id", controllers.DeleteProducto)
+
+		// Stock
+		owner.POST("/stock", controllers.AddStock)
+		owner.PUT("/stock/:id", controllers.UpdateStock)
+
+		// Clientes (dueño puede eliminar)
+		owner.DELETE("/clientes/:id", controllers.DeleteCliente)
+
+		// Ventas (ver todas)
+		owner.GET("/ventas", controllers.GetVentas)
+		owner.GET("/ventas/usuario/:id", controllers.GetVentasByUsuario)
+
+		// Pedidos (ver todos)
+		owner.GET("/pedidos", controllers.GetPedidos)
+		owner.GET("/pedidos/estado/:estado", controllers.GetPedidosByEstado)
+
+		// Comisiones
+		owner.GET("/comisiones", controllers.GetAllComisiones)
+		owner.GET("/comisiones/usuario/:id", controllers.GetComisionesByUsuario)
+		owner.POST("/comisiones/calcular", controllers.CalcularComisionesMesActual)
+		owner.PUT("/comisiones/:id/observaciones", controllers.UpdateObservaciones)
+	}
+}

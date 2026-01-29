@@ -1,0 +1,33 @@
+# Binarios
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+vartan-backend_v1
+vartan-backend_v1.exe
+
+# Archivos de test
+*.test
+*.out
+
+# Variables de entorno
+.env
+.env.local
+
+# Dependencias
+vendor/
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Logs
+*.log
+
+# OS
+.DS_Store
+Thumbs.db

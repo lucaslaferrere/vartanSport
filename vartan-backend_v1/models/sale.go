@@ -1,0 +1,58 @@
+package models
+
+import "time"
+
+// Tabla formas_pago (antes financieras)
+type FormaPago struct {
+	ID     int    `gorm:"primaryKey;autoIncrement" json:"id"`
+	Nombre string `gorm:"type:varchar(50);not null" json:"nombre"`
+}
+
+// Tabla ventas (cabecera de la venta)
+type Venta struct {
+	ID          int       `gorm:"primaryKey;autoIncrement" json:"id"`
+	UsuarioID   int       `gorm:"not null" json:"usuario_id"`
+	ClienteID   int       `gorm:"not null" json:"cliente_id"`
+	FormaPagoID int       `gorm:"not null" json:"forma_pago_id"`
+	Total       float64   `gorm:"type:decimal(10,2);not null" json:"total"`       // Total de la venta (precio de productos)
+	Sena        float64   `gorm:"type:decimal(10,2);not null" json:"sena"`        // Seña abonada
+	Saldo       float64   `gorm:"type:decimal(10,2);not null" json:"saldo"`       // Lo que resta pagar
+	Descuento   float64   `gorm:"type:decimal(10,2);default:0" json:"descuento"`  // Descuento aplicado (3% de financiera)
+	TotalFinal  float64   `gorm:"type:decimal(10,2);not null" json:"total_final"` // Total - Descuento
+	FechaVenta  time.Time `gorm:"default:CURRENT_TIMESTAMP" json:"fecha_venta"`
+
+	// Relaciones
+	Usuario   Usuario        `gorm:"foreignKey:UsuarioID" json:"usuario,omitempty"`
+	Cliente   Cliente        `gorm:"foreignKey:ClienteID" json:"cliente,omitempty"`
+	FormaPago FormaPago      `gorm:"foreignKey:FormaPagoID" json:"forma_pago,omitempty"`
+	Detalles  []VentaDetalle `gorm:"foreignKey:VentaID" json:"detalles,omitempty"`
+}
+
+// Tabla ventas_detalle (productos vendidos)
+type VentaDetalle struct {
+	ID             int     `gorm:"primaryKey;autoIncrement" json:"id"`
+	VentaID        int     `gorm:"not null" json:"venta_id"`
+	ProductoID     int     `gorm:"not null" json:"producto_id"`
+	Talle          string  `gorm:"type:varchar(10);not null" json:"talle"`
+	Cantidad       int     `gorm:"not null" json:"cantidad"`
+	PrecioUnitario float64 `gorm:"type:decimal(10,2);not null" json:"precio_unitario"`
+	Subtotal       float64 `gorm:"type:decimal(10,2);not null" json:"subtotal"`
+
+	// Relaciones
+	Producto Producto `gorm:"foreignKey:ProductoID" json:"producto,omitempty"`
+}
+
+// Para crear una venta nueva desde el frontend
+type VentaCreateRequest struct {
+	ClienteID   int                         `json:"cliente_id" binding:"required"`
+	FormaPagoID int                         `json:"forma_pago_id" binding:"required"` // 1=Transferencia Financiera, 2=Transf a Cero, 3=Transf Bancaria, 4=Efectivo
+	Sena        float64                     `json:"sena" binding:"required"`
+	Detalles    []VentaDetalleCreateRequest `json:"detalles" binding:"required"`
+}
+
+type VentaDetalleCreateRequest struct {
+	ProductoID     int     `json:"producto_id" binding:"required"`
+	Talle          string  `json:"talle" binding:"required"`
+	Cantidad       int     `json:"cantidad" binding:"required"`
+	PrecioUnitario float64 `json:"precio_unitario" binding:"required"`
+}
