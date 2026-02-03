@@ -8,7 +8,16 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// GetPedidos - Obtener todos los pedidos
+// GetPedidos godoc
+// @Summary Listar todos los pedidos
+// @Description Obtiene todos los pedidos (solo dueño)
+// @Tags Pedidos
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Success 200 {array} models.Pedido
+// @Failure 500 {object} map[string]string "Error interno"
+// @Router /api/owner/pedidos [get]
 func GetPedidos(c *gin.Context) {
 	var pedidos []models.Pedido
 
@@ -25,7 +34,18 @@ func GetPedidos(c *gin.Context) {
 	c.JSON(http.StatusOK, pedidos)
 }
 
-// GetPedidosByEstado - Obtener pedidos filtrados por estado
+// GetPedidosByEstado godoc
+// @Summary Obtener pedidos por estado
+// @Description Obtiene pedidos filtrados por estado (solo dueño)
+// @Tags Pedidos
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param estado path string true "Estado del pedido" Enums(pendiente, despachado, cancelado)
+// @Success 200 {array} models.Pedido
+// @Failure 400 {object} map[string]string "Estado inválido"
+// @Failure 500 {object} map[string]string "Error interno"
+// @Router /api/owner/pedidos/estado/{estado} [get]
 func GetPedidosByEstado(c *gin.Context) {
 	estado := c.Param("estado")
 
@@ -50,7 +70,16 @@ func GetPedidosByEstado(c *gin.Context) {
 	c.JSON(http.StatusOK, pedidos)
 }
 
-// GetMisPedidos - Obtener pedidos del usuario autenticado
+// GetMisPedidos godoc
+// @Summary Obtener mis pedidos
+// @Description Obtiene los pedidos del usuario autenticado
+// @Tags Pedidos
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Success 200 {array} models.Pedido
+// @Failure 500 {object} map[string]string "Error interno"
+// @Router /api/mis-pedidos [get]
 func GetMisPedidos(c *gin.Context) {
 	userID := c.GetInt("user_id")
 
@@ -69,7 +98,20 @@ func GetMisPedidos(c *gin.Context) {
 	c.JSON(http.StatusOK, pedidos)
 }
 
-// UpdatePedidoEstado - Actualizar el estado de un pedido
+// UpdatePedidoEstado godoc
+// @Summary Actualizar estado de pedido
+// @Description Actualiza el estado de un pedido
+// @Tags Pedidos
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param id path int true "ID del pedido"
+// @Param request body models.PedidoUpdateRequest true "Nuevo estado"
+// @Success 200 {object} models.Pedido
+// @Failure 400 {object} map[string]string "Estado inválido"
+// @Failure 404 {object} map[string]string "Pedido no encontrado"
+// @Failure 500 {object} map[string]string "Error interno"
+// @Router /api/pedidos/{id} [put]
 func UpdatePedidoEstado(c *gin.Context) {
 	id := c.Param("id")
 

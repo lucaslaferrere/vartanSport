@@ -1,4 +1,4 @@
-# Binarios
+# Binarios compilados de Go
 *.exe
 *.exe~
 *.dll
@@ -6,10 +6,12 @@
 *.dylib
 vartan-backend_v1
 vartan-backend_v1.exe
+test.exe
 
-# Archivos de test
+# Archivos de test y coverage
 *.test
 *.out
+coverage.html
 
 # Variables de entorno
 .env
@@ -31,3 +33,11 @@ vendor/
 # OS
 .DS_Store
 Thumbs.db
+Desktop.ini
+
+# Archivos temporales
+tmp/
+temp/
+
+# Scripts de debug locales (opcional)
+debug-*.ps1

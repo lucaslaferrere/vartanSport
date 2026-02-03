@@ -8,7 +8,18 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// CreateVenta - Crear una venta nueva con lógica de descuento
+// CreateVenta godoc
+// @Summary Crear venta
+// @Description Crea una nueva venta con descuentos automáticos
+// @Tags Ventas
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param request body models.VentaCreateRequest true "Datos de la venta"
+// @Success 201 {object} models.Venta
+// @Failure 400 {object} map[string]string "Datos inválidos o stock insuficiente"
+// @Failure 500 {object} map[string]string "Error interno"
+// @Router /api/ventas [post]
 func CreateVenta(c *gin.Context) {
 	var req models.VentaCreateRequest
 
@@ -143,7 +154,16 @@ func CreateVenta(c *gin.Context) {
 	c.JSON(http.StatusCreated, venta)
 }
 
-// GetMisVentas - Obtener ventas del usuario autenticado
+// GetMisVentas godoc
+// @Summary Obtener mis ventas
+// @Description Obtiene las ventas del usuario autenticado
+// @Tags Ventas
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Success 200 {array} models.Venta
+// @Failure 500 {object} map[string]string "Error interno"
+// @Router /api/mis-ventas [get]
 func GetMisVentas(c *gin.Context) {
 	userID := c.GetInt("user_id")
 
@@ -163,7 +183,16 @@ func GetMisVentas(c *gin.Context) {
 	c.JSON(http.StatusOK, ventas)
 }
 
-// GetVentas - Obtener todas las ventas (solo dueño)
+// GetVentas godoc
+// @Summary Listar todas las ventas
+// @Description Obtiene todas las ventas (solo dueño)
+// @Tags Ventas
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Success 200 {array} models.Venta
+// @Failure 500 {object} map[string]string "Error interno"
+// @Router /api/owner/ventas [get]
 func GetVentas(c *gin.Context) {
 	var ventas []models.Venta
 	if err := config.DB.
@@ -181,7 +210,17 @@ func GetVentas(c *gin.Context) {
 	c.JSON(http.StatusOK, ventas)
 }
 
-// GetVentasByUsuario - Obtener ventas de un usuario específico (solo dueño)
+// GetVentasByUsuario godoc
+// @Summary Obtener ventas por usuario
+// @Description Obtiene las ventas de un usuario específico (solo dueño)
+// @Tags Ventas
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param id path int true "ID del usuario"
+// @Success 200 {array} models.Venta
+// @Failure 500 {object} map[string]string "Error interno"
+// @Router /api/owner/ventas/usuario/{id} [get]
 func GetVentasByUsuario(c *gin.Context) {
 	usuarioID := c.Param("id")
 
