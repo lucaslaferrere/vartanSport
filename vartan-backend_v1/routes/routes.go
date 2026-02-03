@@ -40,6 +40,16 @@ func SetupRoutes(router *gin.Engine) {
 		api.PUT("/pedidos/:id", controllers.UpdatePedidoEstado)
 
 		api.GET("/mis-comisiones", controllers.GetMisComisiones)
+
+		// Gastos
+		api.POST("/gastos", controllers.CrearGasto)
+		api.GET("/gastos", controllers.ListarGastos)
+		api.GET("/gastos/:id", controllers.ObtenerGasto)
+		api.PUT("/gastos/:id", controllers.ActualizarGasto)
+		api.DELETE("/gastos/:id", controllers.EliminarGasto)
+		api.GET("/gastos/resumen", controllers.ObtenerResumenGastos)
+		api.GET("/gastos/por-mes", controllers.ObtenerGastosPorMes)
+		api.GET("/gastos/proveedores", controllers.ListarProveedores)
 	}
 
 	owner := router.Group("/api/owner")

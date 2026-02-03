@@ -4,6 +4,7 @@ import (
 	"log"
 	"os"
 	"vartan-backend/config"
+	"vartan-backend/models"
 	"vartan-backend/routes"
 
 	"github.com/gin-contrib/cors"
@@ -19,6 +20,9 @@ func main() {
 
 	// tengo q conectar a la bd
 	config.ConnectDatabase()
+
+	// migraciones
+	MigrarGastos()
 
 	// Activar modo debug para ver más detalles
 	gin.SetMode(gin.DebugMode)
@@ -61,4 +65,12 @@ func main() {
 	//iniciioooo
 	log.Printf("Servidor corriendo en http://localhost:%s", port)
 	router.Run(":" + port)
+}
+
+// MigrarGastos crea/actualiza la tabla de gastos.
+func MigrarGastos() {
+	if err := config.DB.AutoMigrate(&models.Gasto{}); err != nil {
+		log.Fatal("Error al migrar tabla gastos:", err)
+	}
+	log.Println("✅ Tabla 'gastos' migrada exitosamente")
 }
