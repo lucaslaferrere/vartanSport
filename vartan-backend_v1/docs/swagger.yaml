@@ -1,0 +1,1270 @@
+basePath: /
+definitions:
+  models.Cliente:
+    properties:
+      email:
+        type: string
+      fecha_creacion:
+        type: string
+      id:
+        type: integer
+      nombre:
+        type: string
+      telefono:
+        type: string
+    type: object
+  models.ClienteCreateRequest:
+    properties:
+      email:
+        type: string
+      nombre:
+        type: string
+      telefono:
+        type: string
+    required:
+    - nombre
+    type: object
+  models.Comision:
+    properties:
+      anio:
+        type: integer
+      id:
+        type: integer
+      mes:
+        type: integer
+      observaciones:
+        type: string
+      total_comision:
+        type: number
+      total_ventas:
+        type: number
+      usuario:
+        allOf:
+        - $ref: '#/definitions/models.Usuario'
+        description: Relación
+      usuario_id:
+        type: integer
+    type: object
+  models.FormaPago:
+    properties:
+      id:
+        type: integer
+      nombre:
+        type: string
+    type: object
+  models.LoginRequest:
+    properties:
+      email:
+        type: string
+      password:
+        type: string
+    required:
+    - email
+    - password
+    type: object
+  models.LoginResponse:
+    properties:
+      token:
+        type: string
+      usuario:
+        $ref: '#/definitions/models.Usuario'
+    type: object
+  models.Pedido:
+    properties:
+      estado:
+        description: pendiente, despachado, cancelado
+        type: string
+      fecha_actualizacion:
+        type: string
+      fecha_creacion:
+        type: string
+      id:
+        type: integer
+      venta:
+        $ref: '#/definitions/models.Venta'
+      venta_id:
+        type: integer
+    type: object
+  models.PedidoUpdateRequest:
+    properties:
+      estado:
+        type: string
+    required:
+    - estado
+    type: object
+  models.Producto:
+    properties:
+      activo:
+        type: boolean
+      costo_unitario:
+        type: number
+      fecha_creacion:
+        type: string
+      id:
+        type: integer
+      nombre:
+        type: string
+    type: object
+  models.ProductoCreateRequest:
+    properties:
+      costo_unitario:
+        type: number
+      nombre:
+        type: string
+    required:
+    - costo_unitario
+    - nombre
+    type: object
+  models.ProductoStock:
+    properties:
+      cantidad:
+        type: integer
+      id:
+        type: integer
+      producto:
+        $ref: '#/definitions/models.Producto'
+      producto_id:
+        type: integer
+      talle:
+        type: string
+    type: object
+  models.RegistroRequest:
+    properties:
+      email:
+        type: string
+      nombre:
+        type: string
+      password:
+        type: string
+      rol:
+        type: string
+    required:
+    - email
+    - nombre
+    - password
+    - rol
+    type: object
+  models.StockCreateRequest:
+    properties:
+      cantidad:
+        type: integer
+      producto_id:
+        type: integer
+      talle:
+        type: string
+    required:
+    - cantidad
+    - producto_id
+    - talle
+    type: object
+  models.Usuario:
+    properties:
+      activo:
+        type: boolean
+      email:
+        type: string
+      fecha_creacion:
+        type: string
+      id:
+        type: integer
+      nombre:
+        type: string
+      rol:
+        type: string
+    type: object
+  models.Venta:
+    properties:
+      cliente:
+        $ref: '#/definitions/models.Cliente'
+      cliente_id:
+        type: integer
+      descuento:
+        description: Descuento aplicado (3% de financiera)
+        type: number
+      detalles:
+        items:
+          $ref: '#/definitions/models.VentaDetalle'
+        type: array
+      fecha_venta:
+        type: string
+      forma_pago:
+        $ref: '#/definitions/models.FormaPago'
+      forma_pago_id:
+        type: integer
+      id:
+        type: integer
+      saldo:
+        description: Lo que resta pagar
+        type: number
+      sena:
+        description: Seña abonada
+        type: number
+      total:
+        description: Total de la venta (precio de productos)
+        type: number
+      total_final:
+        description: Total - Descuento
+        type: number
+      usuario:
+        allOf:
+        - $ref: '#/definitions/models.Usuario'
+        description: Relaciones
+      usuario_id:
+        type: integer
+    type: object
+  models.VentaCreateRequest:
+    properties:
+      cliente_id:
+        type: integer
+      detalles:
+        items:
+          $ref: '#/definitions/models.VentaDetalleCreateRequest'
+        type: array
+      forma_pago_id:
+        description: 1=Transferencia Financiera, 2=Transf a Cero, 3=Transf Bancaria,
+          4=Efectivo
+        type: integer
+      sena:
+        type: number
+    required:
+    - cliente_id
+    - detalles
+    - forma_pago_id
+    - sena
+    type: object
+  models.VentaDetalle:
+    properties:
+      cantidad:
+        type: integer
+      id:
+        type: integer
+      precio_unitario:
+        type: number
+      producto:
+        allOf:
+        - $ref: '#/definitions/models.Producto'
+        description: Relaciones
+      producto_id:
+        type: integer
+      subtotal:
+        type: number
+      talle:
+        type: string
+      venta_id:
+        type: integer
+    type: object
+  models.VentaDetalleCreateRequest:
+    properties:
+      cantidad:
+        type: integer
+      precio_unitario:
+        type: number
+      producto_id:
+        type: integer
+      talle:
+        type: string
+    required:
+    - cantidad
+    - precio_unitario
+    - producto_id
+    - talle
+    type: object
+host: localhost:8080
+info:
+  contact: {}
+  description: API para la gestión de ventas, productos y clientes.
+  title: Vartan Backend API
+  version: "1.0"
+paths:
+  /api/clientes:
+    get:
+      consumes:
+      - application/json
+      description: Obtiene todos los clientes ordenados por nombre
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.Cliente'
+            type: array
+        "500":
+          description: Error interno
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Listar clientes
+      tags:
+      - Clientes
+    post:
+      consumes:
+      - application/json
+      description: Crea un nuevo cliente
+      parameters:
+      - description: Datos del cliente
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/models.ClienteCreateRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/models.Cliente'
+        "400":
+          description: Datos inválidos
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Error interno
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Crear cliente
+      tags:
+      - Clientes
+  /api/clientes/{id}:
+    get:
+      consumes:
+      - application/json
+      description: Obtiene un cliente específico por su ID
+      parameters:
+      - description: ID del cliente
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.Cliente'
+        "404":
+          description: Cliente no encontrado
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Obtener cliente por ID
+      tags:
+      - Clientes
+    put:
+      consumes:
+      - application/json
+      description: Actualiza los datos de un cliente existente
+      parameters:
+      - description: ID del cliente
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Datos actualizados
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/models.ClienteCreateRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.Cliente'
+        "400":
+          description: Datos inválidos
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Cliente no encontrado
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Error interno
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Actualizar cliente
+      tags:
+      - Clientes
+  /api/mis-comisiones:
+    get:
+      consumes:
+      - application/json
+      description: Obtiene las comisiones del usuario autenticado
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.Comision'
+            type: array
+        "500":
+          description: Error interno
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Obtener mis comisiones
+      tags:
+      - Comisiones
+  /api/mis-pedidos:
+    get:
+      consumes:
+      - application/json
+      description: Obtiene los pedidos del usuario autenticado
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.Pedido'
+            type: array
+        "500":
+          description: Error interno
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Obtener mis pedidos
+      tags:
+      - Pedidos
+  /api/mis-ventas:
+    get:
+      consumes:
+      - application/json
+      description: Obtiene las ventas del usuario autenticado
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.Venta'
+            type: array
+        "500":
+          description: Error interno
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Obtener mis ventas
+      tags:
+      - Ventas
+  /api/owner/clientes/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Elimina un cliente (solo dueño)
+      parameters:
+      - description: ID del cliente
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Cliente eliminado exitosamente
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Error interno
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Eliminar cliente
+      tags:
+      - Clientes
+  /api/owner/comisiones:
+    get:
+      consumes:
+      - application/json
+      description: Obtiene todas las comisiones (solo dueño)
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.Comision'
+            type: array
+        "500":
+          description: Error interno
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Listar todas las comisiones
+      tags:
+      - Comisiones
+  /api/owner/comisiones/{id}/observaciones:
+    put:
+      consumes:
+      - application/json
+      description: Agrega o actualiza observaciones a una comisión (solo dueño)
+      parameters:
+      - description: ID de la comisión
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Observaciones
+        in: body
+        name: request
+        required: true
+        schema:
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.Comision'
+        "400":
+          description: Datos inválidos
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Comisión no encontrada
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Error interno
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Actualizar observaciones de comisión
+      tags:
+      - Comisiones
+  /api/owner/comisiones/calcular:
+    post:
+      consumes:
+      - application/json
+      description: Calcula las comisiones del mes actual para todos los empleados
+        (solo dueño)
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Comisiones calculadas
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Error interno
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Calcular comisiones del mes
+      tags:
+      - Comisiones
+  /api/owner/comisiones/usuario/{id}:
+    get:
+      consumes:
+      - application/json
+      description: Obtiene las comisiones de un empleado específico (solo dueño)
+      parameters:
+      - description: ID del usuario
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.Comision'
+            type: array
+        "500":
+          description: Error interno
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Obtener comisiones por usuario
+      tags:
+      - Comisiones
+  /api/owner/pedidos:
+    get:
+      consumes:
+      - application/json
+      description: Obtiene todos los pedidos (solo dueño)
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.Pedido'
+            type: array
+        "500":
+          description: Error interno
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Listar todos los pedidos
+      tags:
+      - Pedidos
+  /api/owner/pedidos/estado/{estado}:
+    get:
+      consumes:
+      - application/json
+      description: Obtiene pedidos filtrados por estado (solo dueño)
+      parameters:
+      - description: Estado del pedido
+        enum:
+        - pendiente
+        - despachado
+        - cancelado
+        in: path
+        name: estado
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.Pedido'
+            type: array
+        "400":
+          description: Estado inválido
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Error interno
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Obtener pedidos por estado
+      tags:
+      - Pedidos
+  /api/owner/productos:
+    post:
+      consumes:
+      - application/json
+      description: Crea un nuevo producto (solo dueño)
+      parameters:
+      - description: Datos del producto
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/models.ProductoCreateRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/models.Producto'
+        "400":
+          description: Datos inválidos
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Error interno
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Crear producto
+      tags:
+      - Productos
+  /api/owner/productos/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Desactiva un producto (solo dueño)
+      parameters:
+      - description: ID del producto
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Producto eliminado exitosamente
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Producto no encontrado
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Error interno
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Eliminar producto
+      tags:
+      - Productos
+    put:
+      consumes:
+      - application/json
+      description: Actualiza un producto existente (solo dueño)
+      parameters:
+      - description: ID del producto
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Datos actualizados
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/models.ProductoCreateRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.Producto'
+        "400":
+          description: Datos inválidos
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Producto no encontrado
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Error interno
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Actualizar producto
+      tags:
+      - Productos
+  /api/owner/stock:
+    post:
+      consumes:
+      - application/json
+      description: Agrega stock a un producto (solo dueño)
+      parameters:
+      - description: Datos del stock
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/models.StockCreateRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/models.ProductoStock'
+        "400":
+          description: Datos inválidos
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Error interno
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Agregar stock
+      tags:
+      - Stock
+  /api/owner/stock/{id}:
+    put:
+      consumes:
+      - application/json
+      description: Actualiza la cantidad de stock (solo dueño)
+      parameters:
+      - description: ID del stock
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Cantidad de stock
+        in: body
+        name: request
+        required: true
+        schema:
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.ProductoStock'
+        "400":
+          description: Datos inválidos
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Stock no encontrado
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Error interno
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Actualizar stock
+      tags:
+      - Stock
+  /api/owner/ventas:
+    get:
+      consumes:
+      - application/json
+      description: Obtiene todas las ventas (solo dueño)
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.Venta'
+            type: array
+        "500":
+          description: Error interno
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Listar todas las ventas
+      tags:
+      - Ventas
+  /api/owner/ventas/usuario/{id}:
+    get:
+      consumes:
+      - application/json
+      description: Obtiene las ventas de un usuario específico (solo dueño)
+      parameters:
+      - description: ID del usuario
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.Venta'
+            type: array
+        "500":
+          description: Error interno
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Obtener ventas por usuario
+      tags:
+      - Ventas
+  /api/pedidos/{id}:
+    put:
+      consumes:
+      - application/json
+      description: Actualiza el estado de un pedido
+      parameters:
+      - description: ID del pedido
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Nuevo estado
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/models.PedidoUpdateRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.Pedido'
+        "400":
+          description: Estado inválido
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Pedido no encontrado
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Error interno
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Actualizar estado de pedido
+      tags:
+      - Pedidos
+  /api/productos:
+    get:
+      consumes:
+      - application/json
+      description: Obtiene todos los productos activos
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.Producto'
+            type: array
+        "500":
+          description: Error interno
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Listar productos
+      tags:
+      - Productos
+  /api/productos/{id}:
+    get:
+      consumes:
+      - application/json
+      description: Obtiene un producto específico por su ID
+      parameters:
+      - description: ID del producto
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.Producto'
+        "404":
+          description: Producto no encontrado
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Obtener producto por ID
+      tags:
+      - Productos
+  /api/profile:
+    get:
+      consumes:
+      - application/json
+      description: Devuelve los datos del usuario autenticado
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.Usuario'
+        "401":
+          description: No autorizado
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Usuario no encontrado
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Obtener perfil del usuario
+      tags:
+      - Autenticación
+  /api/stock:
+    get:
+      consumes:
+      - application/json
+      description: Obtiene el stock de todos los productos con talles
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.ProductoStock'
+            type: array
+        "500":
+          description: Error interno
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Listar stock
+      tags:
+      - Stock
+  /api/stock/producto/{id}:
+    get:
+      consumes:
+      - application/json
+      description: Obtiene el stock de un producto específico
+      parameters:
+      - description: ID del producto
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.ProductoStock'
+            type: array
+        "500":
+          description: Error interno
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Obtener stock por producto
+      tags:
+      - Stock
+  /api/ventas:
+    post:
+      consumes:
+      - application/json
+      description: Crea una nueva venta con descuentos automáticos
+      parameters:
+      - description: Datos de la venta
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/models.VentaCreateRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/models.Venta'
+        "400":
+          description: Datos inválidos o stock insuficiente
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Error interno
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Crear venta
+      tags:
+      - Ventas
+  /auth/login:
+    post:
+      consumes:
+      - application/json
+      description: Autentica un usuario y devuelve un token JWT
+      parameters:
+      - description: Credenciales de login
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/models.LoginRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.LoginResponse'
+        "400":
+          description: Datos inválidos
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Credenciales inválidas
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Iniciar sesión
+      tags:
+      - Autenticación
+  /auth/register:
+    post:
+      consumes:
+      - application/json
+      description: Crea un nuevo usuario en el sistema
+      parameters:
+      - description: Datos del nuevo usuario
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/models.RegistroRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Usuario creado exitosamente
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Datos inválidos o email ya registrado
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Error interno
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Registrar usuario
+      tags:
+      - Autenticación
+securityDefinitions:
+  BearerAuth:
+    description: 'Ingrese el token JWT con el prefijo Bearer: "Bearer {token}"'
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"

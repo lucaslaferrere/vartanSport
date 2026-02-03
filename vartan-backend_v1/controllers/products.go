@@ -9,7 +9,16 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// GetProductos - Obtener todos los productos
+// GetProductos godoc
+// @Summary Listar productos
+// @Description Obtiene todos los productos activos
+// @Tags Productos
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Success 200 {array} models.Producto
+// @Failure 500 {object} map[string]string "Error interno"
+// @Router /api/productos [get]
 func GetProductos(c *gin.Context) {
 	var productos []models.Producto
 
@@ -21,7 +30,17 @@ func GetProductos(c *gin.Context) {
 	c.JSON(http.StatusOK, productos)
 }
 
-// GetProducto - Obtener un producto por ID
+// GetProducto godoc
+// @Summary Obtener producto por ID
+// @Description Obtiene un producto específico por su ID
+// @Tags Productos
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param id path int true "ID del producto"
+// @Success 200 {object} models.Producto
+// @Failure 404 {object} map[string]string "Producto no encontrado"
+// @Router /api/productos/{id} [get]
 func GetProducto(c *gin.Context) {
 	id := c.Param("id")
 
@@ -34,7 +53,18 @@ func GetProducto(c *gin.Context) {
 	c.JSON(http.StatusOK, producto)
 }
 
-// CreateProducto - Crear un producto nuevo (solo dueño)
+// CreateProducto godoc
+// @Summary Crear producto
+// @Description Crea un nuevo producto (solo dueño)
+// @Tags Productos
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param request body models.ProductoCreateRequest true "Datos del producto"
+// @Success 201 {object} models.Producto
+// @Failure 400 {object} map[string]string "Datos inválidos"
+// @Failure 500 {object} map[string]string "Error interno"
+// @Router /api/owner/productos [post]
 func CreateProducto(c *gin.Context) {
 	var req models.ProductoCreateRequest
 
@@ -57,7 +87,20 @@ func CreateProducto(c *gin.Context) {
 	c.JSON(http.StatusCreated, producto)
 }
 
-// UpdateProducto - Actualizar un producto (solo dueño)
+// UpdateProducto godoc
+// @Summary Actualizar producto
+// @Description Actualiza un producto existente (solo dueño)
+// @Tags Productos
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param id path int true "ID del producto"
+// @Param request body models.ProductoCreateRequest true "Datos actualizados"
+// @Success 200 {object} models.Producto
+// @Failure 400 {object} map[string]string "Datos inválidos"
+// @Failure 404 {object} map[string]string "Producto no encontrado"
+// @Failure 500 {object} map[string]string "Error interno"
+// @Router /api/owner/productos/{id} [put]
 func UpdateProducto(c *gin.Context) {
 	id := c.Param("id")
 
@@ -84,7 +127,18 @@ func UpdateProducto(c *gin.Context) {
 	c.JSON(http.StatusOK, producto)
 }
 
-// DeleteProducto - Eliminar (desactivar) un producto (solo dueño)
+// DeleteProducto godoc
+// @Summary Eliminar producto
+// @Description Desactiva un producto (solo dueño)
+// @Tags Productos
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param id path int true "ID del producto"
+// @Success 200 {object} map[string]string "Producto eliminado exitosamente"
+// @Failure 404 {object} map[string]string "Producto no encontrado"
+// @Failure 500 {object} map[string]string "Error interno"
+// @Router /api/owner/productos/{id} [delete]
 func DeleteProducto(c *gin.Context) {
 	id := c.Param("id")
 
@@ -104,7 +158,16 @@ func DeleteProducto(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Producto eliminado exitosamente"})
 }
 
-// GetStock - Obtener stock de todos los productos con talles
+// GetStock godoc
+// @Summary Listar stock
+// @Description Obtiene el stock de todos los productos con talles
+// @Tags Stock
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Success 200 {array} models.ProductoStock
+// @Failure 500 {object} map[string]string "Error interno"
+// @Router /api/stock [get]
 func GetStock(c *gin.Context) {
 	var stock []models.ProductoStock
 
@@ -116,7 +179,17 @@ func GetStock(c *gin.Context) {
 	c.JSON(http.StatusOK, stock)
 }
 
-// GetStockByProducto - Obtener stock de un producto específico
+// GetStockByProducto godoc
+// @Summary Obtener stock por producto
+// @Description Obtiene el stock de un producto específico
+// @Tags Stock
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param id path int true "ID del producto"
+// @Success 200 {array} models.ProductoStock
+// @Failure 500 {object} map[string]string "Error interno"
+// @Router /api/stock/producto/{id} [get]
 func GetStockByProducto(c *gin.Context) {
 	productoID := c.Param("id")
 
@@ -129,7 +202,18 @@ func GetStockByProducto(c *gin.Context) {
 	c.JSON(http.StatusOK, stock)
 }
 
-// AddStock - Agregar stock de un producto (solo dueño)
+// AddStock godoc
+// @Summary Agregar stock
+// @Description Agrega stock a un producto (solo dueño)
+// @Tags Stock
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param request body models.StockCreateRequest true "Datos del stock"
+// @Success 201 {object} models.ProductoStock
+// @Failure 400 {object} map[string]string "Datos inválidos"
+// @Failure 500 {object} map[string]string "Error interno"
+// @Router /api/owner/stock [post]
 func AddStock(c *gin.Context) {
 	var req models.StockCreateRequest
 
@@ -172,7 +256,20 @@ func AddStock(c *gin.Context) {
 	c.JSON(http.StatusOK, stock)
 }
 
-// UpdateStock - Actualizar cantidad de stock (solo dueño)
+// UpdateStock godoc
+// @Summary Actualizar stock
+// @Description Actualiza la cantidad de stock (solo dueño)
+// @Tags Stock
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param id path int true "ID del stock"
+// @Param request body object true "Cantidad de stock" example({"cantidad": 10})
+// @Success 200 {object} models.ProductoStock
+// @Failure 400 {object} map[string]string "Datos inválidos"
+// @Failure 404 {object} map[string]string "Stock no encontrado"
+// @Failure 500 {object} map[string]string "Error interno"
+// @Router /api/owner/stock/{id} [put]
 func UpdateStock(c *gin.Context) {
 	id, _ := strconv.Atoi(c.Param("id"))
 

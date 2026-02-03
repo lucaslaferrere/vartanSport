@@ -9,7 +9,16 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// GetMisComisiones - Obtener comisiones del usuario autenticado
+// GetMisComisiones godoc
+// @Summary Obtener mis comisiones
+// @Description Obtiene las comisiones del usuario autenticado
+// @Tags Comisiones
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Success 200 {array} models.Comision
+// @Failure 500 {object} map[string]string "Error interno"
+// @Router /api/mis-comisiones [get]
 func GetMisComisiones(c *gin.Context) {
 	userID := c.GetInt("user_id")
 
@@ -25,7 +34,17 @@ func GetMisComisiones(c *gin.Context) {
 	c.JSON(http.StatusOK, comisiones)
 }
 
-// GetComisionesByUsuario - Obtener comisiones de un empleado (solo dueño)
+// GetComisionesByUsuario godoc
+// @Summary Obtener comisiones por usuario
+// @Description Obtiene las comisiones de un empleado específico (solo dueño)
+// @Tags Comisiones
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param id path int true "ID del usuario"
+// @Success 200 {array} models.Comision
+// @Failure 500 {object} map[string]string "Error interno"
+// @Router /api/owner/comisiones/usuario/{id} [get]
 func GetComisionesByUsuario(c *gin.Context) {
 	usuarioID := c.Param("id")
 
@@ -42,7 +61,16 @@ func GetComisionesByUsuario(c *gin.Context) {
 	c.JSON(http.StatusOK, comisiones)
 }
 
-// GetAllComisiones - Obtener todas las comisiones (solo dueño)
+// GetAllComisiones godoc
+// @Summary Listar todas las comisiones
+// @Description Obtiene todas las comisiones (solo dueño)
+// @Tags Comisiones
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Success 200 {array} models.Comision
+// @Failure 500 {object} map[string]string "Error interno"
+// @Router /api/owner/comisiones [get]
 func GetAllComisiones(c *gin.Context) {
 	var comisiones []models.Comision
 
@@ -57,7 +85,16 @@ func GetAllComisiones(c *gin.Context) {
 	c.JSON(http.StatusOK, comisiones)
 }
 
-// CalcularComisionesMesActual - Calcular comisiones del mes actual para todos los empleados (solo dueño)
+// CalcularComisionesMesActual godoc
+// @Summary Calcular comisiones del mes
+// @Description Calcula las comisiones del mes actual para todos los empleados (solo dueño)
+// @Tags Comisiones
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Success 200 {object} map[string]string "Comisiones calculadas"
+// @Failure 500 {object} map[string]string "Error interno"
+// @Router /api/owner/comisiones/calcular [post]
 func CalcularComisionesMesActual(c *gin.Context) {
 	now := time.Now()
 	mes := int(now.Month())
@@ -71,10 +108,10 @@ func CalcularComisionesMesActual(c *gin.Context) {
 	}
 
 	for _, usuario := range usuarios {
-		// Calcular ventas del mes
+		// Calcular ventas del mes (sintaxis PostgreSQL)
 		var totalVentas float64
 		config.DB.Model(&models.Venta{}).
-			Where("usuario_id = ? AND MONTH(fecha_venta) = ? AND YEAR(fecha_venta) = ?", usuario.ID, mes, anio).
+			Where("usuario_id = ? AND EXTRACT(MONTH FROM fecha_venta) = ? AND EXTRACT(YEAR FROM fecha_venta) = ?", usuario.ID, mes, anio).
 			Select("COALESCE(SUM(total_final), 0)").
 			Scan(&totalVentas)
 
@@ -106,7 +143,20 @@ func CalcularComisionesMesActual(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Comisiones calculadas exitosamente"})
 }
 
-// UpdateObservaciones - Agregar observaciones a una comisión (solo dueño)
+// UpdateObservaciones godoc
+// @Summary Actualizar observaciones de comisión
+// @Description Agrega o actualiza observaciones a una comisión (solo dueño)
+// @Tags Comisiones
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param id path int true "ID de la comisión"
+// @Param request body object true "Observaciones" example({"observaciones": "Buen desempeño"})
+// @Success 200 {object} models.Comision
+// @Failure 400 {object} map[string]string "Datos inválidos"
+// @Failure 404 {object} map[string]string "Comisión no encontrada"
+// @Failure 500 {object} map[string]string "Error interno"
+// @Router /api/owner/comisiones/{id}/observaciones [put]
 func UpdateObservaciones(c *gin.Context) {
 	id := c.Param("id")
 

@@ -8,7 +8,16 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// GetClientes - Obtener todos los clientes
+// GetClientes godoc
+// @Summary Listar clientes
+// @Description Obtiene todos los clientes ordenados por nombre
+// @Tags Clientes
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Success 200 {array} models.Cliente
+// @Failure 500 {object} map[string]string "Error interno"
+// @Router /api/clientes [get]
 func GetClientes(c *gin.Context) {
 	var clientes []models.Cliente
 
@@ -20,7 +29,17 @@ func GetClientes(c *gin.Context) {
 	c.JSON(http.StatusOK, clientes)
 }
 
-// GetCliente - Obtener un cliente por ID
+// GetCliente godoc
+// @Summary Obtener cliente por ID
+// @Description Obtiene un cliente específico por su ID
+// @Tags Clientes
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param id path int true "ID del cliente"
+// @Success 200 {object} models.Cliente
+// @Failure 404 {object} map[string]string "Cliente no encontrado"
+// @Router /api/clientes/{id} [get]
 func GetCliente(c *gin.Context) {
 	id := c.Param("id")
 
@@ -33,7 +52,18 @@ func GetCliente(c *gin.Context) {
 	c.JSON(http.StatusOK, cliente)
 }
 
-// CreateCliente - Crear un cliente nuevo
+// CreateCliente godoc
+// @Summary Crear cliente
+// @Description Crea un nuevo cliente
+// @Tags Clientes
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param request body models.ClienteCreateRequest true "Datos del cliente"
+// @Success 201 {object} models.Cliente
+// @Failure 400 {object} map[string]string "Datos inválidos"
+// @Failure 500 {object} map[string]string "Error interno"
+// @Router /api/clientes [post]
 func CreateCliente(c *gin.Context) {
 	var req models.ClienteCreateRequest
 
@@ -56,7 +86,20 @@ func CreateCliente(c *gin.Context) {
 	c.JSON(http.StatusCreated, cliente)
 }
 
-// UpdateCliente - Actualizar un cliente
+// UpdateCliente godoc
+// @Summary Actualizar cliente
+// @Description Actualiza los datos de un cliente existente
+// @Tags Clientes
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param id path int true "ID del cliente"
+// @Param request body models.ClienteCreateRequest true "Datos actualizados"
+// @Success 200 {object} models.Cliente
+// @Failure 400 {object} map[string]string "Datos inválidos"
+// @Failure 404 {object} map[string]string "Cliente no encontrado"
+// @Failure 500 {object} map[string]string "Error interno"
+// @Router /api/clientes/{id} [put]
 func UpdateCliente(c *gin.Context) {
 	id := c.Param("id")
 
@@ -84,7 +127,17 @@ func UpdateCliente(c *gin.Context) {
 	c.JSON(http.StatusOK, cliente)
 }
 
-// DeleteCliente - Eliminar un cliente
+// DeleteCliente godoc
+// @Summary Eliminar cliente
+// @Description Elimina un cliente (solo dueño)
+// @Tags Clientes
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param id path int true "ID del cliente"
+// @Success 200 {object} map[string]string "Cliente eliminado exitosamente"
+// @Failure 500 {object} map[string]string "Error interno"
+// @Router /api/owner/clientes/{id} [delete]
 func DeleteCliente(c *gin.Context) {
 	id := c.Param("id")
 
