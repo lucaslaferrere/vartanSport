@@ -1555,6 +1555,516 @@
                     }
                 }
             }
+        },
+        "/api/gastos": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Lista todos los gastos con filtros opcionales por categoría, fecha y proveedor",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Gastos"
+                ],
+                "summary": "Listar gastos",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Filtrar por categoría",
+                        "name": "categoria",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Fecha desde (YYYY-MM-DD)",
+                        "name": "fecha_desde",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Fecha hasta (YYYY-MM-DD)",
+                        "name": "fecha_hasta",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filtrar por proveedor",
+                        "name": "proveedor",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Número de página",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Cantidad por página",
+                        "name": "limit",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "gastos": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/definitions/models.Gasto"
+                                    }
+                                },
+                                "total": {
+                                    "type": "integer"
+                                },
+                                "page": {
+                                    "type": "integer"
+                                },
+                                "limit": {
+                                    "type": "integer"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Error interno",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Crea un nuevo gasto en el sistema",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Gastos"
+                ],
+                "summary": "Crear gasto",
+                "parameters": [
+                    {
+                        "description": "Datos del gasto",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.GastoInput"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "message": {
+                                    "type": "string"
+                                },
+                                "gasto": {
+                                    "$ref": "#/definitions/models.Gasto"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Datos inválidos",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "No autorizado",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Error interno",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/gastos/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Obtiene un gasto específico por su ID",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Gastos"
+                ],
+                "summary": "Obtener gasto por ID",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID del gasto",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/models.Gasto"
+                        }
+                    },
+                    "404": {
+                        "description": "Gasto no encontrado",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Error interno",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            },
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Actualiza un gasto existente",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Gastos"
+                ],
+                "summary": "Actualizar gasto",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID del gasto",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Datos actualizados",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.GastoInput"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "message": {
+                                    "type": "string"
+                                },
+                                "gasto": {
+                                    "$ref": "#/definitions/models.Gasto"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Datos inválidos",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Gasto no encontrado",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Error interno",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Elimina un gasto del sistema",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Gastos"
+                ],
+                "summary": "Eliminar gasto",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID del gasto",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Gasto eliminado exitosamente",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Gasto no encontrado",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Error interno",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/gastos/resumen": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Obtiene un resumen de gastos agrupados por categoría",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Gastos"
+                ],
+                "summary": "Obtener resumen de gastos",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Fecha desde (YYYY-MM-DD)",
+                        "name": "fecha_desde",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Fecha hasta (YYYY-MM-DD)",
+                        "name": "fecha_hasta",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/models.GastoResumen"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Error interno",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/gastos/por-mes": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Obtiene los gastos agrupados por mes",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Gastos"
+                ],
+                "summary": "Obtener gastos por mes",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Año a consultar",
+                        "name": "anio",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "type": "object",
+                                "properties": {
+                                    "mes": {
+                                        "type": "integer"
+                                    },
+                                    "anio": {
+                                        "type": "integer"
+                                    },
+                                    "total": {
+                                        "type": "number"
+                                    },
+                                    "cantidad": {
+                                        "type": "integer"
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Error interno",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/gastos/proveedores": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Lista todos los proveedores únicos registrados en gastos",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Gastos"
+                ],
+                "summary": "Listar proveedores",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Error interno",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
         }
     },
     "definitions": {
@@ -1637,6 +2147,106 @@
                 },
                 "nombre": {
                     "type": "string"
+                }
+            }
+        },
+        "models.Gasto": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "integer"
+                },
+                "descripcion": {
+                    "type": "string"
+                },
+                "monto": {
+                    "type": "number"
+                },
+                "fecha": {
+                    "type": "string"
+                },
+                "categoria": {
+                    "description": "Proveedor, Alquiler, Mercadería, Servicios, Otros",
+                    "type": "string"
+                },
+                "proveedor": {
+                    "type": "string"
+                },
+                "metodo_pago": {
+                    "description": "Efectivo, Transferencia, Tarjeta",
+                    "type": "string"
+                },
+                "comprobante": {
+                    "type": "string"
+                },
+                "notas": {
+                    "type": "string"
+                },
+                "cliente_id": {
+                    "type": "integer"
+                },
+                "usuario_id": {
+                    "type": "integer"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "updated_at": {
+                    "type": "string"
+                }
+            }
+        },
+        "models.GastoInput": {
+            "type": "object",
+            "required": [
+                "descripcion",
+                "monto",
+                "fecha",
+                "categoria"
+            ],
+            "properties": {
+                "descripcion": {
+                    "type": "string"
+                },
+                "monto": {
+                    "type": "number",
+                    "minimum": 0.01
+                },
+                "fecha": {
+                    "description": "Formato YYYY-MM-DD",
+                    "type": "string",
+                    "example": "2025-02-03"
+                },
+                "categoria": {
+                    "type": "string",
+                    "enum": ["Proveedor", "Alquiler", "Mercadería", "Servicios", "Otros"]
+                },
+                "proveedor": {
+                    "type": "string"
+                },
+                "metodo_pago": {
+                    "type": "string",
+                    "enum": ["Efectivo", "Transferencia", "Tarjeta", ""]
+                },
+                "comprobante": {
+                    "type": "string"
+                },
+                "notas": {
+                    "type": "string"
+                }
+            }
+        },
+        "models.GastoResumen": {
+            "type": "object",
+            "properties": {
+                "categoria": {
+                    "type": "string"
+                },
+                "total": {
+                    "type": "number"
+                },
+                "cantidad": {
+                    "type": "integer"
                 }
             }
         },

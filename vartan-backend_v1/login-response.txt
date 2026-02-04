@@ -1,0 +1,1 @@
+﻿{"message":"Servidor funcionando correctamente","status":"ok"}
