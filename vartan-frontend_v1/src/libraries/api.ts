@@ -10,12 +10,11 @@ export const api = axios.create({
 });
 
 api.interceptors.request.use((config) => {
-    const token = document.cookie
-        .split('; ')
-        .find(row => row.startsWith('token='))
-        ?.split('=')[1];
-    if (token) {
-        config.headers.Authorization = `Bearer ${token}`;
+    if (typeof window !== 'undefined') {
+        const token = localStorage.getItem('token');
+        if (token) {
+            config.headers.Authorization = `Bearer ${token}`;
+        }
     }
     return config;
 });
@@ -24,16 +23,9 @@ api.interceptors.response.use(
     (response) => response,
     async (error) => {
         if (error.response?.status === 401) {
-            try {
-                const refreshResponse = await axios.post(`${API_URL}/api/refresh-token`, {}, {
-                    withCredentials: true,
-                });
-                const newToken = refreshResponse.data.token;
-                document.cookie = `token=${newToken}; path=/; secure;`;
-                error.config.headers.Authorization = `Bearer ${newToken}`;
-                return api.request(error.config);
-            } catch (refreshError) {
-                document.cookie = 'token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC;';
+            if (typeof window !== 'undefined') {
+                localStorage.removeItem('token');
+                localStorage.removeItem('user');
                 window.location.href = '/login';
             }
         }
