@@ -1,0 +1,13 @@
+@echo off
+echo Limpiando procesos de Node.js...
+taskkill /F /IM node.exe 2>nul
+
+echo Eliminando carpeta .next...
+if exist .next rmdir /s /q .next
+
+echo Esperando 2 segundos...
+timeout /t 2 /nobreak >nul
+
+echo Iniciando servidor de desarrollo...
+npm run dev
+
