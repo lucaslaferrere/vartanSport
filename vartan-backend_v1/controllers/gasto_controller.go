@@ -5,9 +5,9 @@ import (
 	"net/http"
 	"strconv"
 	"time"
+	"vartan-backend/config"
 	"vartan-backend/models"
-	"vartan-backend/database"
-	
+
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 )
@@ -22,14 +22,18 @@ func CrearGasto(c *gin.Context) {
 	}
 	
 	// Obtener cliente_id del contexto (del middleware de autenticación)
-	clienteID, exists := c.Get("cliente_id")
-	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Cliente no autenticado"})
+	clienteID, ok := getClienteID(c)
+	if !ok {
 		return
 	}
 	
 	// Obtener usuario_id (opcional)
-	usuarioID, _ := c.Get("usuario_id")
+	var usuarioID uint
+	if value, ok := c.Get("usuario_id"); ok {
+		if parsed, ok := value.(uint); ok {
+			usuarioID = parsed
+		}
+	}
 	
 	// Parsear fecha
 	fecha, err := time.Parse("2006-01-02", input.Fecha)
@@ -52,7 +56,7 @@ func CrearGasto(c *gin.Context) {
 		UsuarioID:   usuarioID.(uint),
 	}
 	
-	if err := database.DB.Create(&gasto).Error; err != nil {
+	if err := config.DB.Create(&gasto).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error al crear gasto"})
 		return
 	}
@@ -65,7 +69,10 @@ func CrearGasto(c *gin.Context) {
 
 // ListarGastos lista todos los gastos con filtros opcionales
 func ListarGastos(c *gin.Context) {
-	clienteID, _ := c.Get("cliente_id")
+	clienteID, ok := getClienteID(c)
+	if !ok {
+		return
+	}
 	
 	// Parámetros de consulta opcionales
 	categoria := c.Query("categoria")
@@ -76,10 +83,16 @@ func ListarGastos(c *gin.Context) {
 	// Paginación
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "50"))
+	if page < 1 {
+		page = 1
+	}
+	if limit < 1 {
+		limit = 50
+	}
 	offset := (page - 1) * limit
 	
 	// Construir query
-	query := database.DB.Where("cliente_id = ?", clienteID)
+	query := config.DB.Where("cliente_id = ?", clienteID)
 	
 	// Aplicar filtros
 	if categoria != "" {
@@ -119,11 +132,14 @@ func ListarGastos(c *gin.Context) {
 
 // ObtenerGasto obtiene un gasto por ID
 func ObtenerGasto(c *gin.Context) {
-	clienteID, _ := c.Get("cliente_id")
+	clienteID, ok := getClienteID(c)
+	if !ok {
+		return
+	}
 	gastoID := c.Param("id")
 	
 	var gasto models.Gasto
-	if err := database.DB.Where("id = ? AND cliente_id = ?", gastoID, clienteID).First(&gasto).Error; err != nil {
+	if err := config.DB.Where("id = ? AND cliente_id = ?", gastoID, clienteID).First(&gasto).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
 			c.JSON(http.StatusNotFound, gin.H{"error": "Gasto no encontrado"})
 			return
@@ -137,12 +153,15 @@ func ObtenerGasto(c *gin.Context) {
 
 // ActualizarGasto actualiza un gasto existente
 func ActualizarGasto(c *gin.Context) {
-	clienteID, _ := c.Get("cliente_id")
+	clienteID, ok := getClienteID(c)
+	if !ok {
+		return
+	}
 	gastoID := c.Param("id")
 	
 	// Verificar que el gasto existe y pertenece al cliente
 	var gasto models.Gasto
-	if err := database.DB.Where("id = ? AND cliente_id = ?", gastoID, clienteID).First(&gasto).Error; err != nil {
+	if err := config.DB.Where("id = ? AND cliente_id = ?", gastoID, clienteID).First(&gasto).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
 			c.JSON(http.StatusNotFound, gin.H{"error": "Gasto no encontrado"})
 			return
@@ -175,7 +194,7 @@ func ActualizarGasto(c *gin.Context) {
 	gasto.Comprobante = input.Comprobante
 	gasto.Notas = input.Notas
 	
-	if err := database.DB.Save(&gasto).Error; err != nil {
+	if err := config.DB.Save(&gasto).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error al actualizar gasto"})
 		return
 	}
@@ -188,12 +207,15 @@ func ActualizarGasto(c *gin.Context) {
 
 // EliminarGasto elimina un gasto
 func EliminarGasto(c *gin.Context) {
-	clienteID, _ := c.Get("cliente_id")
+	clienteID, ok := getClienteID(c)
+	if !ok {
+		return
+	}
 	gastoID := c.Param("id")
 	
 	// Verificar que existe y pertenece al cliente
 	var gasto models.Gasto
-	if err := database.DB.Where("id = ? AND cliente_id = ?", gastoID, clienteID).First(&gasto).Error; err != nil {
+	if err := config.DB.Where("id = ? AND cliente_id = ?", gastoID, clienteID).First(&gasto).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
 			c.JSON(http.StatusNotFound, gin.H{"error": "Gasto no encontrado"})
 			return
@@ -203,7 +225,7 @@ func EliminarGasto(c *gin.Context) {
 	}
 	
 	// Eliminar
-	if err := database.DB.Delete(&gasto).Error; err != nil {
+	if err := config.DB.Delete(&gasto).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error al eliminar gasto"})
 		return
 	}
@@ -213,13 +235,16 @@ func EliminarGasto(c *gin.Context) {
 
 // ObtenerResumenGastos obtiene un resumen de gastos por categoría
 func ObtenerResumenGastos(c *gin.Context) {
-	clienteID, _ := c.Get("cliente_id")
+	clienteID, ok := getClienteID(c)
+	if !ok {
+		return
+	}
 	
 	// Parámetros opcionales
 	fechaDesde := c.Query("fecha_desde")
 	fechaHasta := c.Query("fecha_hasta")
 	
-	query := database.DB.Model(&models.Gasto{}).Where("cliente_id = ?", clienteID)
+	query := config.DB.Model(&models.Gasto{}).Where("cliente_id = ?", clienteID)
 	
 	if fechaDesde != "" {
 		query = query.Where("fecha >= ?", fechaDesde)
@@ -254,7 +279,10 @@ func ObtenerResumenGastos(c *gin.Context) {
 
 // ObtenerGastosPorMes obtiene gastos agrupados por mes
 func ObtenerGastosPorMes(c *gin.Context) {
-	clienteID, _ := c.Get("cliente_id")
+	clienteID, ok := getClienteID(c)
+	if !ok {
+		return
+	}
 	
 	// Año a consultar (por defecto año actual)
 	anio := c.DefaultQuery("anio", strconv.Itoa(time.Now().Year()))
@@ -266,7 +294,7 @@ func ObtenerGastosPorMes(c *gin.Context) {
 	}
 	
 	var gastosPorMes []GastoPorMes
-	database.DB.Model(&models.Gasto{}).
+	config.DB.Model(&models.Gasto{}).
 		Select("EXTRACT(MONTH FROM fecha) as mes, SUM(monto) as total, COUNT(*) as cantidad").
 		Where("cliente_id = ? AND EXTRACT(YEAR FROM fecha) = ?", clienteID, anio).
 		Group("mes").
@@ -281,14 +309,31 @@ func ObtenerGastosPorMes(c *gin.Context) {
 
 // ListarProveedores lista todos los proveedores únicos
 func ListarProveedores(c *gin.Context) {
-	clienteID, _ := c.Get("cliente_id")
+	clienteID, ok := getClienteID(c)
+	if !ok {
+		return
+	}
 	
 	var proveedores []string
-	database.DB.Model(&models.Gasto{}).
+	config.DB.Model(&models.Gasto{}).
 		Where("cliente_id = ? AND proveedor != ''", clienteID).
 		Distinct("proveedor").
 		Order("proveedor").
 		Pluck("proveedor", &proveedores)
 	
 	c.JSON(http.StatusOK, gin.H{"proveedores": proveedores})
+}
+
+func getClienteID(c *gin.Context) (uint, bool) {
+	value, ok := c.Get("cliente_id")
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Cliente no autenticado"})
+		return 0, false
+	}
+	clienteID, ok := value.(uint)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Cliente no autenticado"})
+		return 0, false
+	}
+	return clienteID, true
 }

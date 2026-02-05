@@ -44,6 +44,7 @@ func main() {
 		&models.VentaDetalle{},
 		&models.Pedido{},
 		&models.Comision{},
+		&models.Delivery{},
 	)
 	// migraciones
 	MigrarGastos()
@@ -70,6 +71,12 @@ func main() {
 		MaxAge:           12 * 3600,
 	}))
 
+	api := router.Group("/api")
+
+	routes.GastoRoutes(api)
+
+	routes.DeliveryRoutes(api)
+
 	routes.SetupRoutes(router)
 
 	// Swagger documentation route
@@ -87,6 +94,7 @@ func main() {
 
 	log.Printf("Servidor corriendo en http://localhost:%s", port)
 	router.Run(":" + port)
+
 }
 
 // MigrarGastos crea/actualiza la tabla de gastos.

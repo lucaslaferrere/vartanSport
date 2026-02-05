@@ -3,10 +3,10 @@ package tests
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"strconv"
 	"testing"
 	"time"
 	"vartan-backend/config"
@@ -14,7 +14,7 @@ import (
 	"vartan-backend/models"
 
 	"github.com/gin-gonic/gin"
-	"gorm.io/driver/sqlserver"
+	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
 
@@ -22,7 +22,7 @@ func setupTestDB(t *testing.T) {
 	t.Helper()
 
 	dsn := testDatabaseDSN(t)
-	db, err := gorm.Open(sqlserver.Open(dsn), &gorm.Config{})
+	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {
 		t.Fatalf("no se pudo conectar a la DB de tests: %v", err)
 	}
@@ -258,6 +258,6 @@ func TestListarProveedores(t *testing.T) {
 	}
 }
 
-func intToString(v int) string {
-	return fmt.Sprintf("%d", v)
+func intToString(v uint) string {
+	return strconv.FormatUint(uint64(v), 10)
 }
