@@ -52,8 +52,8 @@ func CrearGasto(c *gin.Context) {
 		MetodoPago:  input.MetodoPago,
 		Comprobante: input.Comprobante,
 		Notas:       input.Notas,
-		ClienteID:   clienteID.(uint),
-		UsuarioID:   usuarioID.(uint),
+		ClienteID:   clienteID,
+		UsuarioID:   usuarioID,
 	}
 	
 	if err := config.DB.Create(&gasto).Error; err != nil {
@@ -322,18 +322,4 @@ func ListarProveedores(c *gin.Context) {
 		Pluck("proveedor", &proveedores)
 	
 	c.JSON(http.StatusOK, gin.H{"proveedores": proveedores})
-}
-
-func getClienteID(c *gin.Context) (uint, bool) {
-	value, ok := c.Get("cliente_id")
-	if !ok {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Cliente no autenticado"})
-		return 0, false
-	}
-	clienteID, ok := value.(uint)
-	if !ok {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Cliente no autenticado"})
-		return 0, false
-	}
-	return clienteID, true
 }
