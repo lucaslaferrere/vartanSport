@@ -4,6 +4,7 @@ export interface IMenuItem {
   type: 'item' | 'collapse' | 'group';
   url?: string;
   icon?: any;
+  caption?: string;
   breadcrumbs?: boolean;
   disabled?: boolean;
   external?: boolean;

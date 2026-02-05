@@ -1,17 +1,23 @@
 'use client';
 
 import React, { useEffect, useState, useCallback } from 'react';
-import { Box, Typography, Chip, CircularProgress, Grid } from '@mui/material';
+import { Box, Typography, Chip, CircularProgress, Grid, Stack } from '@mui/material';
 import { ColumnDef } from '@tanstack/react-table';
 import TableClientSide from '@components/Tables/TableClientSide';
 import StatCard from '@components/Cards/StatCard';
 import PrimaryButton from '@components/Buttons/PrimaryButton';
+import OutlineButton from '@components/Buttons/OutlineButton';
+import AgregarProductoModal from '@components/Modals/AgregarProductoModal';
+import AgregarStockModal from '@components/Modals/AgregarStockModal';
+import EditarProductoModal from '@components/Modals/EditarProductoModal';
+import DetalleStockModal from '@components/Modals/DetalleStockModal';
 import { TableFilterType } from '@components/Tables/Filters/TableFilterType';
 import { colors } from '@/src/theme/colors';
 import { productoService } from '@services/producto.service';
 import { IProducto } from '@models/entities/productoEntity';
 import { useAuthStore } from '@libraries/store';
 import { useMounted } from '@hooks/useMounted';
+import { useNotification } from '@components/Notifications';
 
 interface IProductoDisplay {
   id: number;
@@ -19,6 +25,11 @@ interface IProductoDisplay {
   costoUnitario: number;
   activo: boolean;
   fechaCreacion: string;
+  tallesDisponibles: string[];
+  coloresDisponibles: string[];
+  stockTotal: number;
+  tipoProducto: string;
+  equipo: string;
 }
 
 interface IProductosStats {
@@ -28,6 +39,7 @@ interface IProductosStats {
 
 export default function ProductosPage() {
   const mounted = useMounted();
+  const { addNotification } = useNotification();
   const [productos, setProductos] = useState<IProductoDisplay[]>([]);
   const [stats, setStats] = useState<IProductosStats>({
     totalProductos: 0,
@@ -35,6 +47,12 @@ export default function ProductosPage() {
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [agregarProductoModalOpen, setAgregarProductoModalOpen] = useState(false);
+  const [agregarStockModalOpen, setAgregarStockModalOpen] = useState(false);
+  const [editarProductoModalOpen, setEditarProductoModalOpen] = useState(false);
+  const [detalleStockModalOpen, setDetalleStockModalOpen] = useState(false);
+  const [productoSeleccionado, setProductoSeleccionado] = useState<IProducto | null>(null);
+  const [productoDetalleStock, setProductoDetalleStock] = useState<IProducto | null>(null);
   const { user } = useAuthStore();
 
   const transformProducto = (producto: IProducto): IProductoDisplay => ({
@@ -43,6 +61,11 @@ export default function ProductosPage() {
     costoUnitario: producto.costo_unitario,
     activo: producto.activo,
     fechaCreacion: new Date(producto.fecha_creacion).toLocaleDateString('es-AR'),
+    tallesDisponibles: producto.talles_disponibles || [],
+    coloresDisponibles: producto.colores_disponibles || [],
+    stockTotal: producto.stock_total || 0,
+    tipoProducto: producto.tipo_producto?.nombre || 'Sin tipo',
+    equipo: producto.equipo?.nombre || 'Sin equipo',
   });
 
   const calcularStats = (productosData: IProducto[]): IProductosStats => ({
@@ -78,16 +101,25 @@ export default function ProductosPage() {
 
   if (!mounted) return null;
 
-  const handleEdit = (row: IProductoDisplay) => {
-    console.log('Editar producto:', row);
+  const handleEdit = async (row: IProductoDisplay) => {
+    try {
+      const producto = await productoService.getById(row.id);
+      setProductoSeleccionado(producto);
+      setEditarProductoModalOpen(true);
+    } catch (err) {
+      console.error('Error cargando producto para editar:', err);
+      addNotification('Error al cargar el producto para editar', 'error');
+    }
   };
 
   const handleDelete = async (row: IProductoDisplay) => {
     try {
       await productoService.delete(row.id);
       fetchProductos();
+      addNotification('Producto eliminado exitosamente', 'success');
     } catch (err) {
       console.error('Error eliminando producto:', err);
+      addNotification('Error al eliminar el producto', 'error');
     }
   };
 
@@ -100,14 +132,76 @@ export default function ProductosPage() {
     return <Chip label="Inactivo" size="small" sx={{ bgcolor: 'rgba(239, 68, 68, 0.1)', color: '#DC2626', fontWeight: 600, fontSize: '11px' }} />;
   };
 
+  const renderTallesChips = (talles: string[]) => (
+    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+      {talles.length > 0 ? (
+        talles.map((talle, index) => (
+          <Chip
+            key={index}
+            label={talle}
+            size="small"
+            sx={{
+              bgcolor: 'rgba(59, 130, 246, 0.1)',
+              color: '#1D4ED8',
+              fontWeight: 500,
+              fontSize: '11px',
+              height: '20px'
+            }}
+          />
+        ))
+      ) : (
+        <Typography variant="caption" sx={{ color: '#9CA3AF', fontStyle: 'italic' }}>
+          Sin talles
+        </Typography>
+      )}
+    </Box>
+  );
+
+  const renderColoresChips = (colores: string[]) => (
+    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+      {colores.length > 0 ? (
+        colores.map((color, index) => (
+          <Chip
+            key={index}
+            label={color}
+            size="small"
+            sx={{
+              bgcolor: 'rgba(168, 85, 247, 0.1)',
+              color: '#7C3AED',
+              fontWeight: 500,
+              fontSize: '11px',
+              height: '20px'
+            }}
+          />
+        ))
+      ) : (
+        <Typography variant="caption" sx={{ color: '#9CA3AF', fontStyle: 'italic' }}>
+          Sin colores
+        </Typography>
+      )}
+    </Box>
+  );
+
+  const renderStockTotal = (stock: number) => (
+    <Box sx={{ textAlign: 'center' }}>
+      <Typography
+        sx={{
+          fontWeight: 600,
+          fontSize: '13px',
+          color: stock > 0 ? '#059669' : '#DC2626',
+          backgroundColor: stock > 0 ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)',
+          padding: '4px 8px',
+          borderRadius: '6px',
+          minWidth: '40px',
+          display: 'inline-block'
+        }}
+      >
+        {stock}
+      </Typography>
+    </Box>
+  );
+
   const columns: ColumnDef<IProductoDisplay>[] = [
-    {
-      accessorKey: 'id',
-      header: 'ID',
-      cell: ({ getValue }) => (
-        <Typography sx={{ fontWeight: 600, fontSize: '13px' }}>#{getValue() as number}</Typography>
-      )
-    },
     {
       accessorKey: 'nombre',
       header: 'Producto',
@@ -118,8 +212,56 @@ export default function ProductosPage() {
       }
     },
     {
+      accessorKey: 'tipoProducto',
+      header: 'Tipo',
+      cell: ({ getValue }) => {
+        const tipo = getValue() as string;
+        return tipo === 'Sin tipo' ? (
+          <Typography variant="caption" sx={{ color: '#9CA3AF', fontStyle: 'italic' }}>
+            Sin tipo
+          </Typography>
+        ) : (
+          <Chip
+            label={tipo}
+            size="small"
+            sx={{
+              bgcolor: 'rgba(34, 197, 94, 0.1)',
+              color: '#16A34A',
+              fontWeight: 500,
+              fontSize: '11px',
+              height: '20px'
+            }}
+          />
+        );
+      }
+    },
+    {
+      accessorKey: 'equipo',
+      header: 'Equipo',
+      cell: ({ getValue }) => {
+        const equipo = getValue() as string;
+        return equipo === 'Sin equipo' ? (
+          <Typography variant="caption" sx={{ color: '#9CA3AF', fontStyle: 'italic' }}>
+            Sin equipo
+          </Typography>
+        ) : (
+          <Chip
+            label={equipo}
+            size="small"
+            sx={{
+              bgcolor: 'rgba(239, 68, 68, 0.1)',
+              color: '#DC2626',
+              fontWeight: 500,
+              fontSize: '11px',
+              height: '20px'
+            }}
+          />
+        );
+      }
+    },
+    {
       accessorKey: 'costoUnitario',
-      header: 'Costo Unitario',
+      header: 'Costo',
       cell: ({ getValue }) => (
         <Typography sx={{ color: colors.primary, fontWeight: 600, fontSize: '13px' }}>
           {formatCurrency(getValue() as number)}
@@ -131,13 +273,50 @@ export default function ProductosPage() {
       header: 'Estado',
       cell: ({ getValue }) => getEstadoChip(getValue() as boolean),
     },
-    { accessorKey: 'fechaCreacion', header: 'Fecha Creación' },
+    {
+      accessorKey: 'tallesDisponibles',
+      header: 'Talles',
+      cell: ({ getValue }) => renderTallesChips(getValue() as string[]),
+    },
+    {
+      accessorKey: 'coloresDisponibles',
+      header: 'Colores',
+      cell: ({ getValue }) => renderColoresChips(getValue() as string[]),
+    },
+    {
+      accessorKey: 'stockTotal',
+      header: 'Stock',
+      cell: ({ getValue }) => renderStockTotal(getValue() as number),
+    },
+    {
+      accessorKey: 'fechaCreacion',
+      header: 'Fecha',
+    },
   ];
 
   const headerActions = user?.rol === 'dueño' ? (
-    <PrimaryButton icon="fa-solid fa-plus" onClick={() => console.log('Nuevo Producto')}>
-      Nuevo Producto
-    </PrimaryButton>
+    <Stack direction="row" spacing={2}>
+      <OutlineButton
+        icon="fa-solid fa-boxes-stacked"
+        onClick={() => setAgregarStockModalOpen(true)}
+        sx={{
+          borderColor: colors.primary,
+          color: colors.primary,
+          '&:hover': {
+            borderColor: colors.primaryDark,
+            backgroundColor: colors.primaryHover
+          }
+        }}
+      >
+         Stock
+      </OutlineButton>
+      <PrimaryButton
+        icon="fa-solid fa-tag"
+        onClick={() => setAgregarProductoModalOpen(true)}
+      >
+         Producto
+      </PrimaryButton>
+    </Stack>
   ) : null;
 
   const actions = user?.rol === 'dueño' ? [
@@ -152,6 +331,21 @@ export default function ProductosPage() {
       color: '#DC2626',
       onClick: handleDelete,
       tooltip: 'Eliminar'
+    },
+    {
+      icon: 'fa-solid fa-eye',
+      color: '#2563EB',
+      onClick: async (row: IProductoDisplay) => {
+        try {
+          const producto = await productoService.getById(row.id);
+          setProductoDetalleStock(producto);
+          setDetalleStockModalOpen(true);
+        } catch (err) {
+          console.error('Error cargando producto para detalle:', err);
+          addNotification('Error al cargar el detalle del producto', 'error');
+        }
+      },
+      tooltip: 'Ver Detalle de Stock'
     }
   ] : [];
 
@@ -203,6 +397,44 @@ export default function ProductosPage() {
           actions={actions}
         />
       </Box>
+
+      {/* Modales */}
+      <AgregarProductoModal
+        open={agregarProductoModalOpen}
+        onClose={() => setAgregarProductoModalOpen(false)}
+        onSuccess={() => {
+          fetchProductos();
+          setAgregarProductoModalOpen(false);
+          addNotification('Producto creado exitosamente', 'success');
+        }}
+      />
+
+      <AgregarStockModal
+        open={agregarStockModalOpen}
+        onClose={() => setAgregarStockModalOpen(false)}
+        onSuccess={() => {
+          fetchProductos(); // Refrescar la tabla
+          setAgregarStockModalOpen(false);
+          addNotification('Stock agregado exitosamente', 'success');
+        }}
+      />
+
+      <EditarProductoModal
+        open={editarProductoModalOpen}
+        onClose={() => setEditarProductoModalOpen(false)}
+        onSuccess={() => {
+          fetchProductos();
+          setEditarProductoModalOpen(false);
+          addNotification('Producto actualizado exitosamente', 'success');
+        }}
+        producto={productoSeleccionado}
+      />
+
+      <DetalleStockModal
+        open={detalleStockModalOpen}
+        onClose={() => setDetalleStockModalOpen(false)}
+        producto={productoDetalleStock}
+      />
     </>
   );
 }

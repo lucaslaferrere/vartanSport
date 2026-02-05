@@ -155,7 +155,8 @@ export default function TableClientSide<TData>({
                                                 textTransform: 'uppercase',
                                                 letterSpacing: '0.05em',
                                                 whiteSpace: 'nowrap',
-                                                width: 100,
+                                                width: 150,
+                                                minWidth: 150,
                                             }}
                                         >
                                             Acciones
@@ -242,7 +243,6 @@ export default function TableClientSide<TData>({
                                                     fontSize: '13px',
                                                     color: '#374151',
                                                     borderBottom: '1px solid #F3F4F6',
-                                                    whiteSpace: 'nowrap',
                                                 }}
                                             >
                                                 {flexRender(cell.column.columnDef.cell, cell.getContext())}
@@ -253,46 +253,64 @@ export default function TableClientSide<TData>({
                                                 align="center"
                                                 sx={{
                                                     py: 1,
-                                                    px: 2,
+                                                    px: 1,
                                                     borderBottom: '1px solid #F3F4F6',
+                                                    width: 150,
+                                                    minWidth: 150,
                                                 }}
                                             >
-                                                {actions
-                                                    .filter(action => {
-                                                        if (typeof action.disabled === "function") {
-                                                            return !action.disabled(row.original);
-                                                        }
-                                                        return !action.disabled;
-                                                    })
-                                                    .map((action, index) => {
-                                                        if (action.getLink) {
-                                                            return (
-                                                                <Tooltip key={index} title={action.tooltip || ""} arrow>
-                                                                    <IconButton
-                                                                        size="small"
-                                                                        sx={{ color: action.color }}
-                                                                        component={NextLink}
-                                                                        href={action.getLink(row.original)}
-                                                                    >
-                                                                        <i className={action.icon} style={{ fontSize: '14px' }} />
-                                                                    </IconButton>
-                                                                </Tooltip>
-                                                            );
-                                                        } else if (action.onClick) {
-                                                            return (
-                                                                <Tooltip key={index} title={action.tooltip || ""} arrow>
-                                                                    <IconButton
-                                                                        size="small"
-                                                                        sx={{ color: action.color }}
-                                                                        onClick={() => action.onClick!(row.original)}
-                                                                    >
-                                                                        <i className={action.icon} style={{ fontSize: '14px' }} />
-                                                                    </IconButton>
-                                                                </Tooltip>
-                                                            );
-                                                        }
-                                                        return null;
-                                                    })}
+                                                <Box sx={{
+                                                    display: 'flex',
+                                                    justifyContent: 'center',
+                                                    alignItems: 'center',
+                                                    gap: 0.5,
+                                                    flexWrap: 'nowrap'
+                                                }}>
+                                                    {actions
+                                                        .filter(action => {
+                                                            if (typeof action.disabled === "function") {
+                                                                return !action.disabled(row.original);
+                                                            }
+                                                            return !action.disabled;
+                                                        })
+                                                        .map((action, index) => {
+                                                            if (action.getLink) {
+                                                                return (
+                                                                    <Tooltip key={index} title={action.tooltip || ""} arrow>
+                                                                        <IconButton
+                                                                            size="small"
+                                                                            sx={{
+                                                                                color: action.color,
+                                                                                minWidth: 'auto',
+                                                                                p: 0.5
+                                                                            }}
+                                                                            component={NextLink}
+                                                                            href={action.getLink(row.original)}
+                                                                        >
+                                                                            <i className={action.icon} style={{ fontSize: '14px' }} />
+                                                                        </IconButton>
+                                                                    </Tooltip>
+                                                                );
+                                                            } else if (action.onClick) {
+                                                                return (
+                                                                    <Tooltip key={index} title={action.tooltip || ""} arrow>
+                                                                        <IconButton
+                                                                            size="small"
+                                                                            sx={{
+                                                                                color: action.color,
+                                                                                minWidth: 'auto',
+                                                                                p: 0.5
+                                                                            }}
+                                                                            onClick={() => action.onClick!(row.original)}
+                                                                        >
+                                                                            <i className={action.icon} style={{ fontSize: '14px' }} />
+                                                                        </IconButton>
+                                                                    </Tooltip>
+                                                                );
+                                                            }
+                                                            return null;
+                                                        })}
+                                                </Box>
                                             </TableCell>
                                         )}
                                     </TableRow>

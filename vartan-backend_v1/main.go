@@ -36,6 +36,8 @@ func main() {
 
 	config.AutoMigrate(
 		&models.Usuario{},
+		&models.TipoProducto{},
+		&models.Equipo{},
 		&models.Producto{},
 		&models.ProductoStock{},
 		&models.Cliente{},
@@ -45,20 +47,19 @@ func main() {
 		&models.Pedido{},
 		&models.Comision{},
 	)
-	// migraciones
 	MigrarGastos()
 
-	// Activar modo debug para ver más detalles
+	SeedTiposProducto()
+	SeedEquipos()
+
 	gin.SetMode(gin.DebugMode)
 
-	// crear el servidor
 	router := gin.Default()
 
-	// Middleware para loguear todas las peticiones
 	router.Use(func(c *gin.Context) {
-		log.Printf("📥 %s %s", c.Request.Method, c.Request.URL.Path)
+		log.Printf(" %s %s", c.Request.Method, c.Request.URL.Path)
 		c.Next()
-		log.Printf("📤 %s %s - Status: %d", c.Request.Method, c.Request.URL.Path, c.Writer.Status())
+		log.Printf("%s %s - Status: %d", c.Request.Method, c.Request.URL.Path, c.Writer.Status())
 	})
 
 	router.Use(cors.New(cors.Config{
@@ -75,7 +76,7 @@ func main() {
 	// Swagger documentation route
 	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
-	log.Println("\n📋 Rutas registradas:")
+	log.Println("\nRutas registradas:")
 	for _, route := range router.Routes() {
 		log.Printf("  %s %s", route.Method, route.Path)
 	}
@@ -89,10 +90,35 @@ func main() {
 	router.Run(":" + port)
 }
 
-// MigrarGastos crea/actualiza la tabla de gastos.
 func MigrarGastos() {
 	if err := config.DB.AutoMigrate(&models.Gasto{}); err != nil {
 		log.Fatal("Error al migrar tabla gastos:", err)
 	}
-	log.Println("✅ Tabla 'gastos' migrada exitosamente")
+	log.Println(" Tabla 'gastos' migrada exitosamente")
+}
+
+func SeedTiposProducto() {
+	tiposIniciales := []string{"Camiseta", "Buzo", "Short", "Pantalón", "Remera"}
+
+	for _, nombre := range tiposIniciales {
+		var count int64
+		config.DB.Model(&models.TipoProducto{}).Where("nombre = ?", nombre).Count(&count)
+		if count == 0 {
+			config.DB.Create(&models.TipoProducto{Nombre: nombre, Activo: true})
+		}
+	}
+	log.Println(" Tipos de producto verificados/creados")
+}
+
+func SeedEquipos() {
+	equiposIniciales := []string{"River", "Boca", "AFA", "San Lorenzo", "Racing"}
+
+	for _, nombre := range equiposIniciales {
+		var count int64
+		config.DB.Model(&models.Equipo{}).Where("nombre = ?", nombre).Count(&count)
+		if count == 0 {
+			config.DB.Create(&models.Equipo{Nombre: nombre, Activo: true})
+		}
+	}
+	log.Println("Equipos verificados/creados")
 }

@@ -28,6 +28,14 @@ func SetupRoutes(router *gin.Engine) {
 		api.GET("/stock", controllers.GetStock)
 		api.GET("/stock/producto/:id", controllers.GetStockByProducto)
 
+		// Tipos de producto
+		api.GET("/tipos-producto", controllers.GetTiposProducto)
+		api.GET("/tipos-producto/:id", controllers.GetTipoProducto)
+
+		// Equipos
+		api.GET("/equipos", controllers.GetEquipos)
+		api.GET("/equipos/:id", controllers.GetEquipo)
+
 		api.GET("/clientes", controllers.GetClientes)
 		api.GET("/clientes/:id", controllers.GetCliente)
 		api.POST("/clientes", controllers.CreateCliente)
@@ -63,6 +71,16 @@ func SetupRoutes(router *gin.Engine) {
 		// Stock
 		owner.POST("/stock", controllers.AddStock)
 		owner.PUT("/stock/:id", controllers.UpdateStock)
+
+		// Tipos de producto
+		owner.POST("/tipos-producto", controllers.CreateTipoProducto)
+		owner.PUT("/tipos-producto/:id", controllers.UpdateTipoProducto)
+		owner.DELETE("/tipos-producto/:id", controllers.DeleteTipoProducto)
+
+		// Equipos
+		owner.POST("/equipos", controllers.CreateEquipo)
+		owner.PUT("/equipos/:id", controllers.UpdateEquipo)
+		owner.DELETE("/equipos/:id", controllers.DeleteEquipo)
 
 		// Clientes (dueño puede eliminar)
 		owner.DELETE("/clientes/:id", controllers.DeleteCliente)

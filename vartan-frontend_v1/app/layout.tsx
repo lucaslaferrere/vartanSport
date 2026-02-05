@@ -3,6 +3,7 @@ import { Inter } from 'next/font/google';
 import ReduxProvider from '@redux/provider';
 import { NotificationProvider } from '@components/Notifications';
 import AuthInitializer from '@components/Auth/AuthInitializer';
+import ThemeRegistry from '@components/ThemeRegistry';
 import './globals.css';
 
 const inter = Inter({ subsets: ['latin'] });
@@ -25,11 +26,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         />
       </head>
       <body className={inter.className}>
-        <ReduxProvider>
-          <NotificationProvider>
-            <AuthInitializer>{children}</AuthInitializer>
-          </NotificationProvider>
-        </ReduxProvider>
+        <ThemeRegistry>
+          <ReduxProvider>
+            <NotificationProvider>
+              <AuthInitializer>{children}</AuthInitializer>
+            </NotificationProvider>
+          </ReduxProvider>
+        </ThemeRegistry>
       </body>
     </html>
   );

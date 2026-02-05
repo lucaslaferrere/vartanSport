@@ -90,21 +90,25 @@ const MainCard = forwardRef(({
             {modal && onClose && (
                 <Tooltip title="Cerrar">
                     <IconButton
+                        size="small"
                         aria-label="Cerrar"
                         onClick={onClose}
                         sx={{
                             position: 'absolute',
-                            top: 12,
-                            right: 12,
+                            top: 8,
+                            right: 8,
                             zIndex: 1,
                             color: '#6B7280',
+                            width: 28,
+                            height: 28,
+                            p: 0.5,
                             '&:hover': {
                                 bgcolor: '#F3F4F6',
                                 color: '#1F2937'
                             }
                         }}
                     >
-                        <i className="fa-solid fa-xmark" />
+                        <i className="fa-solid fa-xmark" style={{ fontSize: '12px' }} />
                     </IconButton>
                 </Tooltip>
             )}
