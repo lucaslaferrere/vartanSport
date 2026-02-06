@@ -41,8 +41,14 @@ func SetupRoutes(router *gin.Engine) {
 		api.POST("/clientes", controllers.CreateCliente)
 		api.PUT("/clientes/:id", controllers.UpdateCliente)
 
+		api.GET("/formas-pago", controllers.GetFormasPago)
 		api.GET("/mis-ventas", controllers.GetMisVentas)
 		api.POST("/ventas", controllers.CreateVenta)
+		api.GET("/ventas/:id", controllers.GetVenta)
+		api.PUT("/ventas/:id", controllers.UpdateVenta)
+		api.DELETE("/ventas/:id", controllers.DeleteVenta)
+		api.GET("/ventas/:id/comprobante", controllers.GetVentaComprobante)
+		api.DELETE("/ventas/:id/comprobante", controllers.DeleteVentaComprobante)
 
 		api.GET("/mis-pedidos", controllers.GetMisPedidos)
 		api.PUT("/pedidos/:id", controllers.UpdatePedidoEstado)

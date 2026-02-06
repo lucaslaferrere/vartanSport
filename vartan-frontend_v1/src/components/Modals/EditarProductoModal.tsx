@@ -157,7 +157,7 @@ export default function EditarProductoModal({ open, onClose, onSuccess, producto
 
       <FormField
         label="Colores Disponibles"
-        required
+
         type="multiselect"
         placeholder="Seleccione los colores disponibles"
         value={formData.colores}

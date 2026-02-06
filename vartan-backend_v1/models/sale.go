@@ -10,16 +10,19 @@ type FormaPago struct {
 
 // Tabla ventas (cabecera de la venta)
 type Venta struct {
-	ID          int       `gorm:"primaryKey;autoIncrement" json:"id"`
-	UsuarioID   int       `gorm:"not null" json:"usuario_id"`
-	ClienteID   int       `gorm:"not null" json:"cliente_id"`
-	FormaPagoID int       `gorm:"not null" json:"forma_pago_id"`
-	Total       float64   `gorm:"type:decimal(10,2);not null" json:"total"`       // Total de la venta (precio de productos)
-	Sena        float64   `gorm:"type:decimal(10,2);not null" json:"sena"`        // Seña abonada
-	Saldo       float64   `gorm:"type:decimal(10,2);not null" json:"saldo"`       // Lo que resta pagar
-	Descuento   float64   `gorm:"type:decimal(10,2);default:0" json:"descuento"`  // Descuento aplicado (3% de financiera)
-	TotalFinal  float64   `gorm:"type:decimal(10,2);not null" json:"total_final"` // Total - Descuento
-	FechaVenta  time.Time `gorm:"default:CURRENT_TIMESTAMP" json:"fecha_venta"`
+	ID             int       `gorm:"primaryKey;autoIncrement" json:"id"`
+	UsuarioID      int       `gorm:"not null" json:"usuario_id"`
+	ClienteID      int       `gorm:"not null" json:"cliente_id"`
+	FormaPagoID    int       `gorm:"not null" json:"forma_pago_id"`
+	Total          float64   `gorm:"type:decimal(10,2);not null" json:"total"`       // Total de la venta (precio de productos)
+	Sena           float64   `gorm:"type:decimal(10,2);not null" json:"sena"`        // Seña abonada
+	Saldo          float64   `gorm:"type:decimal(10,2);not null" json:"saldo"`       // Lo que resta pagar
+	Descuento      float64   `gorm:"type:decimal(10,2);default:0" json:"descuento"`  // Descuento aplicado (3% de financiera)
+	TotalFinal     float64   `gorm:"type:decimal(10,2);not null" json:"total_final"` // Total - Descuento
+	UsaFinanciera  bool      `gorm:"default:false" json:"usa_financiera"`            // Si usa transferencia financiera
+	ComprobanteURL *string   `gorm:"type:varchar(500)" json:"comprobante_url"`       // URL del comprobante subido
+	Observaciones  *string   `gorm:"type:text" json:"observaciones"`                 // Observaciones de la venta
+	FechaVenta     time.Time `gorm:"default:CURRENT_TIMESTAMP" json:"fecha_venta"`
 
 	// Relaciones
 	Usuario   Usuario        `gorm:"foreignKey:UsuarioID" json:"usuario,omitempty"`
@@ -42,12 +45,21 @@ type VentaDetalle struct {
 	Producto Producto `gorm:"foreignKey:ProductoID" json:"producto,omitempty"`
 }
 
-// Para crear una venta nueva desde el frontend
+// Para crear una venta nueva desde el frontend (JSON)
 type VentaCreateRequest struct {
-	ClienteID   int                         `json:"cliente_id" binding:"required"`
-	FormaPagoID int                         `json:"forma_pago_id" binding:"required"` // 1=Transferencia Financiera, 2=Transf a Cero, 3=Transf Bancaria, 4=Efectivo
-	Sena        float64                     `json:"sena" binding:"required"`
-	Detalles    []VentaDetalleCreateRequest `json:"detalles" binding:"required"`
+	ClienteID     int                         `json:"cliente_id" form:"cliente_id" binding:"required"`
+	FormaPagoID   int                         `json:"forma_pago_id" form:"forma_pago_id" binding:"required"` // 1=Transferencia Financiera, 2=Transf a Cero, 3=Transf Bancaria, 4=Efectivo
+	Sena          float64                     `json:"sena" form:"sena" binding:"required"`
+	Observaciones string                      `json:"observaciones" form:"observaciones"`
+	Detalles      []VentaDetalleCreateRequest `json:"detalles" binding:"required"`
+}
+
+type VentaCreateFormRequest struct {
+	ClienteID     string `form:"cliente_id" binding:"required"`
+	FormaPagoID   string `form:"forma_pago_id" binding:"required"`
+	Sena          string `form:"sena" binding:"required"`
+	Observaciones string `form:"observaciones"`
+	Detalles      string `form:"detalles" binding:"required"`
 }
 
 type VentaDetalleCreateRequest struct {
@@ -55,4 +67,11 @@ type VentaDetalleCreateRequest struct {
 	Talle          string  `json:"talle" binding:"required"`
 	Cantidad       int     `json:"cantidad" binding:"required"`
 	PrecioUnitario float64 `json:"precio_unitario" binding:"required"`
+}
+
+type VentaUpdateRequest struct {
+	ClienteID     *int     `json:"cliente_id"`
+	FormaPagoID   *int     `json:"forma_pago_id"`
+	Sena          *float64 `json:"sena"`
+	Observaciones *string  `json:"observaciones"`
 }

@@ -51,6 +51,7 @@ func main() {
 
 	SeedTiposProducto()
 	SeedEquipos()
+	SeedFormasPago()
 
 	gin.SetMode(gin.DebugMode)
 
@@ -121,4 +122,22 @@ func SeedEquipos() {
 		}
 	}
 	log.Println("Equipos verificados/creados")
+}
+
+func SeedFormasPago() {
+	formasPago := []string{
+		"Transferencia Financiera", // ID 1 - Aplica 3% descuento
+		"Transferencia a Cero",     // ID 2
+		"Transferencia Bancaria",   // ID 3
+		"Efectivo",                 // ID 4
+	}
+
+	for _, nombre := range formasPago {
+		var count int64
+		config.DB.Model(&models.FormaPago{}).Where("nombre = ?", nombre).Count(&count)
+		if count == 0 {
+			config.DB.Create(&models.FormaPago{Nombre: nombre})
+		}
+	}
+	log.Println("✅ Formas de pago verificadas/creadas")
 }

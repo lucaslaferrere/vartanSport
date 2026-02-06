@@ -224,7 +224,7 @@ export default function AgregarProductoModal({ open, onClose, onSuccess }: Agreg
 
         <FormField
           label="Colores"
-          required
+
           type="multiselect"
           placeholder="Seleccione los colores disponibles"
           value={formData.colores}

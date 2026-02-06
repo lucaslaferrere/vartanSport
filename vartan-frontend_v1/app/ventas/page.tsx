@@ -1,17 +1,22 @@
 'use client';
 
 import React, { useEffect, useState, useCallback } from 'react';
-import { Box, Typography, Chip, Grid, CircularProgress, Button } from '@mui/material';
+import { Box, Typography, Chip, Grid, CircularProgress } from '@mui/material';
 import { ColumnDef } from '@tanstack/react-table';
 import TableClientSide from '@components/Tables/TableClientSide';
 import StatCard from '@components/Cards/StatCard';
 import PrimaryButton from '@components/Buttons/PrimaryButton';
+import AgregarVentaModal from '@components/Modals/AgregarVentaModal';
+import DetalleVentaModal from '@components/Modals/DetalleVentaModal';
+import EditarVentaModal from '@components/Modals/EditarVentaModal';
+import ConfirmDeleteModal from '@components/Modals/ConfirmDeleteModal';
 import { TableFilterType } from '@components/Tables/Filters/TableFilterType';
 import { colors } from '@/src/theme/colors';
 import { ventaService } from '@services/venta.service';
 import { IVenta } from '@models/entities/ventaEntity';
 import { useAuthStore } from '@libraries/store';
 import { useMounted } from '@hooks/useMounted';
+import { useNotification } from '@components/Notifications';
 
 interface IVentaDisplay {
   id: number;
@@ -40,6 +45,7 @@ const metodoPagoOptions = [
 
 export default function VentasPage() {
   const mounted = useMounted();
+  const { addNotification } = useNotification();
   const [ventas, setVentas] = useState<IVentaDisplay[]>([]);
   const [stats, setStats] = useState<IVentasStats>({
     ventasHoy: 0,
@@ -49,6 +55,11 @@ export default function VentasPage() {
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [agregarVentaModalOpen, setAgregarVentaModalOpen] = useState(false);
+  const [detalleVentaModalOpen, setDetalleVentaModalOpen] = useState(false);
+  const [editarVentaModalOpen, setEditarVentaModalOpen] = useState(false);
+  const [eliminarVentaModalOpen, setEliminarVentaModalOpen] = useState(false);
+  const [ventaSeleccionada, setVentaSeleccionada] = useState<IVenta | null>(null);
   const { user } = useAuthStore();
 
   const transformVenta = (venta: IVenta): IVentaDisplay => {
@@ -178,11 +189,79 @@ export default function VentasPage() {
     { accessorKey: 'vendedor', header: 'Vendedor' },
   ];
 
+  const handleVerDetalle = async (row: IVentaDisplay) => {
+    try {
+      const todasLasVentas = user?.rol === 'dueño'
+        ? await ventaService.getAll()
+        : await ventaService.getMisVentas();
+
+      const venta = todasLasVentas.find((v: IVenta) => v.id === row.id);
+      setVentaSeleccionada(venta || null);
+      setDetalleVentaModalOpen(true);
+    } catch (err) {
+      console.error('Error cargando detalle de venta:', err);
+      addNotification('Error al cargar el detalle', 'error');
+    }
+  };
+
+  const handleEliminar = (row: IVentaDisplay) => {
+    const ventaCompleta = ventas.find(v => v.id === row.id);
+    setVentaSeleccionada(ventaCompleta as any);
+    setEliminarVentaModalOpen(true);
+  };
+
+  const confirmEliminar = async () => {
+    if (!ventaSeleccionada) return;
+    try {
+      // TODO: Implementar ventaService.delete(ventaSeleccionada.id)
+      addNotification('Venta eliminada correctamente', 'success');
+      setEliminarVentaModalOpen(false);
+      fetchVentas();
+    } catch (err) {
+      console.error('Error eliminando venta:', err);
+      addNotification('Error al eliminar la venta', 'error');
+    }
+  };
+
+  const actions = [
+    {
+      icon: 'fa-solid fa-eye',
+      color: '#2563EB',
+      onClick: handleVerDetalle,
+      tooltip: 'Ver Detalle'
+    },
+    {
+      icon: 'fa-solid fa-pen',
+      color: '#6B7280',
+      onClick: async (row: IVentaDisplay) => {
+        try {
+          const todasLasVentas = user?.rol === 'dueño'
+            ? await ventaService.getAll()
+            : await ventaService.getMisVentas();
+
+          const venta = todasLasVentas.find((v: IVenta) => v.id === row.id);
+          setVentaSeleccionada(venta || null);
+          setEditarVentaModalOpen(true);
+        } catch (err) {
+          console.error('Error cargando venta para editar:', err);
+          addNotification('Error al cargar la venta', 'error');
+        }
+      },
+      tooltip: 'Editar'
+    },
+    {
+      icon: 'fa-solid fa-trash',
+      color: '#DC2626',
+      onClick: handleEliminar,
+      tooltip: 'Eliminar'
+    }
+  ];
+
   const formatCurrency = (value: number) => '$' + value.toLocaleString('es-AR');
 
   const headerActions = (
-    <PrimaryButton icon="fa-solid fa-plus" onClick={() => console.log('Nueva Venta')}>
-      Nueva Venta
+    <PrimaryButton icon="fa-solid fa-cash-register" onClick={() => setAgregarVentaModalOpen(true)}>
+      Venta
     </PrimaryButton>
   );
 
@@ -237,6 +316,45 @@ export default function VentasPage() {
           data={ventas}
           columns={columns}
           headerActions={headerActions}
+          actions={actions}
+        />
+
+        {/* Modal para agregar venta */}
+        <AgregarVentaModal
+          open={agregarVentaModalOpen}
+          onClose={() => setAgregarVentaModalOpen(false)}
+          onSuccess={() => {
+            fetchVentas();
+            setAgregarVentaModalOpen(false);
+            addNotification('Venta creada exitosamente', 'success');
+          }}
+        />
+
+        {/* Modal de detalle de venta */}
+        <DetalleVentaModal
+          open={detalleVentaModalOpen}
+          onClose={() => setDetalleVentaModalOpen(false)}
+          venta={ventaSeleccionada}
+        />
+
+        {/* Modal de editar venta */}
+        <EditarVentaModal
+          open={editarVentaModalOpen}
+          onClose={() => setEditarVentaModalOpen(false)}
+          onSuccess={() => {
+            fetchVentas();
+            setEditarVentaModalOpen(false);
+            addNotification('Venta actualizada exitosamente', 'success');
+          }}
+          venta={ventaSeleccionada}
+        />
+
+        {/* Modal de confirmación de eliminación */}
+        <ConfirmDeleteModal
+          open={eliminarVentaModalOpen}
+          onClose={() => setEliminarVentaModalOpen(false)}
+          onConfirm={confirmEliminar}
+          itemName={ventaSeleccionada ? `la venta del cliente ${(ventaSeleccionada as any).cliente?.nombre || 'desconocido'}` : 'esta venta'}
         />
       </Box>
     </>

@@ -11,6 +11,7 @@ import AgregarProductoModal from '@components/Modals/AgregarProductoModal';
 import AgregarStockModal from '@components/Modals/AgregarStockModal';
 import EditarProductoModal from '@components/Modals/EditarProductoModal';
 import DetalleStockModal from '@components/Modals/DetalleStockModal';
+import ConfirmDeleteModal from '@components/Modals/ConfirmDeleteModal';
 import { TableFilterType } from '@components/Tables/Filters/TableFilterType';
 import { colors } from '@/src/theme/colors';
 import { productoService } from '@services/producto.service';
@@ -53,6 +54,8 @@ export default function ProductosPage() {
   const [detalleStockModalOpen, setDetalleStockModalOpen] = useState(false);
   const [productoSeleccionado, setProductoSeleccionado] = useState<IProducto | null>(null);
   const [productoDetalleStock, setProductoDetalleStock] = useState<IProducto | null>(null);
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
+  const [productoToDelete, setProductoToDelete] = useState<IProductoDisplay | null>(null);
   const { user } = useAuthStore();
 
   const transformProducto = (producto: IProducto): IProductoDisplay => ({
@@ -112,14 +115,23 @@ export default function ProductosPage() {
     }
   };
 
-  const handleDelete = async (row: IProductoDisplay) => {
+  const handleDelete = (row: IProductoDisplay) => {
+    setProductoToDelete(row);
+    setConfirmDeleteOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!productoToDelete) return;
+
     try {
-      await productoService.delete(row.id);
+      await productoService.delete(productoToDelete.id);
       fetchProductos();
       addNotification('Producto eliminado exitosamente', 'success');
     } catch (err) {
       console.error('Error eliminando producto:', err);
       addNotification('Error al eliminar el producto', 'error');
+    } finally {
+      setProductoToDelete(null);
     }
   };
 
@@ -434,6 +446,17 @@ export default function ProductosPage() {
         open={detalleStockModalOpen}
         onClose={() => setDetalleStockModalOpen(false)}
         producto={productoDetalleStock}
+      />
+
+      {/* Modal de confirmación de eliminación */}
+      <ConfirmDeleteModal
+        open={confirmDeleteOpen}
+        onClose={() => {
+          setConfirmDeleteOpen(false);
+          setProductoToDelete(null);
+        }}
+        onConfirm={confirmDelete}
+        itemName={productoToDelete?.nombre}
       />
     </>
   );

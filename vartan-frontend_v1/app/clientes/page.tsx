@@ -11,12 +11,20 @@ import { colors } from '@/src/theme/colors';
 import { clienteService } from '@services/cliente.service';
 import { ICliente } from '@models/entities/clienteEntity';
 import { useMounted } from '@hooks/useMounted';
+import AgregarClienteModal from '@components/Modals/AgregarClienteModal';
+import EditarClienteModal from '@components/Modals/EditarClienteModal';
+import ConfirmDeleteModal from '@components/Modals/ConfirmDeleteModal';
+import { useNotification } from '@components/Notifications';
 
 interface IClienteDisplay {
   id: number;
   nombre: string;
   telefono: string;
   email: string;
+  direccion: string;
+  ciudad: string;
+  provincia: string;
+  pais: string;
   fechaCreacion: string;
 }
 
@@ -27,6 +35,7 @@ interface IClientesStats {
 
 function ClientesPage() {
   const mounted = useMounted();
+  const { addNotification } = useNotification();
   const [clientes, setClientes] = useState<IClienteDisplay[]>([]);
   const [stats, setStats] = useState<IClientesStats>({
     totalClientes: 0,
@@ -34,12 +43,21 @@ function ClientesPage() {
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [agregarClienteModalOpen, setAgregarClienteModalOpen] = useState(false);
+  const [editarClienteModalOpen, setEditarClienteModalOpen] = useState(false);
+  const [clienteSeleccionado, setClienteSeleccionado] = useState<ICliente | null>(null);
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
+  const [clienteToDelete, setClienteToDelete] = useState<IClienteDisplay | null>(null);
 
   const transformCliente = (cliente: ICliente): IClienteDisplay => ({
     id: cliente.id,
     nombre: cliente.nombre,
     telefono: cliente.telefono || '-',
     email: cliente.email || '-',
+    direccion: cliente.direccion || '-',
+    ciudad: cliente.ciudad || '-',
+    provincia: cliente.provincia || '-',
+    pais: cliente.pais || '-',
     fechaCreacion: new Date(cliente.fecha_creacion).toLocaleDateString('es-AR'),
   });
 
@@ -56,6 +74,17 @@ function ClientesPage() {
       totalClientes: clientesData.length,
       clientesNuevos,
     };
+  };
+
+  const handleEdit = async (row: IClienteDisplay) => {
+    try {
+      const cliente = await clienteService.getById(row.id);
+      setClienteSeleccionado(cliente);
+      setEditarClienteModalOpen(true);
+    } catch (err) {
+      console.error('Error cargando cliente para editar:', err);
+      addNotification('Error al cargar el cliente para editar', 'error');
+    }
   };
 
   const fetchClientes = useCallback(async () => {
@@ -86,17 +115,28 @@ function ClientesPage() {
 
   if (!mounted) return null;
 
-  const handleEdit = (row: IClienteDisplay) => {
-    console.log('Editar cliente:', row);
+  const handleDelete = (row: IClienteDisplay) => {
+    setClienteToDelete(row);
+    setConfirmDeleteOpen(true);
   };
 
-  const handleDelete = async (row: IClienteDisplay) => {
+  const confirmDelete = async () => {
+    if (!clienteToDelete) return;
+
     try {
-      await clienteService.delete(row.id);
+      await clienteService.delete(clienteToDelete.id);
       fetchClientes();
+      addNotification('Cliente eliminado exitosamente', 'success');
     } catch (err) {
       console.error('Error eliminando cliente:', err);
+      addNotification('Error al eliminar el cliente', 'error');
+    } finally {
+      setClienteToDelete(null);
     }
+  };
+
+  const handleOpenAgregarCliente = () => {
+    setAgregarClienteModalOpen(true);
   };
 
   const columns: ColumnDef<IClienteDisplay>[] = [
@@ -119,12 +159,16 @@ function ClientesPage() {
         filterProps: { placeholder: 'Buscar email...' }
       }
     },
+    { accessorKey: 'direccion', header: 'Dirección' },
+    { accessorKey: 'ciudad', header: 'Ciudad' },
+    { accessorKey: 'provincia', header: 'Provincia' },
+    { accessorKey: 'pais', header: 'País' },
     { accessorKey: 'fechaCreacion', header: 'Fecha Registro' },
   ];
 
   const headerActions = (
-    <PrimaryButton icon="fa-solid fa-plus" onClick={() => console.log('Nuevo Cliente')}>
-      Nuevo Cliente
+    <PrimaryButton icon="fa-solid fa-user-plus" onClick={handleOpenAgregarCliente}>
+      Cliente
     </PrimaryButton>
   );
 
@@ -157,7 +201,6 @@ function ClientesPage() {
           </Typography>
         </Box>
 
-        {/* Stats Cards */}
         <Grid container spacing={3} sx={{ mb: 4 }}>
           <Grid size={{ xs: 12, sm: 6, md: 3 }}>
             <StatCard title="Total Clientes" value={stats.totalClientes} icon="fa-solid fa-users" />
@@ -187,6 +230,40 @@ function ClientesPage() {
               tooltip: 'Eliminar'
             }
           ]}
+        />
+
+        {/* Modal para agregar cliente */}
+        <AgregarClienteModal
+          open={agregarClienteModalOpen}
+          onClose={() => setAgregarClienteModalOpen(false)}
+          onSuccess={() => {
+            fetchClientes();
+            setAgregarClienteModalOpen(false);
+            addNotification('Cliente agregado exitosamente', 'success');
+          }}
+        />
+
+        {/* Modal para editar cliente */}
+        <EditarClienteModal
+          open={editarClienteModalOpen}
+          onClose={() => setEditarClienteModalOpen(false)}
+          cliente={clienteSeleccionado}
+          onSuccess={() => {
+            fetchClientes();
+            setEditarClienteModalOpen(false);
+            addNotification('Cliente editado exitosamente', 'success');
+          }}
+        />
+
+        {/* Modal de confirmación de eliminación */}
+        <ConfirmDeleteModal
+          open={confirmDeleteOpen}
+          onClose={() => {
+            setConfirmDeleteOpen(false);
+            setClienteToDelete(null);
+          }}
+          onConfirm={confirmDelete}
+          itemName={clienteToDelete?.nombre}
         />
       </Box>
     </>

@@ -73,9 +73,13 @@ func CreateCliente(c *gin.Context) {
 	}
 
 	cliente := models.Cliente{
-		Nombre:   req.Nombre,
-		Telefono: req.Telefono,
-		Email:    req.Email,
+		Nombre:    req.Nombre,
+		Telefono:  req.Telefono,
+		Email:     req.Email,
+		Direccion: req.Direccion,
+		Ciudad:    req.Ciudad,
+		Provincia: req.Provincia,
+		Pais:      req.Pais,
 	}
 
 	if err := config.DB.Create(&cliente).Error; err != nil {
@@ -118,6 +122,10 @@ func UpdateCliente(c *gin.Context) {
 	cliente.Nombre = req.Nombre
 	cliente.Telefono = req.Telefono
 	cliente.Email = req.Email
+	cliente.Direccion = req.Direccion
+	cliente.Ciudad = req.Ciudad
+	cliente.Provincia = req.Provincia
+	cliente.Pais = req.Pais
 
 	if err := config.DB.Save(&cliente).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error al actualizar cliente"})

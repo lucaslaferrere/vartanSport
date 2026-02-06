@@ -17,6 +17,9 @@ export interface IVenta {
     saldo: number;
     descuento: number;
     total_final: number;
+    usa_financiera: boolean;
+    comprobante_url?: string | null;
+    observaciones?: string | null;
     fecha_venta: string;
     usuario?: IUser;
     cliente?: ICliente;
