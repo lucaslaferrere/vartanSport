@@ -8,7 +8,7 @@ export interface ITareaUpdateRequest {
     titulo?: string;
     descripcion?: string;
     completada?: boolean;
+    empleado_id?: number; 
 }
-
 
 
