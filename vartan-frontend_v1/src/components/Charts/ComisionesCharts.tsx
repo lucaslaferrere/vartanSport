@@ -80,7 +80,7 @@ export function EvolucionChart({ data, formatCurrency }: EvolucionChartProps) {
     const maxValue = Math.max(...data.map(d => d.total), 1);
 
     return (
-        <ChartCard title="Evolución de Comisiones" emoji="📈">
+        <ChartCard title="Evolución de Comisiones" >
             <Box sx={{ display: 'flex', alignItems: 'flex-end', gap: 1, height: 200, pt: 2 }}>
                 {data.length === 0 ? (
                     <Typography sx={{ color: '#6B7280', fontSize: '14px', textAlign: 'center', width: '100%', py: 4 }}>
