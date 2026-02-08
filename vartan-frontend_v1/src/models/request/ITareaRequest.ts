@@ -1,7 +1,7 @@
 export interface ITareaCreateRequest {
     titulo: string;
     descripcion?: string;
-    empleado_id?: number; // Opcional, si no se envía usa el usuario autenticado
+    empleado_id?: number; 
 }
 
 export interface ITareaUpdateRequest {
@@ -9,4 +9,6 @@ export interface ITareaUpdateRequest {
     descripcion?: string;
     completada?: boolean;
 }
+
+
 
