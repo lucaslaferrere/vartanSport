@@ -16,11 +16,3 @@ COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 COPY --from=builder /app/app .
 EXPOSE 8080
 CMD ["./app"]
-```
-
-### Opción 3: Usar .dockerignore
-Crea un archivo `.dockerignore` en la raíz del proyecto:
-```
-create_owner.go
-register_employees.go
-verify_employees.go
