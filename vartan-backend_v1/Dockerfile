@@ -1,9 +1,8 @@
 # Build stage
-FROM golang:1.22-alpine AS builder
+FROM golang:1.25-alpine AS builder
 
 WORKDIR /app
 
-# Instalar certificados CA para HTTPS
 RUN apk add --no-cache ca-certificates
 
 COPY go.mod go.sum ./
@@ -17,11 +16,9 @@ FROM alpine:latest
 
 WORKDIR /app
 
-# Copiar certificados CA
 COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
-
 COPY --from=builder /app/app .
 
 EXPOSE 8080
-
 CMD ["./app"]
+
