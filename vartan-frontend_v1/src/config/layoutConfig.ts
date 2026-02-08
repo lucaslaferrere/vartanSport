@@ -18,6 +18,7 @@ export const layoutConfig = {
     { label: 'Pedidos', icon: 'fa-solid fa-truck', path: '/pedidos' },
     { label: 'Comisiones', icon: 'fa-solid fa-dollar-sign', path: '/comisiones' },
     { label: 'Gastos', icon: 'fa-solid fa-receipt', path: '/gastos' },
+    { label: 'Tareas', icon: 'fa-solid fa-list-check', path: '/tareas' },
   ],
 };
 

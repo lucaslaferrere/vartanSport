@@ -46,6 +46,7 @@ func main() {
 		&models.VentaDetalle{},
 		&models.Pedido{},
 		&models.Comision{},
+		&models.Tarea{},
 	)
 	MigrarGastos()
 

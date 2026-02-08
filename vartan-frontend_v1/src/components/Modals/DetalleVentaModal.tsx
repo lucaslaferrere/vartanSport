@@ -84,10 +84,10 @@ export default function DetalleVentaModal({ open, onClose, venta }: DetalleVenta
                 <Box>
                   <Typography sx={{ fontSize: '13px', fontWeight: 600 }}>{detalle.producto?.nombre || 'Producto'}</Typography>
                   <Typography sx={{ fontSize: '11px', color: '#6B7280' }}>
-                    Talle: {detalle.talle} | Cant: {detalle.cantidad} | Precio: ${detalle.precio_unitario.toLocaleString('es-AR')}
+                    Talle: {detalle.talle} | Cant: {detalle.cantidad} | Precio: ${(detalle.precio_unitario || 0).toLocaleString('es-AR')}
                   </Typography>
                 </Box>
-                <Typography sx={{ fontSize: '14px', fontWeight: 600, color: '#059669' }}>${detalle.subtotal.toLocaleString('es-AR')}</Typography>
+                <Typography sx={{ fontSize: '14px', fontWeight: 600, color: '#059669' }}>${(detalle.subtotal || 0).toLocaleString('es-AR')}</Typography>
               </Box>
             ))}
           </Grid>
@@ -98,26 +98,26 @@ export default function DetalleVentaModal({ open, onClose, venta }: DetalleVenta
             <Box sx={{ p: 2, bgcolor: '#F0FDF4', borderRadius: '8px' }}>
               <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
                 <Typography sx={{ fontSize: '12px', color: '#6B7280' }}>Subtotal:</Typography>
-                <Typography sx={{ fontSize: '12px', fontWeight: 600 }}>${venta.total.toLocaleString('es-AR', { minimumFractionDigits: 2 })}</Typography>
+                <Typography sx={{ fontSize: '12px', fontWeight: 600 }}>${(venta.total || 0).toLocaleString('es-AR', { minimumFractionDigits: 2 })}</Typography>
               </Box>
               <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
                 <Typography sx={{ fontSize: '12px', color: '#6B7280' }}>Seña:</Typography>
-                <Typography sx={{ fontSize: '12px', fontWeight: 600 }}>${venta.sena.toLocaleString('es-AR', { minimumFractionDigits: 2 })}</Typography>
+                <Typography sx={{ fontSize: '12px', fontWeight: 600 }}>${(venta.sena || 0).toLocaleString('es-AR', { minimumFractionDigits: 2 })}</Typography>
               </Box>
               <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
                 <Typography sx={{ fontSize: '12px', color: '#6B7280' }}>Saldo:</Typography>
-                <Typography sx={{ fontSize: '12px', fontWeight: 600 }}>${venta.saldo.toLocaleString('es-AR', { minimumFractionDigits: 2 })}</Typography>
+                <Typography sx={{ fontSize: '12px', fontWeight: 600 }}>${(venta.saldo || 0).toLocaleString('es-AR', { minimumFractionDigits: 2 })}</Typography>
               </Box>
-              {venta.descuento > 0 && (
+              {(venta.descuento ?? 0) > 0 && (
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
                   <Typography sx={{ fontSize: '12px', color: '#10B981' }}>Descuento:</Typography>
-                  <Typography sx={{ fontSize: '12px', fontWeight: 600, color: '#10B981' }}>-${venta.descuento.toLocaleString('es-AR', { minimumFractionDigits: 2 })}</Typography>
+                  <Typography sx={{ fontSize: '12px', fontWeight: 600, color: '#10B981' }}>-${(venta.descuento || 0).toLocaleString('es-AR', { minimumFractionDigits: 2 })}</Typography>
                 </Box>
               )}
               <Divider sx={{ my: 1 }} />
               <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
                 <Typography sx={{ fontSize: '15px', fontWeight: 700 }}>Total Final:</Typography>
-                <Typography sx={{ fontSize: '16px', fontWeight: 700, color: '#059669' }}>${venta.total_final.toLocaleString('es-AR', { minimumFractionDigits: 2 })}</Typography>
+                <Typography sx={{ fontSize: '16px', fontWeight: 700, color: '#059669' }}>${(venta.total_final || 0).toLocaleString('es-AR', { minimumFractionDigits: 2 })}</Typography>
               </Box>
             </Box>
           </Grid>

@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useEffect, useState, useCallback } from 'react';
@@ -13,7 +14,7 @@ import { ICliente } from '@models/entities/clienteEntity';
 import { useMounted } from '@hooks/useMounted';
 import AgregarClienteModal from '@components/Modals/AgregarClienteModal';
 import EditarClienteModal from '@components/Modals/EditarClienteModal';
-import ConfirmDeleteModal from '@components/Modals/ConfirmDeleteModal';
+import ConfirmModal from '@components/Modals/ConfirmModal';
 import { useNotification } from '@components/Notifications';
 
 interface IClienteDisplay {
@@ -256,14 +257,16 @@ function ClientesPage() {
         />
 
         {/* Modal de confirmación de eliminación */}
-        <ConfirmDeleteModal
+        <ConfirmModal
           open={confirmDeleteOpen}
           onClose={() => {
             setConfirmDeleteOpen(false);
             setClienteToDelete(null);
           }}
           onConfirm={confirmDelete}
-          itemName={clienteToDelete?.nombre}
+          title="Eliminar cliente"
+          message={`¿Está seguro que desea eliminar al cliente "${clienteToDelete?.nombre}"?`}
+          confirmText="Eliminar"
         />
       </Box>
     </>

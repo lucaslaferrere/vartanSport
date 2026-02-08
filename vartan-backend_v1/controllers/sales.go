@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 	"vartan-backend/config"
@@ -43,7 +44,7 @@ func CreateVenta(c *gin.Context) {
 			return
 		}
 		// Procesar como JSON (sin comprobante)
-		processVenta(c, jsonReq.ClienteID, jsonReq.FormaPagoID, jsonReq.Sena, jsonReq.Observaciones, jsonReq.Detalles, nil)
+		processVenta(c, jsonReq.UsuarioID, jsonReq.ClienteID, jsonReq.FormaPagoID, jsonReq.Sena, jsonReq.Observaciones, jsonReq.Detalles, nil)
 		return
 	}
 
@@ -100,7 +101,36 @@ func CreateVenta(c *gin.Context) {
 			comprobanteURL = &filePath
 		}
 
-		processVenta(c, formReq.ClienteID, formReq.FormaPagoID, formReq.Sena, formReq.Observaciones, detalles, comprobanteURL)
+		// Convertir los valores de string a los tipos correctos
+		var usuarioID *int
+		if formReq.UsuarioID != "" {
+			id, err := strconv.Atoi(formReq.UsuarioID)
+			if err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{"error": "usuario_id inválido"})
+				return
+			}
+			usuarioID = &id
+		}
+
+		clienteID, err := strconv.Atoi(formReq.ClienteID)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "cliente_id inválido"})
+			return
+		}
+
+		formaPagoID, err := strconv.Atoi(formReq.FormaPagoID)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "forma_pago_id inválido"})
+			return
+		}
+
+		sena, err := strconv.ParseFloat(formReq.Sena, 64)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "sena inválida"})
+			return
+		}
+
+		processVenta(c, usuarioID, clienteID, formaPagoID, sena, formReq.Observaciones, detalles, comprobanteURL)
 		return
 	}
 
@@ -109,9 +139,25 @@ func CreateVenta(c *gin.Context) {
 }
 
 // processVenta procesa la creación de la venta
-func processVenta(c *gin.Context, clienteID int, formaPagoID int, sena float64, observaciones string, detalles []models.VentaDetalleCreateRequest, comprobanteURL *string) {
-	// Obtener el ID del usuario autenticado
-	userID := c.GetInt("user_id")
+func processVenta(c *gin.Context, usuarioID *int, clienteID int, formaPagoID int, sena float64, observaciones string, detalles []models.VentaDetalleCreateRequest, comprobanteURL *string) {
+	// Determinar el vendedor que realiza la venta
+	var vendedorID int
+	if usuarioID != nil && *usuarioID > 0 {
+		// Verificar que el usuario existe y es un vendedor
+		var usuario models.Usuario
+		if err := config.DB.First(&usuario, *usuarioID).Error; err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Usuario vendedor no encontrado"})
+			return
+		}
+		if usuario.Rol != "empleado" && usuario.Rol != "dueño" {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "El usuario seleccionado no es un vendedor"})
+			return
+		}
+		vendedorID = *usuarioID
+	} else {
+		// Si no se especifica, usar el usuario autenticado
+		vendedorID = c.GetInt("user_id")
+	}
 
 	// Calcular el total de la venta (suma de productos)
 	var total float64
@@ -157,7 +203,7 @@ func processVenta(c *gin.Context, clienteID int, formaPagoID int, sena float64, 
 
 	// Crear la venta
 	venta := models.Venta{
-		UsuarioID:      userID,
+		UsuarioID:      vendedorID,
 		ClienteID:      clienteID,
 		FormaPagoID:    formaPagoID,
 		Total:          total,
@@ -176,7 +222,6 @@ func processVenta(c *gin.Context, clienteID int, formaPagoID int, sena float64, 
 		return
 	}
 
-	// Crear los detalles y descontar stock
 	for _, detalleReq := range detalles {
 		subtotal := detalleReq.PrecioUnitario * float64(detalleReq.Cantidad)
 
@@ -437,6 +482,20 @@ func UpdateVenta(c *gin.Context) {
 	}
 
 	// Actualizar campos si fueron enviados
+	if req.UsuarioID != nil {
+		// Verificar que el usuario existe y es un vendedor
+		var usuario models.Usuario
+		if err := config.DB.First(&usuario, *req.UsuarioID).Error; err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Usuario vendedor no encontrado"})
+			return
+		}
+		if usuario.Rol != "empleado" && usuario.Rol != "dueño" {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "El usuario seleccionado no es un vendedor"})
+			return
+		}
+		venta.UsuarioID = *req.UsuarioID
+	}
+
 	if req.ClienteID != nil {
 		// Verificar que el cliente existe
 		var cliente models.Cliente

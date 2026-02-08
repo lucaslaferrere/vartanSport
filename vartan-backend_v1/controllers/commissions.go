@@ -115,8 +115,15 @@ func CalcularComisionesMesActual(c *gin.Context) {
 			Select("COALESCE(SUM(total_final), 0)").
 			Scan(&totalVentas)
 
-		// Calcular comisión (ejemplo: 10% de las ventas)
-		comision := totalVentas * 0.10
+		// Calcular comisión usando el porcentaje configurado del usuario
+		porcentaje := usuario.PorcentajeComision / 100.0 // Convertir % a decimal
+		comisionBruta := totalVentas * porcentaje
+
+		// Restar gasto publicitario
+		comisionNeta := comisionBruta - usuario.GastoPublicitario
+		if comisionNeta < 0 {
+			comisionNeta = 0 // No puede ser negativa
+		}
 
 		// Buscar si ya existe comisión para este mes
 		var comisionExistente models.Comision
@@ -129,13 +136,15 @@ func CalcularComisionesMesActual(c *gin.Context) {
 				Mes:           mes,
 				Anio:          anio,
 				TotalVentas:   totalVentas,
-				TotalComision: comision,
+				TotalComision: comisionNeta,
+				Sueldo:        usuario.Sueldo,
 			}
 			config.DB.Create(&nuevaComision)
 		} else {
 			// Ya existe, actualizar
 			comisionExistente.TotalVentas = totalVentas
-			comisionExistente.TotalComision = comision
+			comisionExistente.TotalComision = comisionNeta
+			comisionExistente.Sueldo = usuario.Sueldo
 			config.DB.Save(&comisionExistente)
 		}
 	}

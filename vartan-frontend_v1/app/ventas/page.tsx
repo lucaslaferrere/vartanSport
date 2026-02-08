@@ -9,7 +9,7 @@ import PrimaryButton from '@components/Buttons/PrimaryButton';
 import AgregarVentaModal from '@components/Modals/AgregarVentaModal';
 import DetalleVentaModal from '@components/Modals/DetalleVentaModal';
 import EditarVentaModal from '@components/Modals/EditarVentaModal';
-import ConfirmDeleteModal from '@components/Modals/ConfirmDeleteModal';
+import ConfirmModal from '@components/Modals/ConfirmModal';
 import { TableFilterType } from '@components/Tables/Filters/TableFilterType';
 import { colors } from '@/src/theme/colors';
 import { ventaService } from '@services/venta.service';
@@ -350,11 +350,16 @@ export default function VentasPage() {
         />
 
         {/* Modal de confirmación de eliminación */}
-        <ConfirmDeleteModal
+        <ConfirmModal
           open={eliminarVentaModalOpen}
           onClose={() => setEliminarVentaModalOpen(false)}
           onConfirm={confirmEliminar}
-          itemName={ventaSeleccionada ? `la venta del cliente ${(ventaSeleccionada as any).cliente?.nombre || 'desconocido'}` : 'esta venta'}
+          title="Eliminar venta"
+          message={`¿Está seguro que desea eliminar la venta ${ventaSeleccionada ? `del cliente ${(ventaSeleccionada as any).cliente?.nombre || 'desconocido'}` : ''}?`}
+          confirmText="Eliminar"
+          confirmColor="#DC2626"
+          icon="fa-solid fa-trash"
+          iconColor="#DC2626"
         />
       </Box>
     </>

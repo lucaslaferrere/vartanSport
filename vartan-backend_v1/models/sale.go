@@ -47,6 +47,7 @@ type VentaDetalle struct {
 
 // Para crear una venta nueva desde el frontend (JSON)
 type VentaCreateRequest struct {
+	UsuarioID     *int                        `json:"usuario_id" form:"usuario_id"` // Opcional: ID del vendedor (si no se especifica, usa el usuario autenticado)
 	ClienteID     int                         `json:"cliente_id" form:"cliente_id" binding:"required"`
 	FormaPagoID   int                         `json:"forma_pago_id" form:"forma_pago_id" binding:"required"` // 1=Transferencia Financiera, 2=Transf a Cero, 3=Transf Bancaria, 4=Efectivo
 	Sena          float64                     `json:"sena" form:"sena" binding:"required"`
@@ -55,6 +56,7 @@ type VentaCreateRequest struct {
 }
 
 type VentaCreateFormRequest struct {
+	UsuarioID     string `form:"usuario_id"`
 	ClienteID     string `form:"cliente_id" binding:"required"`
 	FormaPagoID   string `form:"forma_pago_id" binding:"required"`
 	Sena          string `form:"sena" binding:"required"`
@@ -70,6 +72,7 @@ type VentaDetalleCreateRequest struct {
 }
 
 type VentaUpdateRequest struct {
+	UsuarioID     *int     `json:"usuario_id"`
 	ClienteID     *int     `json:"cliente_id"`
 	FormaPagoID   *int     `json:"forma_pago_id"`
 	Sena          *float64 `json:"sena"`

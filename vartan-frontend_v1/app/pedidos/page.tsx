@@ -5,12 +5,14 @@ import { Box, Typography, Chip, CircularProgress } from '@mui/material';
 import { ColumnDef } from '@tanstack/react-table';
 import TableClientSide from '@components/Tables/TableClientSide';
 import StatusTabs from '@components/Tabs/StatusTabs';
+import ConfirmModal from '@components/Modals/ConfirmModal';
 import { TableFilterType } from '@components/Tables/Filters/TableFilterType';
 import { colors } from '@/src/theme/colors';
 import { pedidoService } from '@services/pedido.service';
 import { IPedido } from '@models/entities/pedidoEntity';
 import { useAuthStore } from '@libraries/store';
 import { useMounted } from '@hooks/useMounted';
+import { useNotification } from '@components/Notifications';
 
 interface IPedidoDisplay {
   id: number;
@@ -21,17 +23,25 @@ interface IPedidoDisplay {
   estado: string;
 }
 
+type ConfirmAction = {
+  type: 'despachar' | 'cancelar';
+  pedido: IPedidoDisplay;
+};
+
 function PedidosPage() {
   const mounted = useMounted();
+  const { addNotification } = useNotification();
   const [pedidos, setPedidos] = useState<IPedidoDisplay[]>([]);
   const [allPedidos, setAllPedidos] = useState<IPedidoDisplay[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState('todos');
+  const [confirmAction, setConfirmAction] = useState<ConfirmAction | null>(null);
   const { user } = useAuthStore();
 
   const transformPedido = (pedido: IPedido): IPedidoDisplay => {
-    const cantidadItems = pedido.venta?.detalles?.reduce((acc, d) => acc + d.cantidad, 0) || 0;
+    // Calcular la cantidad total de items sumando las cantidades de cada detalle
+    const cantidadItems = pedido.venta?.detalles?.reduce((acc, detalle) => acc + detalle.cantidad, 0) || 0;
 
     return {
       id: pedido.id,
@@ -85,21 +95,34 @@ function PedidosPage() {
     setActiveTab(tabId);
   };
 
-  const handleDespachar = async (row: IPedidoDisplay) => {
-    try {
-      await pedidoService.updateEstado(row.id, { estado: 'despachado' });
-      fetchPedidos();
-    } catch (err) {
-      console.error('Error despachando pedido:', err);
-    }
+  const handleDespachar = (row: IPedidoDisplay) => {
+    setConfirmAction({ type: 'despachar', pedido: row });
   };
 
-  const handleCancelar = async (row: IPedidoDisplay) => {
+  const handleCancelar = (row: IPedidoDisplay) => {
+    setConfirmAction({ type: 'cancelar', pedido: row });
+  };
+
+  const handleConfirmAction = async () => {
+    if (!confirmAction) return;
+
     try {
-      await pedidoService.updateEstado(row.id, { estado: 'cancelado' });
+      const { type, pedido } = confirmAction;
+
+      if (type === 'despachar') {
+        await pedidoService.updateEstado(pedido.id, { estado: 'despachado' });
+        addNotification('Pedido despachado correctamente', 'success');
+      } else if (type === 'cancelar') {
+        await pedidoService.updateEstado(pedido.id, { estado: 'cancelado' });
+        addNotification('Pedido cancelado correctamente', 'success');
+      }
+
       fetchPedidos();
     } catch (err) {
-      console.error('Error cancelando pedido:', err);
+      console.error('Error actualizando pedido:', err);
+      addNotification('Error al actualizar el pedido', 'error');
+    } finally {
+      setConfirmAction(null);
     }
   };
 
@@ -168,15 +191,15 @@ function PedidosPage() {
         icon: 'fa-solid fa-truck',
         color: '#059669',
         onClick: handleDespachar,
-        tooltip: 'Despachar',
+        tooltip: 'Despachar pedido',
         disabled: (row: IPedidoDisplay) => row.estado !== 'pendiente'
       },
       {
         icon: 'fa-solid fa-xmark',
         color: '#DC2626',
         onClick: handleCancelar,
-        tooltip: 'Cancelar',
-        disabled: (row: IPedidoDisplay) => row.estado !== 'pendiente'
+        tooltip: 'Cancelar pedido',
+        disabled: (row: IPedidoDisplay) => row.estado === 'cancelado'
       }
     ];
   };
@@ -217,6 +240,23 @@ function PedidosPage() {
           actions={getActions()}
         />
       </Box>
+
+      {/* Modal de confirmación */}
+      <ConfirmModal
+        open={!!confirmAction}
+        onClose={() => setConfirmAction(null)}
+        onConfirm={handleConfirmAction}
+        title={confirmAction?.type === 'despachar' ? 'Confirmar despacho' : 'Confirmar cancelación'}
+        message={
+          confirmAction?.type === 'despachar'
+            ? `¿Está seguro que desea marcar el pedido #${confirmAction.pedido.id} como despachado?`
+            : `¿Está seguro que desea cancelar el pedido #${confirmAction?.pedido.id}?`
+        }
+        confirmText={confirmAction?.type === 'despachar' ? 'Despachar' : 'Cancelar'}
+        confirmColor={confirmAction?.type === 'despachar' ? '#059669' : '#DC2626'}
+        icon={confirmAction?.type === 'despachar' ? 'fa-solid fa-truck' : 'fa-solid fa-xmark'}
+        iconColor={confirmAction?.type === 'despachar' ? '#059669' : '#DC2626'}
+      />
     </>
   );
 }

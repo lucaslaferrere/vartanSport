@@ -1,3 +1,4 @@
+// Menu items configuration - Updated 2026-02-08 - Force reload v3
 export interface IMenuItem {
   id: string;
   title: string;
@@ -82,6 +83,14 @@ export const GetMenuItems = (): MenuGroup => {
             type: 'item',
             url: '/gastos',
             icon: 'fa-solid fa-receipt',
+            breadcrumbs: true
+          },
+          {
+            id: 'tareas',
+            title: 'Tareas',
+            type: 'item',
+            url: '/tareas',
+            icon: 'fa-solid fa-list-check',
             breadcrumbs: true
           }
         ]

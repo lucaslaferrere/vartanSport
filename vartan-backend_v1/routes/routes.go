@@ -22,6 +22,7 @@ func SetupRoutes(router *gin.Engine) {
 	api.Use(middleware.AuthMiddleware())
 	{
 		api.GET("/profile", controllers.GetProfile)
+		api.GET("/me", controllers.GetMe)
 
 		api.GET("/productos", controllers.GetProductos)
 		api.GET("/productos/:id", controllers.GetProducto)
@@ -64,11 +65,23 @@ func SetupRoutes(router *gin.Engine) {
 		api.GET("/gastos/resumen", controllers.ObtenerResumenGastos)
 		api.GET("/gastos/por-mes", controllers.ObtenerGastosPorMes)
 		api.GET("/gastos/proveedores", controllers.ListarProveedores)
+
+		// Tareas
+		api.GET("/tareas", controllers.GetTareas)
+		api.POST("/tareas", controllers.CreateTarea)
+		api.GET("/tareas/:id", controllers.GetTarea)
+		api.PATCH("/tareas/:id", controllers.UpdateTarea)
+		api.DELETE("/tareas/:id", controllers.DeleteTarea)
+		api.GET("/empleados", controllers.GetEmpleadosConTareas)
 	}
 
 	owner := router.Group("/api/owner")
 	owner.Use(middleware.AuthMiddleware(), middleware.RequireDueño())
 	{
+		// Usuarios
+		owner.GET("/usuarios/vendedores", controllers.GetVendedores)
+		owner.PUT("/usuarios/:id/comision-config", controllers.UpdateComisionConfig)
+
 		// Productos
 		owner.POST("/productos", controllers.CreateProducto)
 		owner.PUT("/productos/:id", controllers.UpdateProducto)

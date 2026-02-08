@@ -14,6 +14,7 @@ export default function Navigation() {
     const menuItem = GetMenuItems();
 
     const navGroups = menuItem.items.map((item) => {
+
         switch (item.type) {
             case 'group':
                 return <NavGroup

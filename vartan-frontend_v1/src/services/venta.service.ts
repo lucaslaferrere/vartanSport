@@ -43,10 +43,6 @@ export const ventaService = {
             formData.append('detalles', JSON.stringify(data.detalles));
             formData.append('comprobante', data.comprobante);
 
-            console.log('FormData entries:');
-            for (let pair of formData.entries()) {
-                console.log(pair[0] + ':', pair[1]);
-            }
 
             const response = await api.post<IVentaCreateResponse>('/api/ventas', formData);
             return response.data;
@@ -61,12 +57,7 @@ export const ventaService = {
                 observaciones: data.observaciones || '',
                 detalles: data.detalles
             };
-
-            console.log('📤 JSON a enviar:', JSON.stringify(payload, null, 2));
-            console.log('Tipos en payload:');
-            console.log('  cliente_id:', typeof payload.cliente_id, '=', payload.cliente_id);
-            console.log('  forma_pago_id:', typeof payload.forma_pago_id, '=', payload.forma_pago_id);
-            console.log('  sena:', typeof payload.sena, '=', payload.sena);
+            // El usuario_id se obtiene automáticamente del token JWT en el backend
 
             const response = await api.post<IVentaCreateResponse>('/api/ventas', payload, {
                 headers: {
@@ -79,8 +70,21 @@ export const ventaService = {
 
     // Solo dueño: obtener todas las ventas
     getAll: async (): Promise<IVenta[]> => {
-        const response = await api.get<IVenta[]>('/api/owner/ventas');
-        return response.data;
+        try {
+            console.log('🔄 Obteniendo todas las ventas (endpoint: /api/owner/ventas)');
+            const response = await api.get<IVenta[]>('/api/owner/ventas');
+            console.log('✅ Ventas obtenidas:', response.data?.length || 0);
+            return response.data;
+        } catch (error: any) {
+            console.error('❌ Error al obtener ventas:', error);
+            console.error('Detalles del error:', {
+                status: error.response?.status,
+                statusText: error.response?.statusText,
+                data: error.response?.data,
+                message: error.message
+            });
+            throw error;
+        }
     },
 
     // Solo dueño: obtener ventas por usuario/vendedor

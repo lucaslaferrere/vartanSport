@@ -7,5 +7,6 @@ export const productosRoute = () => '/productos';
 export const ventasRoute = () => '/ventas';
 export const clientesRoute = () => '/clientes';
 export const pedidosRoute = () => '/pedidos';
+export const tareasRoute = () => '/tareas';
 export const comisionesRoute = () => '/comisiones';
 export const gastosRoute = () => '/gastos';

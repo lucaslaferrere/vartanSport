@@ -1,11 +1,11 @@
 export const colors = {
-  primary: '#528c9f',
-  primaryLight: 'rgba(82, 140, 159, 0.1)',
-  primaryMedium: 'rgba(82, 140, 159, 0.15)',
-  primaryHover: 'rgba(82, 140, 159, 0.08)',
-  primarySelected: 'rgba(82, 140, 159, 0.12)',
-  primarySelectedHover: 'rgba(82, 140, 159, 0.16)',
-  primaryDark: '#3d6a78',
+  primary: '#588a9e',
+  primaryLight: 'rgba(88, 138, 158, 0.1)',
+  primaryMedium: 'rgba(88, 138, 158, 0.15)',
+  primaryHover: 'rgba(88, 138, 158, 0.08)',
+  primarySelected: 'rgba(88, 138, 158, 0.12)',
+  primarySelectedHover: 'rgba(88, 138, 158, 0.16)',
+  primaryDark: '#406b7c',
 
   textPrimary: '#1F2937',
   textSecondary: '#6B7280',

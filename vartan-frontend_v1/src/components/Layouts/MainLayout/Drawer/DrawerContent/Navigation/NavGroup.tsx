@@ -14,6 +14,16 @@ export default function NavGroup({item}: { item: IMenuItem }) {
     const theme = useTheme();
     const drawerOpen = useAppSelector((state) => state.customization.drawerOpen);
 
+    // DEBUG: Ver qué items hay
+    console.log('🔴 NavGroup - Grupo:', item.title);
+    console.log('🔴 NavGroup - Children count:', item.children?.length);
+    console.log('🔴 NavGroup - Todos los items:', item.children?.map(i => ({
+        id: i.id,
+        title: i.title,
+        type: i.type,
+        url: i.url
+    })));
+
     // Versión simplificada sin validación de permisos para demo
     const filterMenuItemRol = (item: IMenuItem) => {
         // Por ahora, mostrar todos los items del menú
@@ -21,11 +31,16 @@ export default function NavGroup({item}: { item: IMenuItem }) {
     }
 
     const navCollapse = item.children?.map((menuItem: IMenuItem) => {
+        console.log('🟢 Procesando item:', menuItem.title, '- Tipo:', menuItem.type);
+
         if (!filterMenuItemRol(menuItem)) {
+            console.log('🔴 Item filtrado:', menuItem.title);
             return null;
         }
+
         switch (menuItem.type) {
             case 'collapse':
+                console.log('✅ Renderizando collapse:', menuItem.title);
                 return (
                     <NavCollapse
                         key={menuItem.id}
@@ -34,8 +49,10 @@ export default function NavGroup({item}: { item: IMenuItem }) {
                     />
                 );
             case 'item':
+                console.log('✅ Renderizando item:', menuItem.title);
                 return <NavItem key={menuItem.id} item={menuItem} level={1}/>;
             default:
+                console.log('❌ Tipo desconocido:', menuItem.type);
                 return null;
         }
     });

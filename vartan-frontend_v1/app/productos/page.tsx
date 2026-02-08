@@ -11,7 +11,7 @@ import AgregarProductoModal from '@components/Modals/AgregarProductoModal';
 import AgregarStockModal from '@components/Modals/AgregarStockModal';
 import EditarProductoModal from '@components/Modals/EditarProductoModal';
 import DetalleStockModal from '@components/Modals/DetalleStockModal';
-import ConfirmDeleteModal from '@components/Modals/ConfirmDeleteModal';
+import ConfirmModal from '@components/Modals/ConfirmModal';
 import { TableFilterType } from '@components/Tables/Filters/TableFilterType';
 import { colors } from '@/src/theme/colors';
 import { productoService } from '@services/producto.service';
@@ -449,14 +449,19 @@ export default function ProductosPage() {
       />
 
       {/* Modal de confirmación de eliminación */}
-      <ConfirmDeleteModal
+      <ConfirmModal
         open={confirmDeleteOpen}
         onClose={() => {
           setConfirmDeleteOpen(false);
           setProductoToDelete(null);
         }}
         onConfirm={confirmDelete}
-        itemName={productoToDelete?.nombre}
+        title="Eliminar producto"
+        message={`¿Está seguro que desea eliminar el producto "${productoToDelete?.nombre}"?`}
+        confirmText="Eliminar"
+        confirmColor="#DC2626"
+        icon="fa-solid fa-trash"
+        iconColor="#DC2626"
       />
     </>
   );

@@ -1,5 +1,6 @@
 
 export interface IVentaCreateRequest {
+    usuario_id?: number; // Opcional - para que el dueño pueda asignar ventas a vendedores específicos
     cliente_id: number;
     forma_pago_id: number;
     sena: number;

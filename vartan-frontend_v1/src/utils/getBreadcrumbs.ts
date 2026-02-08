@@ -1,12 +1,15 @@
-﻿﻿import {
+﻿import {
     homeRoute,
     dashboardRoute,
     productosRoute,
     ventasRoute,
     clientesRoute,
     pedidosRoute,
-    comisionesRoute
+    comisionesRoute,
+    gastosRoute,
+    tareasRoute
 } from "@routes/router";
+
 export interface IBreadcrumbItem {
     id: string;
     title: string;
@@ -14,6 +17,7 @@ export interface IBreadcrumbItem {
     icon: string;
     father: string | null;
 }
+
 const items: IBreadcrumbItem[] = [
     {
         id: "inicio",
@@ -61,17 +65,40 @@ const items: IBreadcrumbItem[] = [
         id: "comisiones",
         title: "Comisiones",
         url: comisionesRoute(),
-        icon: "fa-solid fa-money-bill",
+        icon: "fa-solid fa-dollar-sign",
+        father: null,
+    },
+    {
+        id: "gastos",
+        title: "Gastos",
+        url: gastosRoute(),
+        icon: "fa-solid fa-receipt",
+        father: null,
+    },
+    {
+        id: "tareas",
+        title: "Tareas",
+        url: tareasRoute(),
+        icon: "fa-solid fa-list-check",
         father: null,
     }
 ];
+
 export function GetBreadcrumbs(path: string): IBreadcrumbItem[] {
     const breadcrumbs: IBreadcrumbItem[] = [];
     const currentItem = items.find(item => path.startsWith(item.url));
+
+    // Debug temporal
+    console.log('🔍 GetBreadcrumbs - Path:', path);
+    console.log('🔍 GetBreadcrumbs - Items disponibles:', items.map(i => ({ id: i.id, url: i.url, title: i.title })));
+    console.log('🔍 GetBreadcrumbs - Item encontrado:', currentItem);
+
     if (!currentItem) {
         return breadcrumbs;
     }
+
     breadcrumbs.unshift(currentItem);
+
     let fatherId = currentItem.father;
     while (fatherId) {
         const fatherItem = items.find(item => item.id === fatherId);
@@ -82,5 +109,8 @@ export function GetBreadcrumbs(path: string): IBreadcrumbItem[] {
             break;
         }
     }
+
+    console.log('🔍 GetBreadcrumbs - Resultado final:', breadcrumbs);
     return breadcrumbs;
 }
+

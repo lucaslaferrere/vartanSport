@@ -174,6 +174,7 @@ export default function AgregarVentaModal({ open, onClose, onSuccess }: AgregarV
         observaciones: observaciones || '',
         detalles
       };
+      // El usuario_id se obtiene automáticamente del token JWT en el backend
 
       // ✅ SOLO agregar comprobante si es un File válido
       if (comprobante instanceof File) {
