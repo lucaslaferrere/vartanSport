@@ -19,13 +19,20 @@ import (
 // @Failure 500 {object} map[string]string "Error interno"
 // @Router /api/owner/pedidos [get]
 func GetPedidos(c *gin.Context) {
+	userID, exists := c.Get("userID")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Usuario no autorizado"})
+		return
+	}
+
 	var pedidos []models.Pedido
 
 	if err := config.DB.
+		Joins("JOIN venta ON venta.id = pedidos.venta_id").
+		Where("venta.usuario_id = ?", userID).
 		Preload("Venta").
 		Preload("Venta.Cliente").
-		Preload("Venta.Usuario").
-		Order("fecha_creacion DESC").
+		Order("pedidos.fecha_creacion DESC").
 		Find(&pedidos).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error al obtener pedidos"})
 		return
