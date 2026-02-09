@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"fmt"
 	"net/http"
 	"vartan-backend/config"
 	"vartan-backend/models"
@@ -28,12 +29,12 @@ func GetPedidos(c *gin.Context) {
 	var pedidos []models.Pedido
 
 	if err := config.DB.
-		Joins("JOIN ventas ON ventas.id = pedidos.venta_id").
-		Where("ventas.usuario_id = ?", userID).
+		Joins("JOIN venta ON venta.id = pedidos.venta_id").
+		Where("venta.usuario_id = ?", userID).
 		Preload("Venta").
 		Preload("Venta.Cliente").
-		Preload("Venta.Detalles"). // ✅ AGREGAR ESTO
-		Preload("Venta.Detalles.Producto"). // ✅ AGREGAR ESTO (opcional pero útil)
+		Preload("Venta.Detalles").
+		Preload("Venta.Detalles.Producto").
 		Order("pedidos.fecha_creacion DESC").
 		Find(&pedidos).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error al obtener pedidos"})
@@ -96,14 +97,16 @@ func GetMisPedidos(c *gin.Context) {
 
 	var pedidos []models.Pedido
 	if err := config.DB.
-		Joins("JOIN ventas ON ventas.id = pedidos.venta_id").
-		Where("ventas.usuario_id = ?", userID).
+		Joins("JOIN venta ON venta.id = pedidos.venta_id").
+		Where("venta.usuario_id = ?", userID).
 		Preload("Venta").
 		Preload("Venta.Cliente").
-		Preload("Venta.Detalles"). // ✅ AGREGAR ESTO
-		Preload("Venta.Detalles.Producto"). // ✅ AGREGAR ESTO (opcional pero útil)
+		Preload("Venta.Detalles").
+		Preload("Venta.Detalles.Producto").
 		Order("pedidos.fecha_creacion DESC").
 		Find(&pedidos).Error; err != nil {
+
+		fmt.Println("Error en GetMisPedidos:", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error al obtener pedidos"})
 		return
 	}
