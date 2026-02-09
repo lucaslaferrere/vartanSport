@@ -70,7 +70,7 @@ export const ventaService = {
 
     // Solo dueño: obtener todas las ventas
     getAll: async (): Promise<IVenta[]> => {
-        const response = await api.get<IVenta[]>('/api/venta'); // Cambiado de /api/ventas a /api/venta
+        const response = await api.get<IVenta[]>('/api/ventas');
         return response.data;
     },
 
@@ -82,7 +82,7 @@ export const ventaService = {
 
     // Descargar comprobante
     descargarComprobante: async (ventaId: number, nombreArchivo: string): Promise<void> => {
-        const response = await api.get(`/api/venta/${ventaId}/comprobante`, { // Cambiado de /api/ventas a /api/venta
+        const response = await api.get(`/api/ventas/${ventaId}/comprobante`, {
             responseType: 'blob',
         });
 
