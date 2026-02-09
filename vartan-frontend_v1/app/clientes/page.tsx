@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useEffect, useState, useCallback } from 'react';
@@ -12,6 +11,7 @@ import { colors } from '@/src/theme/colors';
 import { clienteService } from '@services/cliente.service';
 import { ICliente } from '@models/entities/clienteEntity';
 import { useMounted } from '@hooks/useMounted';
+import { useAuthStore } from '@libraries/store';
 import AgregarClienteModal from '@components/Modals/AgregarClienteModal';
 import EditarClienteModal from '@components/Modals/EditarClienteModal';
 import ConfirmModal from '@components/Modals/ConfirmModal';
@@ -37,6 +37,7 @@ interface IClientesStats {
 function ClientesPage() {
   const mounted = useMounted();
   const { addNotification } = useNotification();
+  const { user } = useAuthStore();
   const [clientes, setClientes] = useState<IClienteDisplay[]>([]);
   const [stats, setStats] = useState<IClientesStats>({
     totalClientes: 0,
@@ -116,11 +117,10 @@ function ClientesPage() {
 
   if (!mounted) return null;
 
-  const handleDelete = (row: IClienteDisplay) => {
+  const handleDelete = async (row: IClienteDisplay): Promise<void> => {
     setClienteToDelete(row);
     setConfirmDeleteOpen(true);
   };
-
   const confirmDelete = async () => {
     if (!clienteToDelete) return;
 
@@ -128,9 +128,19 @@ function ClientesPage() {
       await clienteService.delete(clienteToDelete.id);
       fetchClientes();
       addNotification('Cliente eliminado exitosamente', 'success');
-    } catch (err) {
+    } catch (err: unknown) {
       console.error('Error eliminando cliente:', err);
-      addNotification('Error al eliminar el cliente', 'error');
+
+      type AxiosLike = { response?: { status?: number; data?: { error?: string } } };
+      const axiosErr = err as AxiosLike;
+
+      if (axiosErr.response?.status === 403) {
+        addNotification('No tienes permisos para eliminar clientes', 'error');
+      } else if (axiosErr.response?.data?.error) {
+        addNotification(axiosErr.response.data.error || 'Error al eliminar el cliente', 'error');
+      } else {
+        addNotification('Error al eliminar el cliente', 'error');
+      }
     } finally {
       setClienteToDelete(null);
     }
@@ -217,20 +227,25 @@ function ClientesPage() {
           data={clientes}
           columns={columns}
           headerActions={headerActions}
-          actions={[
-            {
-              icon: 'fa-solid fa-pen',
-              color: '#6B7280',
-              onClick: handleEdit,
-              tooltip: 'Editar'
-            },
-            {
-              icon: 'fa-solid fa-trash',
-              color: '#DC2626',
-              onClick: handleDelete,
-              tooltip: 'Eliminar'
+          actions={(() => {
+            const base = [
+              {
+                icon: 'fa-solid fa-pen',
+                color: '#6B7280',
+                onClick: handleEdit,
+                tooltip: 'Editar'
+              }
+            ];
+            if (user?.rol === 'dueño') {
+              base.push({
+                icon: 'fa-solid fa-trash',
+                color: '#DC2626',
+                onClick: handleDelete,
+                tooltip: 'Eliminar'
+              });
             }
-          ]}
+            return base;
+          })()}
         />
 
         {/* Modal para agregar cliente */}

@@ -56,11 +56,14 @@ export default function AgregarVentaModal({ open, onClose, onSuccess }: AgregarV
         clienteService.getAll(),
         productoService.getAll()
       ]);
-      setClientes(clientesData);
-      setProductos(productosData.filter(p => p.activo));
+
+      setClientes(clientesData || []);
+      setProductos(productosData?.filter(p => p.activo) || []);
     } catch (err) {
       console.error('Error cargando datos:', err);
       addNotification('Error al cargar datos', 'error');
+      setClientes([]);
+      setProductos([]);
     }
   }, [addNotification]);
 
