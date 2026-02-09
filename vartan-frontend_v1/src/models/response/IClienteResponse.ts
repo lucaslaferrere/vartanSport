@@ -1,4 +1,4 @@
-import { ICliente } from '../entities/cliente.entity';
+import { ICliente } from '../entities/clienteEntity';
 
 export interface IClientesResponse {
     data: ICliente[];

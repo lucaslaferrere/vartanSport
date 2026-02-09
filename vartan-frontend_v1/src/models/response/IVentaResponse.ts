@@ -1,4 +1,4 @@
-import { IVenta, IFormaPago } from '../entities/venta.entity';
+import { IVenta, IFormaPago } from '../entities/ventaEntity';
 
 export interface IVentasResponse {
     data: IVenta[];

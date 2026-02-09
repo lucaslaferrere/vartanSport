@@ -59,8 +59,6 @@ const ThemeClient: React.FC<{ children: React.ReactNode }> = ({children}) => {
 
     const themes = createTheme(themeOptions);
     
-    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-    // @ts-expect-error
     themes.components = componentsOverride(themes);
 
     return (

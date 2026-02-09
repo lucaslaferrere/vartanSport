@@ -45,7 +45,7 @@ interface RankingChartProps {
     formatCurrency: (value: number) => string;
 }
 
-export function RankingChart({ data, formatCurrency }: RankingChartProps) {
+export function RankingChart({ data, formatCurrency: _formatCurrency }: RankingChartProps) {
     const maxValue = Math.max(...data.map(d => d.comision), 1);
 
     return (
@@ -76,7 +76,7 @@ interface EvolucionChartProps {
     formatCurrency: (value: number) => string;
 }
 
-export function EvolucionChart({ data, formatCurrency }: EvolucionChartProps) {
+export function EvolucionChart({ data, formatCurrency: _formatCurrency }: EvolucionChartProps) {
     const maxValue = Math.max(...data.map(d => d.total), 1);
 
     return (
@@ -239,7 +239,7 @@ interface ComparativoChartProps {
     formatCurrency: (value: number) => string;
 }
 
-export function ComparativoChart({ data, formatCurrency }: ComparativoChartProps) {
+export function ComparativoChart({ data, formatCurrency: _formatCurrency }: ComparativoChartProps) {
     const maxValue = Math.max(...data.flatMap(d => [d.ventas, d.comision]), 1);
 
     return (

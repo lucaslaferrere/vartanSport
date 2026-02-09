@@ -41,7 +41,7 @@ export const ventaService = {
                 formData.append('observaciones', data.observaciones);
             }
             formData.append('detalles', JSON.stringify(data.detalles));
-            formData.append('comprobante', data.comprobante);
+            formData.append('comprobante', data.comprobante as File);
 
 
             const response = await api.post<IVentaCreateResponse>('/api/ventas', formData);
