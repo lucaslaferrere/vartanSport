@@ -13,7 +13,7 @@ export const layoutConfig = {
   menuItems: [
     { label: 'Dashboard', icon: 'fa-solid fa-chart-line', path: '/dashboard' },
     { label: 'Productos', icon: 'fa-solid fa-box', path: '/productos' },
-    { label: 'Ventas', icon: 'fa-solid fa-cart-shopping', path: '/ventas' },
+    { label: 'Ventas', icon: 'fa-solid fa-cart-shopping', path: '/venta' },
     { label: 'Clientes', icon: 'fa-solid fa-users', path: '/clientes' },
     { label: 'Pedidos', icon: 'fa-solid fa-truck', path: '/pedidos' },
     { label: 'Comisiones', icon: 'fa-solid fa-dollar-sign', path: '/comisiones' },

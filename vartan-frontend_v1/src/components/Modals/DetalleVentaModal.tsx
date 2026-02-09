@@ -20,14 +20,14 @@ export default function DetalleVentaModal({ open, onClose, venta }: DetalleVenta
   const handleDescargarComprobante = () => {
     if (venta.comprobante_url) {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
-      window.open(`${apiUrl}/api/ventas/${venta.id}/comprobante`, '_blank');
+      window.open(`${apiUrl}/api/venta/${venta.id}/comprobante`, '_blank');
     }
   };
 
   const handleVerComprobante = () => {
     if (venta.comprobante_url) {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
-      window.open(`${apiUrl}/api/ventas/${venta.id}/comprobante`, '_blank');
+      window.open(`${apiUrl}/api/venta/${venta.id}/comprobante`, '_blank');
     }
   };
 
@@ -199,4 +199,3 @@ export default function DetalleVentaModal({ open, onClose, venta }: DetalleVenta
     </Dialog>
   );
 }
-
