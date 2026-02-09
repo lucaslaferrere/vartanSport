@@ -1,0 +1,68 @@
+# Archivos de entorno
+.env
+.env.local
+.env.production
+.env.*.local
+
+# Binarios compilados
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+vartan-backend.exe
+vartan-backend-test.exe
+vartan-backend-new.exe
+vartan-test.exe
+test-build.exe
+
+# Archivos de configuración local
+.vscode/
+.idea/
+.DS_Store
+
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# Docker
+docker-compose.yml
+Dockerfile
+.dockerignore
+
+# Documentación
+README.md
+DEPLOYMENT.md
+docs/*.md
+
+# Scripts de utilidad local
+*.ps1
+*.bat
+*.sh
+create_owner.go
+create_user.go
+register_employees.go
+verify_employees.go
+register_all_employees.go
+
+# Archivos de salida/logs
+*.txt
+*.log
+
+# Tests
+tests/
+*_test.go
+
+# Uploads (comprobantes no deben estar en la imagen)
+uploads/comprobantes/*
+!uploads/comprobantes/.gitkeep
+
+# Archivos temporales
+tmp/
+temp/
+*.tmp
+*.bak
+*.swp
+*~

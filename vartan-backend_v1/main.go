@@ -69,11 +69,14 @@ func main() {
 			"http://localhost:3000",
 			"http://localhost:5173",
 			"http://localhost:5174",
-			"http://45.55.194.246:3001",
+			"http://45.55.194.246:3001", // Frontend en producción
+			"http://45.55.194.246:8001", // Backend en producción
+			"https://*",                 // Cualquier dominio HTTPS (Coolify)
 		},
 		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"},
 		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization", "Accept"},
 		AllowCredentials: true,
+		AllowWildcard:    true,
 		ExposeHeaders:    []string{"Content-Length"},
 		MaxAge:           12 * 3600,
 	}))
