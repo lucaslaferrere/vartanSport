@@ -82,15 +82,18 @@ export default function ProductosPage() {
     setLoading(true);
     setError(null);
     try {
-      const productosData = await productoService.getAll();
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/productos`);
+      if (!response.ok) throw new Error('Error al cargar productos');
+      const productosData = await response.json();
       setProductos(productosData.map(transformProducto));
       setStats(calcularStats(productosData));
-    } catch (err: unknown) {
+    } catch (err) {
       console.error('Error fetching productos:', err);
       const errorMessage = err instanceof Error && err.message.includes('Network')
         ? 'No se puede conectar al servidor'
         : 'Error al cargar los productos';
       setError(errorMessage);
+      setProductos([]);
     } finally {
       setLoading(false);
     }
