@@ -46,7 +46,7 @@ export const GetMenuItems = (): MenuGroup => {
             breadcrumbs: true
           },
           {
-            id: 'venta',
+            id: 'ventas',
             title: 'Ventas',
             type: 'item',
             url: '/ventas',

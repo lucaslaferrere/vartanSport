@@ -44,7 +44,7 @@ export const ventaService = {
             formData.append('comprobante', data.comprobante as File);
 
 
-            const response = await api.post<IVentaCreateResponse>('/api/venta', formData);
+            const response = await api.post<IVentaCreateResponse>('/api/ventas', formData);
             return response.data;
         } else {
             console.log('📤 Enviando JSON (SIN comprobante)');
@@ -59,7 +59,7 @@ export const ventaService = {
             };
             // El usuario_id se obtiene automáticamente del token JWT en el backend
 
-            const response = await api.post<IVentaCreateResponse>('/api/venta', payload, {
+            const response = await api.post<IVentaCreateResponse>('/api/ventas', payload, {
                 headers: {
                     'Content-Type': 'application/json'
                 }
@@ -70,19 +70,19 @@ export const ventaService = {
 
     // Solo dueño: obtener todas las ventas
     getAll: async (): Promise<IVenta[]> => {
-        const response = await api.get<IVenta[]>('/api/venta');
+        const response = await api.get<IVenta[]>('/api/ventas');
         return response.data;
     },
 
     // Solo dueño: obtener ventas por usuario/vendedor
     getByUsuario: async (usuarioId: number): Promise<IVenta[]> => {
-        const response = await api.get<IVenta[]>(`/api/owner/venta/usuario/${usuarioId}`); // Cambiado de /api/owner/ventas a /api/owner/venta
+        const response = await api.get<IVenta[]>(`/api/owner/ventas/usuario/${usuarioId}`);
         return response.data;
     },
 
     // Descargar comprobante
     descargarComprobante: async (ventaId: number, nombreArchivo: string): Promise<void> => {
-        const response = await api.get(`/api/venta/${ventaId}/comprobante`, {
+        const response = await api.get(`/api/ventas/${ventaId}/comprobante`, {
             responseType: 'blob',
         });
 

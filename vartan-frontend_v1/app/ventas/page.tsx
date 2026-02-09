@@ -204,10 +204,19 @@ export default function VentasPage() {
     }
   };
 
-  const handleEliminar = (row: IVentaDisplay) => {
-    const ventaCompleta = ventas.find(v => v.id === row.id);
-    setVentaSeleccionada(ventaCompleta as any);
-    setEliminarVentaModalOpen(true);
+  const handleEliminar = async (row: IVentaDisplay): Promise<void> => {
+    try {
+      const todasLasVentas = user?.rol === 'dueño'
+        ? await ventaService.getAll()
+        : await ventaService.getMisVentas();
+
+      const venta = todasLasVentas.find((v: IVenta) => v.id === row.id) || null;
+      setVentaSeleccionada(venta);
+      setEliminarVentaModalOpen(true);
+    } catch (err) {
+      console.error('Error cargando venta para eliminar:', err);
+      addNotification('Error al cargar la venta', 'error');
+    }
   };
 
   const confirmEliminar = async () => {
@@ -355,7 +364,7 @@ export default function VentasPage() {
           onClose={() => setEliminarVentaModalOpen(false)}
           onConfirm={confirmEliminar}
           title="Eliminar venta"
-          message={`¿Está seguro que desea eliminar la venta ${ventaSeleccionada ? `del cliente ${(ventaSeleccionada as any).cliente?.nombre || 'desconocido'}` : ''}?`}
+          message={`¿Está seguro que desea eliminar la venta ${ventaSeleccionada ? `del cliente ${ventaSeleccionada.cliente?.nombre || 'desconocido'}` : ''}?`}
           confirmText="Eliminar"
           confirmColor="#DC2626"
           icon="fa-solid fa-trash"
