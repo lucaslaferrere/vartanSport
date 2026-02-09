@@ -29,7 +29,7 @@ import (
 
 func main() {
 	if err := godotenv.Load(); err != nil {
-		log.Println("⚠️  No se encontró archivo .env")
+		log.Println("No se encontró archivo .env")
 	}
 
 	config.ConnectDatabase()
@@ -65,7 +65,13 @@ func main() {
 	})
 
 	router.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{"http://localhost:3000", "http://localhost:5173", "http://localhost:5174"},
+		AllowOrigins: []string{
+			"http://localhost:3000",
+			"http://localhost:5173",
+			"http://localhost:5174",
+			"https://tu-dominio-frontend.coolify.io",
+			"http://tu-dominio-frontend.coolify.io",
+		},
 		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"},
 		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization", "Accept"},
 		AllowCredentials: true,
@@ -140,5 +146,5 @@ func SeedFormasPago() {
 			config.DB.Create(&models.FormaPago{Nombre: nombre})
 		}
 	}
-	log.Println("✅ Formas de pago verificadas/creadas")
+	log.Println("Formas de pago verificadas/creadas")
 }
