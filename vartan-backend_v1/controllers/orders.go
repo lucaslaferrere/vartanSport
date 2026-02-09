@@ -28,10 +28,12 @@ func GetPedidos(c *gin.Context) {
 	var pedidos []models.Pedido
 
 	if err := config.DB.
-		Joins("JOIN venta ON venta.id = pedidos.venta_id").
-		Where("venta.usuario_id = ?", userID).
+		Joins("JOIN ventas ON ventas.id = pedidos.venta_id").
+		Where("ventas.usuario_id = ?", userID).
 		Preload("Venta").
 		Preload("Venta.Cliente").
+		Preload("Venta.Detalles"). // ✅ AGREGAR ESTO
+		Preload("Venta.Detalles.Producto"). // ✅ AGREGAR ESTO (opcional pero útil)
 		Order("pedidos.fecha_creacion DESC").
 		Find(&pedidos).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error al obtener pedidos"})
@@ -68,6 +70,8 @@ func GetPedidosByEstado(c *gin.Context) {
 		Preload("Venta").
 		Preload("Venta.Cliente").
 		Preload("Venta.Usuario").
+		Preload("Venta.Detalles"). // ✅ AGREGAR ESTO
+		Preload("Venta.Detalles.Producto"). // ✅ AGREGAR ESTO (opcional pero útil)
 		Order("fecha_creacion DESC").
 		Find(&pedidos).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error al obtener pedidos"})
@@ -96,6 +100,8 @@ func GetMisPedidos(c *gin.Context) {
 		Where("ventas.usuario_id = ?", userID).
 		Preload("Venta").
 		Preload("Venta.Cliente").
+		Preload("Venta.Detalles"). // ✅ AGREGAR ESTO
+		Preload("Venta.Detalles.Producto"). // ✅ AGREGAR ESTO (opcional pero útil)
 		Order("pedidos.fecha_creacion DESC").
 		Find(&pedidos).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error al obtener pedidos"})
