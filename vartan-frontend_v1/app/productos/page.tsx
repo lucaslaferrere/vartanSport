@@ -84,14 +84,14 @@ export default function ProductosPage() {
     setError(null);
     try {
       const response = await api.get('/api/productos');
-      const productosData = response.data;
+      const productosData = response.data || []; // 👈 AGREGADO || []
       setProductos(productosData.map(transformProducto));
       setStats(calcularStats(productosData));
     } catch (err) {
       console.error('Error fetching productos:', err);
       const errorMessage = err instanceof Error && err.message.includes('Network')
-        ? 'No se puede conectar al servidor'
-        : 'Error al cargar los productos';
+          ? 'No se puede conectar al servidor'
+          : 'Error al cargar los productos';
       setError(errorMessage);
       setProductos([]);
     } finally {
@@ -148,72 +148,72 @@ export default function ProductosPage() {
   };
 
   const renderTallesChips = (talles: string[]) => (
-    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-      {talles.length > 0 ? (
-        talles.map((talle, index) => (
-          <Chip
-            key={index}
-            label={talle}
-            size="small"
-            sx={{
-              bgcolor: 'rgba(59, 130, 246, 0.1)',
-              color: '#1D4ED8',
-              fontWeight: 500,
-              fontSize: '11px',
-              height: '20px'
-            }}
-          />
-        ))
-      ) : (
-        <Typography variant="caption" sx={{ color: '#9CA3AF', fontStyle: 'italic' }}>
-          Sin talles
-        </Typography>
-      )}
-    </Box>
+      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+        {talles.length > 0 ? (
+            talles.map((talle, index) => (
+                <Chip
+                    key={index}
+                    label={talle}
+                    size="small"
+                    sx={{
+                      bgcolor: 'rgba(59, 130, 246, 0.1)',
+                      color: '#1D4ED8',
+                      fontWeight: 500,
+                      fontSize: '11px',
+                      height: '20px'
+                    }}
+                />
+            ))
+        ) : (
+            <Typography variant="caption" sx={{ color: '#9CA3AF', fontStyle: 'italic' }}>
+              Sin talles
+            </Typography>
+        )}
+      </Box>
   );
 
   const renderColoresChips = (colores: string[]) => (
-    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-      {colores.length > 0 ? (
-        colores.map((color, index) => (
-          <Chip
-            key={index}
-            label={color}
-            size="small"
-            sx={{
-              bgcolor: 'rgba(168, 85, 247, 0.1)',
-              color: '#7C3AED',
-              fontWeight: 500,
-              fontSize: '11px',
-              height: '20px'
-            }}
-          />
-        ))
-      ) : (
-        <Typography variant="caption" sx={{ color: '#9CA3AF', fontStyle: 'italic' }}>
-          Sin colores
-        </Typography>
-      )}
-    </Box>
+      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+        {colores.length > 0 ? (
+            colores.map((color, index) => (
+                <Chip
+                    key={index}
+                    label={color}
+                    size="small"
+                    sx={{
+                      bgcolor: 'rgba(168, 85, 247, 0.1)',
+                      color: '#7C3AED',
+                      fontWeight: 500,
+                      fontSize: '11px',
+                      height: '20px'
+                    }}
+                />
+            ))
+        ) : (
+            <Typography variant="caption" sx={{ color: '#9CA3AF', fontStyle: 'italic' }}>
+              Sin colores
+            </Typography>
+        )}
+      </Box>
   );
 
   const renderStockTotal = (stock: number) => (
-    <Box sx={{ textAlign: 'center' }}>
-      <Typography
-        sx={{
-          fontWeight: 600,
-          fontSize: '13px',
-          color: stock > 0 ? '#059669' : '#DC2626',
-          backgroundColor: stock > 0 ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)',
-          padding: '4px 8px',
-          borderRadius: '6px',
-          minWidth: '40px',
-          display: 'inline-block'
-        }}
-      >
-        {stock}
-      </Typography>
-    </Box>
+      <Box sx={{ textAlign: 'center' }}>
+        <Typography
+            sx={{
+              fontWeight: 600,
+              fontSize: '13px',
+              color: stock > 0 ? '#059669' : '#DC2626',
+              backgroundColor: stock > 0 ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)',
+              padding: '4px 8px',
+              borderRadius: '6px',
+              minWidth: '40px',
+              display: 'inline-block'
+            }}
+        >
+          {stock}
+        </Typography>
+      </Box>
   );
 
   const columns: ColumnDef<IProductoDisplay>[] = [
@@ -232,21 +232,21 @@ export default function ProductosPage() {
       cell: ({ getValue }) => {
         const tipo = getValue() as string;
         return tipo === 'Sin tipo' ? (
-          <Typography variant="caption" sx={{ color: '#9CA3AF', fontStyle: 'italic' }}>
-            Sin tipo
-          </Typography>
+            <Typography variant="caption" sx={{ color: '#9CA3AF', fontStyle: 'italic' }}>
+              Sin tipo
+            </Typography>
         ) : (
-          <Chip
-            label={tipo}
-            size="small"
-            sx={{
-              bgcolor: 'rgba(34, 197, 94, 0.1)',
-              color: '#16A34A',
-              fontWeight: 500,
-              fontSize: '11px',
-              height: '20px'
-            }}
-          />
+            <Chip
+                label={tipo}
+                size="small"
+                sx={{
+                  bgcolor: 'rgba(34, 197, 94, 0.1)',
+                  color: '#16A34A',
+                  fontWeight: 500,
+                  fontSize: '11px',
+                  height: '20px'
+                }}
+            />
         );
       }
     },
@@ -256,21 +256,21 @@ export default function ProductosPage() {
       cell: ({ getValue }) => {
         const equipo = getValue() as string;
         return equipo === 'Sin equipo' ? (
-          <Typography variant="caption" sx={{ color: '#9CA3AF', fontStyle: 'italic' }}>
-            Sin equipo
-          </Typography>
+            <Typography variant="caption" sx={{ color: '#9CA3AF', fontStyle: 'italic' }}>
+              Sin equipo
+            </Typography>
         ) : (
-          <Chip
-            label={equipo}
-            size="small"
-            sx={{
-              bgcolor: 'rgba(239, 68, 68, 0.1)',
-              color: '#DC2626',
-              fontWeight: 500,
-              fontSize: '11px',
-              height: '20px'
-            }}
-          />
+            <Chip
+                label={equipo}
+                size="small"
+                sx={{
+                  bgcolor: 'rgba(239, 68, 68, 0.1)',
+                  color: '#DC2626',
+                  fontWeight: 500,
+                  fontSize: '11px',
+                  height: '20px'
+                }}
+            />
         );
       }
     },
@@ -278,9 +278,9 @@ export default function ProductosPage() {
       accessorKey: 'costoUnitario',
       header: 'Costo',
       cell: ({ getValue }) => (
-        <Typography sx={{ color: colors.primary, fontWeight: 600, fontSize: '13px' }}>
-          {formatCurrency(getValue() as number)}
-        </Typography>
+          <Typography sx={{ color: colors.primary, fontWeight: 600, fontSize: '13px' }}>
+            {formatCurrency(getValue() as number)}
+          </Typography>
       ),
     },
     {
@@ -310,28 +310,28 @@ export default function ProductosPage() {
   ];
 
   const headerActions = user?.rol === 'dueño' ? (
-    <Stack direction="row" spacing={2}>
-      <OutlineButton
-        icon="fa-solid fa-boxes-stacked"
-        onClick={() => setAgregarStockModalOpen(true)}
-        sx={{
-          borderColor: colors.primary,
-          color: colors.primary,
-          '&:hover': {
-            borderColor: colors.primaryDark,
-            backgroundColor: colors.primaryHover
-          }
-        }}
-      >
-         Stock
-      </OutlineButton>
-      <PrimaryButton
-        icon="fa-solid fa-tag"
-        onClick={() => setAgregarProductoModalOpen(true)}
-      >
-         Producto
-      </PrimaryButton>
-    </Stack>
+      <Stack direction="row" spacing={2}>
+        <OutlineButton
+            icon="fa-solid fa-boxes-stacked"
+            onClick={() => setAgregarStockModalOpen(true)}
+            sx={{
+              borderColor: colors.primary,
+              color: colors.primary,
+              '&:hover': {
+                borderColor: colors.primaryDark,
+                backgroundColor: colors.primaryHover
+              }
+            }}
+        >
+          Stock
+        </OutlineButton>
+        <PrimaryButton
+            icon="fa-solid fa-tag"
+            onClick={() => setAgregarProductoModalOpen(true)}
+        >
+          Producto
+        </PrimaryButton>
+      </Stack>
   ) : null;
 
   const actions = user?.rol === 'dueño' ? [
@@ -366,106 +366,106 @@ export default function ProductosPage() {
 
   if (loading) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '400px' }}>
-        <CircularProgress sx={{ color: colors.primary }} />
-      </Box>
+        <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '400px' }}>
+          <CircularProgress sx={{ color: colors.primary }} />
+        </Box>
     );
   }
 
   if (error) {
     return (
-      <Box sx={{ p: 4, textAlign: 'center' }}>
-        <Typography color="error">{error}</Typography>
-      </Box>
+        <Box sx={{ p: 4, textAlign: 'center' }}>
+          <Typography color="error">{error}</Typography>
+        </Box>
     );
   }
 
   return (
-    <>
-      <Box>
-        {/* Header */}
-        <Box sx={{ mb: 4 }}>
-          <Typography variant="h4" sx={{ fontWeight: 700, color: '#1F2937', fontSize: '24px', mb: 0.5 }}>
-            Productos
-          </Typography>
-          <Typography variant="body2" sx={{ color: '#6B7280', fontSize: '14px' }}>
-            Catálogo de productos disponibles
-          </Typography>
+      <>
+        <Box>
+          {/* Header */}
+          <Box sx={{ mb: 4 }}>
+            <Typography variant="h4" sx={{ fontWeight: 700, color: '#1F2937', fontSize: '24px', mb: 0.5 }}>
+              Productos
+            </Typography>
+            <Typography variant="body2" sx={{ color: '#6B7280', fontSize: '14px' }}>
+              Catálogo de productos disponibles
+            </Typography>
+          </Box>
+
+          {/* Stats Cards */}
+          <Grid container spacing={3} sx={{ mb: 4 }}>
+            <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+              <StatCard title="Total Productos" value={stats.totalProductos} icon="fa-solid fa-box" />
+            </Grid>
+            <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+              <StatCard title="Productos Activos" value={stats.productosActivos} icon="fa-solid fa-check-circle" />
+            </Grid>
+          </Grid>
+
+          {/* Tabla con filtros */}
+          <TableClientSide
+              title="Lista de Productos"
+              data={productos}
+              columns={columns}
+              headerActions={headerActions}
+              actions={actions}
+          />
         </Box>
 
-        {/* Stats Cards */}
-        <Grid container spacing={3} sx={{ mb: 4 }}>
-          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-            <StatCard title="Total Productos" value={stats.totalProductos} icon="fa-solid fa-box" />
-          </Grid>
-          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-            <StatCard title="Productos Activos" value={stats.productosActivos} icon="fa-solid fa-check-circle" />
-          </Grid>
-        </Grid>
-
-        {/* Tabla con filtros */}
-        <TableClientSide
-          title="Lista de Productos"
-          data={productos}
-          columns={columns}
-          headerActions={headerActions}
-          actions={actions}
+        {/* Modales */}
+        <AgregarProductoModal
+            open={agregarProductoModalOpen}
+            onClose={() => setAgregarProductoModalOpen(false)}
+            onSuccess={() => {
+              fetchProductos();
+              setAgregarProductoModalOpen(false);
+              addNotification('Producto creado exitosamente', 'success');
+            }}
         />
-      </Box>
 
-      {/* Modales */}
-      <AgregarProductoModal
-        open={agregarProductoModalOpen}
-        onClose={() => setAgregarProductoModalOpen(false)}
-        onSuccess={() => {
-          fetchProductos();
-          setAgregarProductoModalOpen(false);
-          addNotification('Producto creado exitosamente', 'success');
-        }}
-      />
+        <AgregarStockModal
+            open={agregarStockModalOpen}
+            onClose={() => setAgregarStockModalOpen(false)}
+            onSuccess={() => {
+              fetchProductos();
+              setAgregarStockModalOpen(false);
+              addNotification('Stock agregado exitosamente', 'success');
+            }}
+        />
 
-      <AgregarStockModal
-        open={agregarStockModalOpen}
-        onClose={() => setAgregarStockModalOpen(false)}
-        onSuccess={() => {
-          fetchProductos(); // Refrescar la tabla
-          setAgregarStockModalOpen(false);
-          addNotification('Stock agregado exitosamente', 'success');
-        }}
-      />
+        <EditarProductoModal
+            open={editarProductoModalOpen}
+            onClose={() => setEditarProductoModalOpen(false)}
+            onSuccess={() => {
+              fetchProductos();
+              setEditarProductoModalOpen(false);
+              addNotification('Producto actualizado exitosamente', 'success');
+            }}
+            producto={productoSeleccionado}
+        />
 
-      <EditarProductoModal
-        open={editarProductoModalOpen}
-        onClose={() => setEditarProductoModalOpen(false)}
-        onSuccess={() => {
-          fetchProductos();
-          setEditarProductoModalOpen(false);
-          addNotification('Producto actualizado exitosamente', 'success');
-        }}
-        producto={productoSeleccionado}
-      />
+        <DetalleStockModal
+            open={detalleStockModalOpen}
+            onClose={() => setDetalleStockModalOpen(false)}
+            producto={productoDetalleStock}
+        />
 
-      <DetalleStockModal
-        open={detalleStockModalOpen}
-        onClose={() => setDetalleStockModalOpen(false)}
-        producto={productoDetalleStock}
-      />
-
-      {/* Modal de confirmación de eliminación */}
-      <ConfirmModal
-        open={confirmDeleteOpen}
-        onClose={() => {
-          setConfirmDeleteOpen(false);
-          setProductoToDelete(null);
-        }}
-        onConfirm={confirmDelete}
-        title="Eliminar producto"
-        message={`¿Está seguro que desea eliminar el producto "${productoToDelete?.nombre}"?`}
-        confirmText="Eliminar"
-        confirmColor="#DC2626"
-        icon="fa-solid fa-trash"
-        iconColor="#DC2626"
-      />
-    </>
+        {/* Modal de confirmación de eliminación */}
+        <ConfirmModal
+            open={confirmDeleteOpen}
+            onClose={() => {
+              setConfirmDeleteOpen(false);
+              setProductoToDelete(null);
+            }}
+            onConfirm={confirmDelete}
+            title="Eliminar producto"
+            message={`¿Está seguro que desea eliminar el producto "${productoToDelete?.nombre}"?`}
+            confirmText="Eliminar"
+            confirmColor="#DC2626"
+            icon="fa-solid fa-trash"
+            iconColor="#DC2626"
+        />
+      </>
   );
 }
