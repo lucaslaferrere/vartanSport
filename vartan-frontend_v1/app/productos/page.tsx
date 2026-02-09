@@ -19,6 +19,7 @@ import { IProducto } from '@models/entities/productoEntity';
 import { useAuthStore } from '@libraries/store';
 import { useMounted } from '@hooks/useMounted';
 import { useNotification } from '@components/Notifications';
+import { api } from '@libraries/api';
 
 interface IProductoDisplay {
   id: number;
@@ -82,9 +83,8 @@ export default function ProductosPage() {
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/productos`);
-      if (!response.ok) throw new Error('Error al cargar productos');
-      const productosData = await response.json();
+      const response = await api.get('/api/productos');
+      const productosData = response.data;
       setProductos(productosData.map(transformProducto));
       setStats(calcularStats(productosData));
     } catch (err) {
