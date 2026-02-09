@@ -70,9 +70,10 @@ export const ventaService = {
 
     // Solo dueño: obtener todas las ventas
     getAll: async (): Promise<IVenta[]> => {
-        const response = await api.get<IVenta[]>('/api/ventas');
+        const response = await api.get<IVenta[]>('/api/owner/ventas');
         return response.data;
     },
+
 
     // Solo dueño: obtener ventas por usuario/vendedor
     getByUsuario: async (usuarioId: number): Promise<IVenta[]> => {
