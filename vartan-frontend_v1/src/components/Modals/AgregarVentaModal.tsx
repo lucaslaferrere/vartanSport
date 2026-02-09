@@ -68,7 +68,7 @@ export default function AgregarVentaModal({ open, onClose, onSuccess }: AgregarV
     if (open) {
       loadData();
     }
-  }, [open, loadData]);
+  }, [open]);
 
   const handleProductoSelect = (productoId: number) => {
     if (!productoId) return;

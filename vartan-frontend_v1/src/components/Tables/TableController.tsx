@@ -96,11 +96,8 @@ export default function TableController<T, TQueryParams>({
 
     useEffect(() => {
         const f = [...defaultFilters, ...filters];
-
         handleSearch(paginationState.pageIndex + 1, paginationState.pageSize, f);
-
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [filters, paginationState, defaultFilters, sorting]);
+    }, [filters, paginationState.pageIndex, paginationState.pageSize, defaultFilters]);
 
     return (
         <TableServerSide

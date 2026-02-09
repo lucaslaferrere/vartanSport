@@ -37,15 +37,15 @@ export default function EditarProductoModal({ open, onClose, onSuccess, producto
   // Cargar datos del producto cuando se abre el modal
   useEffect(() => {
     if (open && producto) {
-      setFormData({
-        nombre: producto.nombre,
-        costo_unitario: producto.costo_unitario,
-        talles: producto.talles_disponibles || [],
-        colores: producto.colores_disponibles || [],
-        activo: producto.activo
-      });
+        setFormData({
+            nombre: producto.nombre,
+            costo_unitario: producto.costo_unitario,
+            talles: producto.talles_disponibles || [],
+            colores: producto.colores_disponibles || [],
+            activo: producto.activo
+        });
     }
-  }, [open, producto]);
+}, [open, producto]);
 
   const handleSubmit = async () => {
     setError(null);

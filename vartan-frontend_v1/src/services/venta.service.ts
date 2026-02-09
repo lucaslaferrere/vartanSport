@@ -44,7 +44,7 @@ export const ventaService = {
             formData.append('comprobante', data.comprobante as File);
 
 
-            const response = await api.post<IVentaCreateResponse>('/api/ventas', formData);
+            const response = await api.post<IVentaCreateResponse>('/api/venta', formData);
             return response.data;
         } else {
             console.log('📤 Enviando JSON (SIN comprobante)');
@@ -59,7 +59,7 @@ export const ventaService = {
             };
             // El usuario_id se obtiene automáticamente del token JWT en el backend
 
-            const response = await api.post<IVentaCreateResponse>('/api/ventas', payload, {
+            const response = await api.post<IVentaCreateResponse>('/api/venta', payload, {
                 headers: {
                     'Content-Type': 'application/json'
                 }
@@ -70,32 +70,19 @@ export const ventaService = {
 
     // Solo dueño: obtener todas las ventas
     getAll: async (): Promise<IVenta[]> => {
-        try {
-            console.log('🔄 Obteniendo todas las ventas (endpoint: /api/owner/ventas)');
-            const response = await api.get<IVenta[]>('/api/owner/ventas');
-            console.log('✅ Ventas obtenidas:', response.data?.length || 0);
-            return response.data;
-        } catch (error: any) {
-            console.error('❌ Error al obtener ventas:', error);
-            console.error('Detalles del error:', {
-                status: error.response?.status,
-                statusText: error.response?.statusText,
-                data: error.response?.data,
-                message: error.message
-            });
-            throw error;
-        }
+        const response = await api.get<IVenta[]>('/api/venta'); // Cambiado de /api/ventas a /api/venta
+        return response.data;
     },
 
     // Solo dueño: obtener ventas por usuario/vendedor
     getByUsuario: async (usuarioId: number): Promise<IVenta[]> => {
-        const response = await api.get<IVenta[]>(`/api/owner/ventas/usuario/${usuarioId}`);
+        const response = await api.get<IVenta[]>(`/api/owner/venta/usuario/${usuarioId}`); // Cambiado de /api/owner/ventas a /api/owner/venta
         return response.data;
     },
 
     // Descargar comprobante
     descargarComprobante: async (ventaId: number, nombreArchivo: string): Promise<void> => {
-        const response = await api.get(`/api/ventas/${ventaId}/comprobante`, {
+        const response = await api.get(`/api/venta/${ventaId}/comprobante`, { // Cambiado de /api/ventas a /api/venta
             responseType: 'blob',
         });
 
@@ -108,4 +95,3 @@ export const ventaService = {
         link.remove();
     },
 };
-
