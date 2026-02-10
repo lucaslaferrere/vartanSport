@@ -14,14 +14,14 @@ type Venta struct {
 	UsuarioID      int       `gorm:"not null" json:"usuario_id"`
 	ClienteID      int       `gorm:"not null" json:"cliente_id"`
 	FormaPagoID    int       `gorm:"not null" json:"forma_pago_id"`
-	Total          float64   `gorm:"type:decimal(10,2);not null" json:"total"`       // Total de la venta (precio de productos)
-	Sena           float64   `gorm:"type:decimal(10,2);not null" json:"sena"`        // Seña abonada
-	Saldo          float64   `gorm:"type:decimal(10,2);not null" json:"saldo"`       // Lo que resta pagar
-	Descuento      float64   `gorm:"type:decimal(10,2);default:0" json:"descuento"`  // Descuento aplicado (3% de financiera)
-	TotalFinal     float64   `gorm:"type:decimal(10,2);not null" json:"total_final"` // Total - Descuento
-	UsaFinanciera  bool      `gorm:"default:false" json:"usa_financiera"`            // Si usa transferencia financiera
-	ComprobanteURL *string   `gorm:"type:varchar(500)" json:"comprobante_url"`       // URL del comprobante subido
-	Observaciones  *string   `gorm:"type:text" json:"observaciones"`                 // Observaciones de la venta
+	Total          float64   `gorm:"type:decimal(10,2);not null" json:"total"`           // Total de la venta (precio de productos)
+	Sena           float64   `gorm:"type:decimal(10,2);not null" json:"sena"`            // Seña abonada
+	Saldo          float64   `gorm:"type:decimal(10,2);not null" json:"saldo"`           // Lo que resta pagar
+	Descuento      float64   `gorm:"type:decimal(10,2);default:0" json:"descuento"`      // Descuento aplicado (3% de financiera)
+	TotalFinal     float64   `gorm:"type:decimal(10,2);not null" json:"total_final"`     // Total - Descuento
+	UsaFinanciera  bool      `gorm:"default:false" json:"usa_financiera"`                // Si usa transferencia financiera
+	ComprobanteURL *string   `gorm:"type:varchar(255)" json:"comprobante_url,omitempty"` // URL del comprobante
+	Observaciones  *string   `gorm:"type:text" json:"observaciones"`                     // Observaciones de la venta
 	FechaVenta     time.Time `gorm:"default:CURRENT_TIMESTAMP" json:"fecha_venta"`
 
 	// Relaciones
