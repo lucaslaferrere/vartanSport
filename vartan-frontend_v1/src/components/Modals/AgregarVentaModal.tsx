@@ -404,7 +404,7 @@ export default function AgregarVentaModal({ open, onClose, onSuccess }: AgregarV
         </Grid>
 
         {/* Fila 3: Comprobante y Observaciones */}
-        {/*  COMPROBANTE TEMPORALMENTE DESHABILITADO - Esperando que backend implemente manejo de FormData
+        
         <Grid size={{ xs: 12, md: 6 }}>
           <Typography sx={{ fontSize: '13px', fontWeight: 500, color: '#6B7280', mb: 0.75 }}>Comprobante</Typography>
           {!comprobante ? (
@@ -423,7 +423,7 @@ export default function AgregarVentaModal({ open, onClose, onSuccess }: AgregarV
             </Box>
           )}
         </Grid>
-        */}
+        
 
         <Grid size={{ xs: 12 }}>
           <Typography sx={{ fontSize: '13px', fontWeight: 500, color: '#6B7280', mb: 0.75 }}>Observaciones</Typography>
