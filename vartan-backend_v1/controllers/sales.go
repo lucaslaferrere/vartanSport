@@ -124,10 +124,14 @@ func CreateVenta(c *gin.Context) {
 			return
 		}
 
-		sena, err := strconv.ParseFloat(formReq.Sena, 64)
-		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "sena inválida"})
-			return
+		var sena float64
+		if formReq.Sena != "" {
+			var errSena error
+			sena, errSena = strconv.ParseFloat(formReq.Sena, 64)
+			if errSena != nil {
+				c.JSON(http.StatusBadRequest, gin.H{"error": "sena inválida"})
+				return
+			}
 		}
 
 		processVenta(c, usuarioID, clienteID, formaPagoID, sena, formReq.Observaciones, detalles, comprobanteURL)

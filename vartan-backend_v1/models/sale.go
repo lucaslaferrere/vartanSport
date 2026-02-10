@@ -59,7 +59,7 @@ type VentaCreateFormRequest struct {
 	UsuarioID     string `form:"usuario_id"`
 	ClienteID     string `form:"cliente_id" binding:"required"`
 	FormaPagoID   string `form:"forma_pago_id" binding:"required"`
-	Sena          string `form:"sena" binding:"required"`
+	Sena          string `form:"sena"` // Sin required: permite sena=0
 	Observaciones string `form:"observaciones"`
 	Detalles      string `form:"detalles" binding:"required"`
 }
