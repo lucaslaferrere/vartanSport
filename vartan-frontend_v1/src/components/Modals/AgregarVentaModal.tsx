@@ -397,11 +397,22 @@ export default function AgregarVentaModal({ open, onClose, onSuccess }: AgregarV
         </Grid>
 
         {/* Total */}
-        <Grid size={{ xs: 12 }}>
-          <Box sx={{ p: 1, bgcolor: '#F0FDF4', borderRadius: '6px', textAlign: 'right' }}>
-            <Typography sx={{ fontSize: '15px', fontWeight: 700, color: '#059669' }}>Total: ${calcularTotal().toLocaleString('es-AR', { minimumFractionDigits: 2 })}</Typography>
-          </Box>
-        </Grid>
+<Grid size={{ xs: 12 }}>
+  <Box sx={{ p: 1, bgcolor: '#F0FDF4', borderRadius: '6px', textAlign: 'right' }}>
+    <Typography sx={{ fontSize: '15px', fontWeight: 700, color: '#059669' }}>
+      Total: ${calcularTotal().toLocaleString('es-AR', { minimumFractionDigits: 2 })}
+    </Typography>
+  </Box>
+</Grid>
+
+{/* 🔴 TEST - SI VES ESTO, EL CÓDIGO SE ESTÁ EJECUTANDO */}
+<Grid size={{ xs: 12 }}>
+  <Box sx={{ p: 2, bgcolor: '#FF0000', color: '#FFFFFF', textAlign: 'center' }}>
+    <Typography sx={{ fontSize: '20px', fontWeight: 700 }}>
+      🔴 PRUEBA - SI VES ESTO, EL ARCHIVO SE ACTUALIZÓ
+    </Typography>
+  </Box>
+</Grid>
 
         <Grid size={{ xs: 12 }}>
   <Typography sx={{ fontSize: '13px', fontWeight: 500, color: '#6B7280', mb: 0.75 }}>
