@@ -405,14 +405,14 @@ export default function AgregarVentaModal({ open, onClose, onSuccess }: AgregarV
   </Box>
 </Grid>
 
-{/* 🔴 TEST - SI VES ESTO, EL CÓDIGO SE ESTÁ EJECUTANDO */}
+{/* 🔴 TEST - SI VES ESTO, EL CÓDIGO SE ESTÁ EJECUTANDO
 <Grid size={{ xs: 12 }}>
   <Box sx={{ p: 2, bgcolor: '#FF0000', color: '#FFFFFF', textAlign: 'center' }}>
     <Typography sx={{ fontSize: '20px', fontWeight: 700 }}>
       🔴 PRUEBA - SI VES ESTO, EL ARCHIVO SE ACTUALIZÓ
     </Typography>
   </Box>
-</Grid>
+</Grid> */}
 
         <Grid size={{ xs: 12 }}>
   <Typography sx={{ fontSize: '13px', fontWeight: 500, color: '#6B7280', mb: 0.75 }}>
