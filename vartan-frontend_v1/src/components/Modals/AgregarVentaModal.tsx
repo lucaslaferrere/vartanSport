@@ -471,25 +471,6 @@ export default function AgregarVentaModal({ open, onClose, onSuccess }: AgregarV
 
         {/* Fila 3: Comprobante y Observaciones */}
         
-        <Grid size={{ xs: 12, md: 6 }}>
-          <Typography sx={{ fontSize: '13px', fontWeight: 500, color: '#6B7280', mb: 0.75 }}>Comprobante</Typography>
-          {!comprobante ? (
-            <Box onDragOver={handleDragOver} onDragLeave={handleDragLeave} onDrop={handleDrop} onClick={() => document.getElementById('file-input')?.click()} sx={{ border: `2px dashed ${isDragging ? '#3B82F6' : '#E5E7EB'}`, borderRadius: '6px', p: 1.5, textAlign: 'center', cursor: 'pointer', bgcolor: isDragging ? 'rgba(59, 130, 246, 0.05)' : 'transparent', transition: 'all 0.2s ease', '&:hover': { borderColor: '#3B82F6' } }}>
-              <i className="fa-solid fa-cloud-arrow-up" style={{ fontSize: '20px', color: '#6B7280' }} />
-              <Typography sx={{ fontSize: '11px', color: '#374151', mt: 0.5 }}>{isDragging ? 'Suelta aquí' : 'Arrastra o clic'}</Typography>
-              <input id="file-input" type="file" accept=".pdf,.jpg,.jpeg,.png" onChange={handleFileSelect} style={{ display: 'none' }} />
-            </Box>
-          ) : (
-            <Box sx={{ p: 1, border: '1px solid #E5E7EB', borderRadius: '6px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', bgcolor: '#F9FAFB' }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <i className={`fa-solid ${comprobante.type === 'application/pdf' ? 'fa-file-pdf' : 'fa-file-image'}`} style={{ fontSize: '14px', color: '#3B82F6' }} />
-                <Typography sx={{ fontSize: '11px', fontWeight: 500 }}>{comprobante.name.substring(0, 20)}...</Typography>
-              </Box>
-              <button onClick={() => setComprobante(null)} style={{ color: '#EF4444', background: 'none', border: 'none', cursor: 'pointer', fontSize: '13px' }}><i className="fa-solid fa-trash" /></button>
-            </Box>
-          )}
-        </Grid>
-        
 
         <Grid size={{ xs: 12 }}>
           <Typography sx={{ fontSize: '13px', fontWeight: 500, color: '#6B7280', mb: 0.75 }}>Observaciones</Typography>
