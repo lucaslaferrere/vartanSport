@@ -81,6 +81,8 @@ func main() {
 		MaxAge:           12 * 3600,
 	}))
 
+	router.Static("/uploads", "./uploads") // Para agregar archivos
+
 	routes.SetupRoutes(router)
 
 	// Swagger documentation route

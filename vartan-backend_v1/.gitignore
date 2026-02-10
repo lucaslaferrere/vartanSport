@@ -41,3 +41,10 @@ temp/
 
 # Scripts de debug locales (opcional)
 debug-*.ps1
+
+# Uploads
+uploads/
+*.pdf
+*.jpg
+*.jpeg
+*.png
