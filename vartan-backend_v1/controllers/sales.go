@@ -3,6 +3,7 @@ package controllers
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -88,8 +89,22 @@ func CreateVenta(c *gin.Context) {
 			filename := fmt.Sprintf("comprobante_%d%s", time.Now().UnixNano(), ext)
 			filePath := filepath.Join(uploadDir, filename)
 
-			// Guardar archivo
-			if err := c.SaveUploadedFile(file, filePath); err != nil {
+			// Guardar archivo sin chmod (compatible con Windows/volumenes NTFS)
+			src, err := file.Open()
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Error abriendo comprobante: " + err.Error()})
+				return
+			}
+			defer src.Close()
+
+			dst, err := os.Create(filePath)
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Error creando archivo: " + err.Error()})
+				return
+			}
+			defer dst.Close()
+
+			if _, err := io.Copy(dst, src); err != nil {
 				fmt.Println("❌ ERROR GUARDANDO ARCHIVO:", err)
 				fmt.Println("❌ FilePath:", filePath)
 				c.JSON(http.StatusInternalServerError, gin.H{"error": "Error al guardar comprobante: " + err.Error()})
