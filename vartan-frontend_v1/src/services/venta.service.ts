@@ -14,25 +14,12 @@ export const ventaService = {
     },
 
     create: async (data: IVentaCreateRequest): Promise<IVentaCreateResponse> => {
-        console.log('=== DEBUG SERVICIO ===');
-        console.log('data.comprobante:', data.comprobante);
-        console.log('tipo:', typeof data.comprobante);
-        console.log('instanceof File:', data.comprobante instanceof File);
-        console.log('is null:', data.comprobante === null);
-        console.log('is undefined:', data.comprobante === undefined);
-        console.log('=====================');
-
-        // ✅ VALIDACIÓN CORRECTA
         const tieneComprobanteValido =
             data.comprobante !== null &&
             data.comprobante !== undefined &&
             data.comprobante instanceof File;
 
-        console.log('🔍 tieneComprobanteValido:', tieneComprobanteValido);
-
         if (tieneComprobanteValido) {
-            console.log('🔄 Enviando FormData (CON comprobante)');
-
             const formData = new FormData();
             formData.append('cliente_id', data.cliente_id.toString());
             formData.append('forma_pago_id', data.forma_pago_id.toString());
@@ -43,13 +30,15 @@ export const ventaService = {
             formData.append('detalles', JSON.stringify(data.detalles));
             formData.append('comprobante', data.comprobante as File);
 
-
-            const response = await api.post<IVentaCreateResponse>('/api/ventas', formData);
+            const response = await api.post<IVentaCreateResponse>('/api/ventas', formData, {
+                headers: {
+                    // ✅ Eliminar Content-Type para que axios lo setee automáticamente
+                    // con el boundary correcto para multipart/form-data
+                    'Content-Type': undefined,
+                },
+            });
             return response.data;
         } else {
-            console.log('📤 Enviando JSON (SIN comprobante)');
-
-            // ✅ ENVIAR COMO JSON con números
             const payload = {
                 cliente_id: Number(data.cliente_id),
                 forma_pago_id: Number(data.forma_pago_id),
@@ -57,7 +46,6 @@ export const ventaService = {
                 observaciones: data.observaciones || '',
                 detalles: data.detalles
             };
-            // El usuario_id se obtiene automáticamente del token JWT en el backend
 
             const response = await api.post<IVentaCreateResponse>('/api/ventas', payload, {
                 headers: {
@@ -68,20 +56,16 @@ export const ventaService = {
         }
     },
 
-    // Solo dueño: obtener todas las ventas
     getAll: async (): Promise<IVenta[]> => {
         const response = await api.get<IVenta[]>('/api/owner/ventas');
         return response.data;
     },
 
-
-    // Solo dueño: obtener ventas por usuario/vendedor
     getByUsuario: async (usuarioId: number): Promise<IVenta[]> => {
         const response = await api.get<IVenta[]>(`/api/owner/ventas/usuario/${usuarioId}`);
         return response.data;
     },
 
-    // Descargar comprobante
     descargarComprobante: async (ventaId: number, nombreArchivo: string): Promise<void> => {
         const response = await api.get(`/api/ventas/${ventaId}/comprobante`, {
             responseType: 'blob',
@@ -96,3 +80,11 @@ export const ventaService = {
         link.remove();
     },
 };
+
+
+
+
+
+
+
+
