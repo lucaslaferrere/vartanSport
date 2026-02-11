@@ -94,7 +94,9 @@ func CreateVenta(c *gin.Context) {
 
 			// Guardar archivo
 			if err := c.SaveUploadedFile(file, filePath); err != nil {
-				c.JSON(http.StatusInternalServerError, gin.H{"error": "Error al guardar comprobante"})
+				fmt.Println("❌ ERROR GUARDANDO ARCHIVO:", err)
+				fmt.Println("❌ FilePath:", filePath)
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Error al guardar comprobante: " + err.Error()})
 				return
 			}
 
