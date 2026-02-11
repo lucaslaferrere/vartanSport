@@ -81,11 +81,13 @@ func CreateVenta(c *gin.Context) {
 				return
 			}
 
-			// Crear directorio si no existe
+			// Usar directorio existente (ya creado por el volumen)
 			uploadDir := "uploads/comprobantes"
-			if err := os.MkdirAll(uploadDir, os.ModePerm); err != nil {
-				c.JSON(http.StatusInternalServerError, gin.H{"error": "Error al crear directorio de uploads"})
-				return
+			if _, err := os.Stat(uploadDir); os.IsNotExist(err) {
+				if err := os.MkdirAll(uploadDir, 0755); err != nil {
+					c.JSON(http.StatusInternalServerError, gin.H{"error": "Error al crear directorio de uploads"})
+					return
+				}
 			}
 
 			// Generar nombre único
