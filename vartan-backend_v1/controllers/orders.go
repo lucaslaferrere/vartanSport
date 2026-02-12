@@ -20,11 +20,7 @@ import (
 // @Failure 500 {object} map[string]string "Error interno"
 // @Router /api/owner/pedidos [get]
 func GetPedidos(c *gin.Context) {
-	userID, exists := c.Get("userID")
-	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Usuario no autorizado"})
-		return
-	}
+	userID := c.GetInt("user_id")
 
 	var pedidos []models.Pedido
 
