@@ -13,6 +13,7 @@ import { IPedido } from '@models/entities/pedidoEntity';
 import { useAuthStore } from '@libraries/store';
 import { useMounted } from '@hooks/useMounted';
 import { useNotification } from '@components/Notifications';
+import { debugAuth } from '@/src/utils/debugAuth';
 
 interface IPedidoDisplay {
   id: number;
@@ -56,9 +57,19 @@ function PedidosPage() {
   const fetchPedidos = useCallback(async () => {
     if (!mounted) return;
 
+    // Debug de autenticación
+    debugAuth();
+
+    // Verificar que el usuario esté cargado
+    if (!user) {
+      console.warn('⚠️ Usuario no cargado todavía');
+      return;
+    }
+
     setLoading(true);
     setError(null);
     try {
+      console.log('📦 Cargando pedidos - Rol:', user?.rol);
       const pedidosData = user?.rol === 'dueño'
         ? await pedidoService.getAll()
         : await pedidoService.getMisPedidos();
@@ -66,8 +77,19 @@ function PedidosPage() {
       const transformed = pedidosData.map(transformPedido);
       setAllPedidos(transformed);
       setPedidos(transformed);
+      console.log('✅ Pedidos cargados:', transformed.length);
     } catch (err: unknown) {
-      console.error('Error fetching pedidos:', err);
+      console.error('❌ Error fetching pedidos:', err);
+
+      // Mejorar el manejo de errores
+      if (err && typeof err === 'object' && 'response' in err) {
+        const axiosError = err as { response?: { status?: number; data?: { message?: string } } };
+        if (axiosError.response?.status === 401) {
+          setError('No autorizado. Por favor, inicia sesión nuevamente.');
+          return;
+        }
+      }
+
       const errorMessage = err instanceof Error && err.message.includes('Network')
         ? 'No se puede conectar al servidor'
         : 'Error al cargar los pedidos';
@@ -75,7 +97,7 @@ function PedidosPage() {
     } finally {
       setLoading(false);
     }
-  }, [mounted, user?.rol]);
+  }, [mounted, user]);
 
   useEffect(() => {
   if (mounted) {
