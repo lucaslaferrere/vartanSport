@@ -32,7 +32,7 @@ func GetMe(c *gin.Context) {
 
 // GetVendedores godoc
 // @Summary Obtener todos los vendedores
-// @Description Obtiene la lista de todos los usuarios con rol de empleado (solo dueño)
+// @Description Obtiene la lista de todos los usuarios con rol de vendedor (solo dueño)
 // @Tags Usuarios
 // @Accept json
 // @Produce json
@@ -43,7 +43,8 @@ func GetMe(c *gin.Context) {
 func GetVendedores(c *gin.Context) {
 	var usuarios []models.Usuario
 
-	if err := config.DB.Where("rol = ?", "empleado").Find(&usuarios).Error; err != nil {
+	// Buscar tanto "vendedor" como "empleado" para compatibilidad
+	if err := config.DB.Where("rol IN (?)", []string{"vendedor", "empleado"}).Find(&usuarios).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error al obtener vendedores"})
 		return
 	}

@@ -67,7 +67,7 @@ func GetPedidosByEstado(c *gin.Context) {
 		Preload("Venta").
 		Preload("Venta.Cliente").
 		Preload("Venta.Usuario").
-		Preload("Venta.Detalles"). // ✅ AGREGAR ESTO
+		Preload("Venta.Detalles").          // ✅ AGREGAR ESTO
 		Preload("Venta.Detalles.Producto"). // ✅ AGREGAR ESTO (opcional pero útil)
 		Order("fecha_creacion DESC").
 		Find(&pedidos).Error; err != nil {

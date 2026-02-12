@@ -166,8 +166,8 @@ func CreateTarea(c *gin.Context) {
 		return
 	}
 
-	// Si es vendedor, solo puede crear tareas para sí mismo
-	if userRol == "empleado" && req.EmpleadoID != userID {
+	// Si es vendedor/empleado, solo puede crear tareas para sí mismo
+	if (userRol == "vendedor" || userRol == "empleado") && req.EmpleadoID != userID {
 		c.JSON(http.StatusForbidden, gin.H{"error": "Solo puedes crear tareas para ti mismo"})
 		return
 	}
@@ -362,7 +362,8 @@ func GetEmpleadosConTareas(c *gin.Context) {
 	}
 
 	var empleados []models.Usuario
-	if err := config.DB.Where("rol = ?", "empleado").Find(&empleados).Error; err != nil {
+	// Buscar tanto "vendedor" como "empleado" para compatibilidad
+	if err := config.DB.Where("rol IN (?)", []string{"vendedor", "empleado"}).Find(&empleados).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error al obtener empleados"})
 		return
 	}

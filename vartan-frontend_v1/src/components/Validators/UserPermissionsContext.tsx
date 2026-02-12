@@ -7,7 +7,7 @@ type UserPermissionsContextType = {
   userPermissions: Set<PermissionType>;
   reloadPermissions: () => void;
   validatePermission: (permissions: PermissionType[]) => boolean;
-  userRole: 'dueño' | 'empleado';
+  userRole: 'dueño' | 'vendedor';
 };
 
 const UserPermissionsContext = createContext<UserPermissionsContextType>({
@@ -20,20 +20,16 @@ const UserPermissionsContext = createContext<UserPermissionsContextType>({
 export function UserPermissionsProvider({children}: { children: React.ReactNode }) {
   const { user } = useAuthStore();
 
-  // Usar el rol del usuario autenticado, o 'dueño' por defecto
-  const userRole: 'dueño' | 'empleado' = user?.rol === 'empleado' ? 'empleado' : 'dueño';
+  const userRole: 'dueño' | 'vendedor' = user?.rol === 'vendedor' ? 'vendedor' : 'dueño';
 
   const allPermissions = new Set<PermissionType>(Object.values(PermissionType));
   const reloadPermissions = () => {};
 
   const validatePermission = (permissions: PermissionType[]): boolean => {
-    // Si no hay permisos requeridos, permitir acceso
     if (!permissions?.length) return true;
 
-    // Si es dueño, tiene todos los permisos
     if (userRole === 'dueño') return true;
 
-    // Si es empleado, verificar permisos específicos
     return permissions.every((permission) => allPermissions.has(permission));
   };
 
