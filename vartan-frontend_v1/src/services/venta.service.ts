@@ -23,9 +23,14 @@ export const ventaService = {
             const formData = new FormData();
             formData.append('cliente_id', data.cliente_id.toString());
             formData.append('forma_pago_id', data.forma_pago_id.toString());
+            formData.append('precio_venta', data.precio_venta.toString());
 
             const senaValue = Number(data.sena);
             formData.append('sena', (isNaN(senaValue) ? 0 : senaValue).toString());
+
+            if (data.usa_descuento_financiera !== undefined) {
+                formData.append('usa_descuento_financiera', data.usa_descuento_financiera.toString());
+            }
 
             if (data.observaciones) {
                 formData.append('observaciones', data.observaciones);
@@ -46,7 +51,9 @@ export const ventaService = {
             const payload = {
                 cliente_id: Number(data.cliente_id),
                 forma_pago_id: Number(data.forma_pago_id),
+                precio_venta: Number(data.precio_venta),
                 sena: isNaN(senaValue) ? 0 : senaValue,
+                usa_descuento_financiera: data.usa_descuento_financiera || false,
                 observaciones: data.observaciones || '',
                 detalles: data.detalles
             };

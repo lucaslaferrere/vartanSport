@@ -65,7 +65,7 @@ export default function RegistrarPagoModal({ open, onClose, onSuccess, venta }: 
       addNotification('Pago registrado exitosamente', 'success');
 
       if (result.venta.saldo === 0) {
-        addNotification('✅ Venta pagada completamente', 'success');
+        addNotification('Venta pagada completamente', 'success');
       } else {
         addNotification(`Saldo pendiente: $${result.venta.saldo.toLocaleString('es-AR')}`, 'info');
       }
@@ -212,8 +212,10 @@ export default function RegistrarPagoModal({ open, onClose, onSuccess, venta }: 
             onChange={(e) => setNuevaSena(e.target.value)}
             placeholder={`Mínimo: $${(senaActual + 1).toLocaleString('es-AR')}`}
             required
-            InputProps={{
-              sx: { fontSize: '14px' }
+            slotProps={{
+              input: {
+                sx: { fontSize: '14px' }
+              }
             }}
           />
         </Grid>
@@ -228,7 +230,17 @@ export default function RegistrarPagoModal({ open, onClose, onSuccess, venta }: 
               border: nuevoSaldo === 0 ? '1px solid #A7F3D0' : '1px solid #BFDBFE'
             }}>
               <Typography sx={{ fontSize: '13px', fontWeight: 700, color: '#1F2937', mb: 1.5 }}>
-                {nuevoSaldo === 0 ? '✅ Vista Previa - PAGO COMPLETO' : '📊 Vista Previa del Pago'}
+                {nuevoSaldo === 0 ? (
+                  <>
+                    <i className="fa-solid fa-circle-check" style={{ color: '#059669', marginRight: '6px' }} />
+                    Vista Previa - PAGO COMPLETO
+                  </>
+                ) : (
+                  <>
+                    <i className="fa-solid fa-chart-simple" style={{ color: '#3B82F6', marginRight: '6px' }} />
+                    Vista Previa del Pago
+                  </>
+                )}
               </Typography>
 
               <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
@@ -259,7 +271,14 @@ export default function RegistrarPagoModal({ open, onClose, onSuccess, venta }: 
                   fontWeight: 700,
                   color: nuevoSaldo === 0 ? '#059669' : '#DC2626'
                 }}>
-                  {nuevoSaldo === 0 ? 'PAGADO ✅' : `$${nuevoSaldo.toLocaleString('es-AR', { minimumFractionDigits: 2 })}`}
+                  {nuevoSaldo === 0 ? (
+                    <>
+                      <i className="fa-solid fa-circle-check" style={{ marginRight: '6px' }} />
+                      PAGADO
+                    </>
+                  ) : (
+                    `$${nuevoSaldo.toLocaleString('es-AR', { minimumFractionDigits: 2 })}`
+                  )}
                 </Typography>
               </Box>
             </Box>
@@ -349,4 +368,3 @@ export default function RegistrarPagoModal({ open, onClose, onSuccess, venta }: 
     </BaseModal>
   );
 }
-
