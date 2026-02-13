@@ -109,7 +109,6 @@ export default function AgregarVentaModal({ open, onClose, onSuccess }: AgregarV
       talles
     }]);
 
-    // Resetear el producto actual para permitir agregar más
     setProductoActual(null);
     setTallesActuales({});
     addNotification(`${productoActual.nombre} agregado correctamente`, 'success');
@@ -160,41 +159,19 @@ export default function AgregarVentaModal({ open, onClose, onSuccess }: AgregarV
         });
       });
 
-      // DEBUG: Ver el estado del comprobante
-      console.log('=== DEBUG COMPROBANTE ===');
-      console.log('comprobante:', comprobante);
-      console.log('tipo:', typeof comprobante);
-      console.log('instanceof File:', comprobante instanceof File);
-      console.log('is null:', comprobante === null);
-      console.log('is undefined:', comprobante === undefined);
-      console.log('========================');
+      const senaNumero = sena === '' || sena === null || sena === undefined ? 0 : Number(sena);
 
-      // ✅ Preparar datos asegurando que sean números
       const ventaData: IVentaCreateRequest = {
-        cliente_id: Number(clienteId),        // ← Convertir a número
-        forma_pago_id: Number(formaPagoId),   // ← Convertir a número
-        sena: Number(sena) || 0,              // ← Convertir a número
+        cliente_id: Number(clienteId),
+        forma_pago_id: Number(formaPagoId),
+        sena: isNaN(senaNumero) ? 0 : senaNumero,
         observaciones: observaciones || '',
         detalles
       };
-      // El usuario_id se obtiene automáticamente del token JWT en el backend
 
-      // ✅ SOLO agregar comprobante si es un File válido
       if (comprobante instanceof File) {
-        console.log('✅ Agregando comprobante al ventaData');
         ventaData.comprobante = comprobante;
-      } else {
-        console.log('❌ NO se agrega comprobante (no es File válido)');
       }
-
-      console.log('=== VENTA DATA ANTES DE ENVIAR ===');
-      console.log(ventaData);
-      console.log('Tipos:');
-      console.log('  cliente_id:', typeof ventaData.cliente_id, '=', ventaData.cliente_id);
-      console.log('  forma_pago_id:', typeof ventaData.forma_pago_id, '=', ventaData.forma_pago_id);
-      console.log('  sena:', typeof ventaData.sena, '=', ventaData.sena);
-      console.log('  comprobante:', ventaData.comprobante);
-      console.log('==================================');
 
       await ventaService.create(ventaData);
       addNotification('Venta creada exitosamente', 'success');
@@ -242,26 +219,24 @@ export default function AgregarVentaModal({ open, onClose, onSuccess }: AgregarV
     if (files?.[0]) {
       const file = files[0];
 
-      // Validar tipo
       const extensionesPermitidas = ['.pdf', '.jpg', '.jpeg', '.png'];
       const extension = file.name.toLowerCase().substring(file.name.lastIndexOf('.'));
 
       if (!extensionesPermitidas.includes(extension)) {
         addNotification('Solo se permiten archivos PDF, JPG, JPEG y PNG', 'error');
-        setComprobante(null); // ← Resetear a null
+        setComprobante(null);
         return;
       }
 
-      // Validar tamaño (máx 5MB)
       if (file.size > 5 * 1024 * 1024) {
         addNotification('El archivo no puede superar los 5MB', 'error');
-        setComprobante(null); // ← Resetear a null
+        setComprobante(null);
         return;
       }
 
       setComprobante(file);
     } else {
-      setComprobante(null); // ← null cuando no hay archivo
+      setComprobante(null);
     }
   };
 
@@ -270,212 +245,435 @@ export default function AgregarVentaModal({ open, onClose, onSuccess }: AgregarV
     if (files?.[0]) {
       const file = files[0];
 
-      // Validar tipo
       const extensionesPermitidas = ['.pdf', '.jpg', '.jpeg', '.png'];
       const extension = file.name.toLowerCase().substring(file.name.lastIndexOf('.'));
 
       if (!extensionesPermitidas.includes(extension)) {
         addNotification('Solo se permiten archivos PDF, JPG, JPEG y PNG', 'error');
-        setComprobante(null); // ← Resetear a null
-        e.target.value = ''; // ← Limpiar input
+        setComprobante(null);
+        e.target.value = '';
         return;
       }
 
-      // Validar tamaño (máx 5MB)
       if (file.size > 5 * 1024 * 1024) {
         addNotification('El archivo no puede superar los 5MB', 'error');
-        setComprobante(null); // ← Resetear a null
-        e.target.value = ''; // ← Limpiar input
+        setComprobante(null);
+        e.target.value = '';
         return;
       }
 
       setComprobante(file);
     } else {
-      setComprobante(null); // ← null cuando no hay archivo
+      setComprobante(null);
     }
   };
 
   return (
-    <BaseModal
-      title="Agregar Venta"
-      open={open}
-      onClose={handleClose}
-      onSubmit={handleSubmit}
-      submitText="Agregar"
-      isLoading={loading}
-      error={error}
-    >
-      <Grid container spacing={2}>
-        <Grid size={{ xs: 12, md: 6 }}>
-          {/* Cliente */}
-          <Box sx={{ mb: 2 }}>
-            <Typography sx={{ fontSize: '13px', fontWeight: 500, color: '#6B7280', mb: 0.75 }}>Cliente *</Typography>
-            <select value={clienteId || ''} onChange={(e) => setClienteId(Number(e.target.value))} style={{ width: '100%', padding: '8px 12px', fontSize: '13px', border: '1px solid #E5E7EB', borderRadius: '6px', outline: 'none', backgroundColor: 'transparent', color: '#111827' }}>
-              <option value="">Seleccione un cliente</option>
-              {clientes.map(c => <option key={c.id} value={c.id}>{c.nombre}</option>)}
-            </select>
-          </Box>
-
-          {/* Forma de Pago */}
-          <Box sx={{ mb: 2 }}>
-            <Typography sx={{ fontSize: '13px', fontWeight: 500, color: '#6B7280', mb: 0.75 }}>Forma de Pago *</Typography>
-            <select value={formaPagoId} onChange={(e) => setFormaPagoId(Number(e.target.value))} style={{ width: '100%', padding: '8px 12px', fontSize: '13px', border: '1px solid #E5E7EB', borderRadius: '6px', outline: 'none', backgroundColor: 'transparent', color: '#111827' }}>
-              {formasPago.map(fp => <option key={fp.id} value={fp.id}>{fp.nombre}</option>)}
-            </select>
-          </Box>
-
-          {/* Seña y Financiera */}
-          <Box sx={{ mb: 2, display: 'flex', gap: 2, alignItems: 'flex-end' }}>
-            <Box sx={{ flex: 1 }}>
-              <FormField label="Seña (opcional)" type="number" placeholder="0" value={sena} onChange={(value) => setSena(value)} />
-            </Box>
-            <Box sx={{ pb: 0.5 }}>
-              <FormControlLabel
-                control={<Checkbox checked={usaFinanciera} onChange={(e) => setUsaFinanciera(e.target.checked)} size="small" />}
-                label={<Typography sx={{ fontSize: '12px' }}>-3% Financiera</Typography>}
-              />
-            </Box>
-          </Box>
-
-          {/* Comprobante */}
-          <Box sx={{ mb: 2 }}>
-            <Typography sx={{ fontSize: '13px', fontWeight: 500, color: '#6B7280', mb: 0.75 }}>
-              Comprobante (opcional)
-            </Typography>
-            {!comprobante ? (
-              <Box
-                onDragOver={handleDragOver}
-                onDragLeave={handleDragLeave}
-                onDrop={handleDrop}
-                onClick={() => document.getElementById('file-input')?.click()}
-                sx={{
-                  border: `2px dashed ${isDragging ? '#3B82F6' : '#E5E7EB'}`,
-                  borderRadius: '6px',
-                  p: 1.5,
-                  textAlign: 'center',
-                  cursor: 'pointer',
-                  bgcolor: isDragging ? 'rgba(59, 130, 246, 0.05)' : 'transparent',
-                  transition: 'all 0.2s ease',
-                  '&:hover': { borderColor: '#3B82F6' }
-                }}
-              >
-                <i className="fa-solid fa-cloud-arrow-up" style={{ fontSize: '20px', color: '#6B7280' }} />
-                <Typography sx={{ fontSize: '11px', color: '#374151', mt: 0.5 }}>
-                  {isDragging ? 'Suelta aquí' : 'Arrastra o clic para subir'}
-                </Typography>
-                <input
-                  id="file-input"
-                  type="file"
-                  accept=".pdf,.jpg,.jpeg,.png"
-                  onChange={handleFileSelect}
-                  style={{ display: 'none' }}
-                />
-              </Box>
-            ) : (
-              <Box sx={{
-                p: 1,
-                border: '1px solid #E5E7EB',
-                borderRadius: '6px',
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                bgcolor: '#F9FAFB'
-              }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <i className={`fa-solid ${comprobante.type === 'application/pdf' ? 'fa-file-pdf' : 'fa-file-image'}`}
-                     style={{ fontSize: '14px', color: '#3B82F6' }} />
-                  <Typography sx={{ fontSize: '11px', fontWeight: 500 }}>
-                    {comprobante.name.length > 25 ? comprobante.name.substring(0, 25) + '...' : comprobante.name}
-                  </Typography>
-                </Box>
-                <button
-                  onClick={() => setComprobante(null)}
+      <BaseModal
+          title="Agregar Venta"
+          open={open}
+          onClose={handleClose}
+          onSubmit={handleSubmit}
+          submitText="Agregar"
+          isLoading={loading}
+          error={error}
+      >
+        <Grid container spacing={2}>
+          {/* COLUMNA IZQUIERDA - Cliente */}
+          <Grid size={{ xs: 12, md: 6 }}>
+            <Box sx={{ mb: 2 }}>
+              <Typography sx={{ fontSize: '13px', fontWeight: 500, color: '#6B7280', mb: 0.75 }}>
+                Cliente *
+              </Typography>
+              <select
+                  value={clienteId || ''}
+                  onChange={(e) => setClienteId(Number(e.target.value))}
                   style={{
-                    color: '#EF4444',
-                    background: 'none',
-                    border: 'none',
-                    cursor: 'pointer',
-                    fontSize: '13px'
+                    width: '100%',
+                    padding: '10px 12px',
+                    fontSize: '14px',
+                    border: '1px solid #E5E7EB',
+                    borderRadius: '8px',
+                    outline: 'none',
+                    backgroundColor: 'white',
+                    color: '#111827',
+                    cursor: 'pointer'
                   }}
+              >
+                <option value="">Seleccione un cliente</option>
+                {clientes.map(c => <option key={c.id} value={c.id}>{c.nombre}</option>)}
+              </select>
+            </Box>
+          </Grid>
+
+          {/* COLUMNA DERECHA - Productos de la venta */}
+          <Grid size={{ xs: 12, md: 6 }}>
+            <Box sx={{
+              p: 2,
+              bgcolor: '#F9FAFB',
+              borderRadius: '8px',
+              border: '1px solid #E5E7EB',
+              height: '100%'
+            }}>
+              <Typography sx={{
+                fontSize: '14px',
+                fontWeight: 600,
+                mb: 1.5,
+                color: '#374151',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 1
+              }}>
+                <i className="fa-solid fa-box" />
+                Productos de la venta
+              </Typography>
+
+              <Box sx={{ mb: 1.5 }}>
+                <Typography sx={{ fontSize: '12px', fontWeight: 500, color: '#6B7280', mb: 0.5 }}>
+                  Agregar Producto
+                </Typography>
+                <select
+                    value=""
+                    onChange={(e) => handleProductoSelect(Number(e.target.value))}
+                    style={{
+                      width: '100%',
+                      padding: '8px 12px',
+                      fontSize: '13px',
+                      border: '1px solid #E5E7EB',
+                      borderRadius: '6px',
+                      outline: 'none',
+                      backgroundColor: 'white',
+                      color: '#111827',
+                      cursor: 'pointer'
+                    }}
                 >
-                  <i className="fa-solid fa-trash" />
-                </button>
+                  <option value="">Seleccione un producto...</option>
+                  {productos.map(p => (
+                      <option key={p.id} value={p.id}>
+                        {p.nombre} - ${p.costo_unitario.toLocaleString('es-AR')}
+                      </option>
+                  ))}
+                </select>
               </Box>
-            )}
-          </Box>
 
-          {/* Observaciones */}
-          <Box>
-            <Typography sx={{ fontSize: '13px', fontWeight: 500, color: '#6B7280', mb: 0.75 }}>Observaciones</Typography>
-            <textarea value={observaciones} onChange={(e) => setObservaciones(e.target.value)} placeholder="Observaciones..." rows={3} style={{ width: '100%', padding: '6px 10px', fontSize: '12px', border: '1px solid #E5E7EB', borderRadius: '6px', outline: 'none', backgroundColor: 'transparent', color: '#111827', fontFamily: 'inherit', resize: 'none' }} />
-          </Box>
-        </Grid>
+              {/* Selección de Talles */}
+              {productoActual && (
+                  <Box sx={{
+                    p: 1.5,
+                    border: '1px solid #3B82F6',
+                    borderRadius: '6px',
+                    bgcolor: 'white',
+                    mb: 1.5
+                  }}>
+                    <Typography sx={{ fontSize: '12px', fontWeight: 600, mb: 0.75, color: '#3B82F6' }}>
+                      {productoActual.nombre}
+                    </Typography>
+                    <Typography sx={{ fontSize: '11px', color: '#6B7280', mb: 0.75 }}>
+                      Cantidad por talle:
+                    </Typography>
+                    <Grid container spacing={0.75}>
+                      {tallesDisponibles.map(talle => (
+                          <Grid size={{ xs: 2.4 }} key={talle}>
+                            <Box sx={{ textAlign: 'center' }}>
+                              <Typography sx={{ fontSize: '10px', fontWeight: 500, mb: 0.25 }}>
+                                {talle}
+                              </Typography>
+                              <input
+                                  type="number"
+                                  min="0"
+                                  placeholder="0"
+                                  value={tallesActuales[talle] || ''}
+                                  onChange={(e) => handleTalleCantidadChange(talle, parseInt(e.target.value) || 0)}
+                                  style={{
+                                    width: '100%',
+                                    padding: '3px',
+                                    fontSize: '11px',
+                                    textAlign: 'center',
+                                    border: '1px solid #E5E7EB',
+                                    borderRadius: '4px',
+                                    outline: 'none'
+                                  }}
+                              />
+                            </Box>
+                          </Grid>
+                      ))}
+                    </Grid>
+                    <Box sx={{ mt: 1, display: 'flex', gap: 0.75, justifyContent: 'flex-end' }}>
+                      <button
+                          onClick={agregarProducto}
+                          style={{
+                            padding: '6px 14px',
+                            fontSize: '12px',
+                            backgroundColor: '#3B82F6',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '6px',
+                            cursor: 'pointer',
+                            fontWeight: 500,
+                            transition: 'background-color 0.2s'
+                          }}
+                      >
+                        Agregar
+                      </button>
+                      <button
+                          onClick={() => { setProductoActual(null); setTallesActuales({}); }}
+                          style={{
+                            padding: '6px 14px',
+                            fontSize: '12px',
+                            backgroundColor: '#6B7280',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '6px',
+                            cursor: 'pointer'
+                          }}
+                      >
+                        Cancelar
+                      </button>
+                    </Box>
+                  </Box>
+              )}
 
-        {/* COLUMNA DERECHA */}
-        <Grid size={{ xs: 12, md: 6 }}>
-          {/* Sección de Productos */}
-          <Box sx={{ p: 1.5, bgcolor: '#F9FAFB', borderRadius: '6px', border: '1px solid #E5E7EB', mb: 2 }}>
-            <Typography sx={{ fontSize: '13px', fontWeight: 600, mb: 1, color: '#374151' }}>
-              <i className="fa-solid fa-box" style={{ marginRight: '6px' }} />
-              Productos de la venta
-            </Typography>
+              {/* Lista de Productos Agregados */}
+              {productosSeleccionados.length > 0 && (
+                  <Box sx={{ maxHeight: '200px', overflowY: 'auto' }}>
+                    {productosSeleccionados.map((item, idx) => (
+                        <Box
+                            key={idx}
+                            sx={{
+                              p: 1,
+                              mb: 0.5,
+                              border: '1px solid #E5E7EB',
+                              borderRadius: '6px',
+                              bgcolor: 'white',
+                              display: 'flex',
+                              justifyContent: 'space-between',
+                              alignItems: 'center'
+                            }}
+                        >
+                          <Box>
+                            <Typography sx={{ fontSize: '12px', fontWeight: 600 }}>
+                              {item.producto.nombre}
+                            </Typography>
+                            <Typography sx={{ fontSize: '11px', color: '#6B7280' }}>
+                              {item.talles.map(t => `${t.talle}: ${t.cantidad}`).join(', ')} - ${(item.talles.reduce((sum, t) => sum + (t.cantidad * item.producto.costo_unitario), 0)).toLocaleString('es-AR')}
+                            </Typography>
+                          </Box>
+                          <button
+                              onClick={() => eliminarProducto(idx)}
+                              style={{
+                                color: '#EF4444',
+                                background: 'none',
+                                border: 'none',
+                                cursor: 'pointer',
+                                fontSize: '14px',
+                                padding: '4px 8px'
+                              }}
+                          >
+                            <i className="fa-solid fa-trash" />
+                          </button>
+                        </Box>
+                    ))}
+                  </Box>
+              )}
+            </Box>
+          </Grid>
 
-            <Box sx={{ mb: 1.5 }}>
-              <Typography sx={{ fontSize: '12px', fontWeight: 500, color: '#6B7280', mb: 0.5 }}>Agregar Producto</Typography>
-              <select value="" onChange={(e) => handleProductoSelect(Number(e.target.value))} style={{ width: '100%', padding: '8px 12px', fontSize: '13px', border: '1px solid #E5E7EB', borderRadius: '6px', outline: 'none', backgroundColor: 'white', color: '#111827' }}>
-                <option value="">Seleccione un producto...</option>
-                {productos.map(p => <option key={p.id} value={p.id}>{p.nombre} - ${p.costo_unitario.toLocaleString('es-AR')}</option>)}
+          {/* SEGUNDA FILA - Forma de Pago, Seña, Checkbox y Observaciones */}
+          <Grid size={{ xs: 12, md: 6 }}>
+            {/* Forma de Pago */}
+            <Box sx={{ mb: 2 }}>
+              <Typography sx={{ fontSize: '13px', fontWeight: 500, color: '#6B7280', mb: 0.75 }}>
+                Forma de Pago *
+              </Typography>
+              <select
+                  value={formaPagoId}
+                  onChange={(e) => setFormaPagoId(Number(e.target.value))}
+                  style={{
+                    width: '100%',
+                    padding: '10px 12px',
+                    fontSize: '14px',
+                    border: '1px solid #E5E7EB',
+                    borderRadius: '8px',
+                    outline: 'none',
+                    backgroundColor: 'white',
+                    color: '#111827',
+                    cursor: 'pointer'
+                  }}
+              >
+                {formasPago.map(fp => <option key={fp.id} value={fp.id}>{fp.nombre}</option>)}
               </select>
             </Box>
 
-            {/* Selección de Talles */}
-            {productoActual && (
-              <Box sx={{ p: 1.5, border: '1px solid #3B82F6', borderRadius: '6px', bgcolor: 'white', mb: 1.5 }}>
-                <Typography sx={{ fontSize: '12px', fontWeight: 600, mb: 0.75, color: '#3B82F6' }}>{productoActual.nombre}</Typography>
-                <Typography sx={{ fontSize: '11px', color: '#6B7280', mb: 0.75 }}>Cantidad por talle:</Typography>
-                <Grid container spacing={0.75}>
-                  {tallesDisponibles.map(talle => (
-                    <Grid size={{ xs: 2.4 }} key={talle}>
-                      <Box sx={{ textAlign: 'center' }}>
-                        <Typography sx={{ fontSize: '10px', fontWeight: 500, mb: 0.25 }}>{talle}</Typography>
-                        <input type="number" min="0" placeholder="0" value={tallesActuales[talle] || ''} onChange={(e) => handleTalleCantidadChange(talle, parseInt(e.target.value) || 0)} style={{ width: '100%', padding: '3px', fontSize: '11px', textAlign: 'center', border: '1px solid #E5E7EB', borderRadius: '4px', outline: 'none' }} />
-                      </Box>
-                    </Grid>
-                  ))}
-                </Grid>
-                <Box sx={{ mt: 1, display: 'flex', gap: 0.75, justifyContent: 'flex-end' }}>
-                  <button onClick={agregarProducto} style={{ padding: '4px 12px', fontSize: '11px', backgroundColor: '#3B82F6', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 500 }}>Agregar</button>
-                  <button onClick={() => { setProductoActual(null); setTallesActuales({}); }} style={{ padding: '4px 12px', fontSize: '11px', backgroundColor: '#6B7280', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>Cancelar</button>
-                </Box>
+            {/* Seña y Checkbox Financiera */}
+            <Box sx={{ mb: 2, display: 'flex', gap: 2, alignItems: 'flex-start' }}>
+              <Box sx={{ flex: 1 }}>
+                <FormField
+                    label="Seña (opcional)"
+                    type="number"
+                    placeholder="0"
+                    value={sena}
+                    onChange={(value) => setSena(value)}
+                />
               </Box>
-            )}
-
-            {/* Lista de Productos Agregados */}
-            {productosSeleccionados.length > 0 && (
-              <Box sx={{ maxHeight: '200px', overflowY: 'auto' }}>
-                {productosSeleccionados.map((item, idx) => (
-                  <Box key={idx} sx={{ p: 0.75, mb: 0.5, border: '1px solid #E5E7EB', borderRadius: '4px', bgcolor: 'white', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <Box>
-                      <Typography sx={{ fontSize: '11px', fontWeight: 600 }}>{item.producto.nombre}</Typography>
-                      <Typography sx={{ fontSize: '10px', color: '#6B7280' }}>
-                        {item.talles.map(t => `${t.talle}: ${t.cantidad}`).join(', ')} - ${(item.talles.reduce((sum, t) => sum + (t.cantidad * item.producto.costo_unitario), 0)).toLocaleString('es-AR')}
+              <Box sx={{ pt: 3.5 }}>
+                <FormControlLabel
+                    control={
+                      <Checkbox
+                          checked={usaFinanciera}
+                          onChange={(e) => setUsaFinanciera(e.target.checked)}
+                          sx={{
+                            color: '#9CA3AF',
+                            '&.Mui-checked': {
+                              color: '#3B82F6',
+                            },
+                          }}
+                      />
+                    }
+                    label={
+                      <Typography sx={{ fontSize: '13px', color: '#374151', fontWeight: 500 }}>
+                        Financiera (-3%)
                       </Typography>
-                    </Box>
-                    <button onClick={() => eliminarProducto(idx)} style={{ color: '#EF4444', background: 'none', border: 'none', cursor: 'pointer', fontSize: '13px' }}><i className="fa-solid fa-trash" /></button>
-                  </Box>
-                ))}
+                    }
+                />
               </Box>
-            )}
-          </Box>
+            </Box>
+          </Grid>
 
-          {/* Total */}
-          <Box sx={{ p: 1.5, bgcolor: '#F0FDF4', borderRadius: '6px', border: '1px solid #059669' }}>
-            <Typography sx={{ fontSize: '15px', fontWeight: 700, color: '#059669', textAlign: 'right' }}>
-              Total: ${calcularTotal().toLocaleString('es-AR', { minimumFractionDigits: 2 })}
-            </Typography>
-          </Box>
+          {/* Observaciones */}
+          <Grid size={{ xs: 12, md: 6 }}>
+            <Box>
+              <Typography sx={{ fontSize: '13px', fontWeight: 500, color: '#6B7280', mb: 0.75 }}>
+                Observaciones
+              </Typography>
+              <textarea
+                  value={observaciones}
+                  onChange={(e) => setObservaciones(e.target.value)}
+                  placeholder="Observaciones..."
+                  rows={4}
+                  style={{
+                    width: '100%',
+                    padding: '10px 12px',
+                    fontSize: '13px',
+                    border: '1px solid #E5E7EB',
+                    borderRadius: '8px',
+                    outline: 'none',
+                    backgroundColor: 'white',
+                    color: '#111827',
+                    fontFamily: 'inherit',
+                    resize: 'vertical',
+                    minHeight: '100px'
+                  }}
+              />
+            </Box>
+          </Grid>
+
+          {/* TERCERA FILA - Comprobante (ancho completo) */}
+          <Grid size={{ xs: 12 }}>
+            <Box sx={{ mb: 2 }}>
+              <Typography sx={{ fontSize: '13px', fontWeight: 500, color: '#6B7280', mb: 0.75 }}>
+                Comprobante (opcional)
+              </Typography>
+              {!comprobante ? (
+                  <Box
+                      onDragOver={handleDragOver}
+                      onDragLeave={handleDragLeave}
+                      onDrop={handleDrop}
+                      onClick={() => document.getElementById('file-input')?.click()}
+                      sx={{
+                        border: `2px dashed ${isDragging ? '#3B82F6' : '#E5E7EB'}`,
+                        borderRadius: '8px',
+                        p: 3,
+                        textAlign: 'center',
+                        cursor: 'pointer',
+                        bgcolor: isDragging ? 'rgba(59, 130, 246, 0.05)' : '#F9FAFB',
+                        transition: 'all 0.2s ease',
+                        '&:hover': {
+                          borderColor: '#3B82F6',
+                          bgcolor: 'rgba(59, 130, 246, 0.02)'
+                        }
+                      }}
+                  >
+                    <i className="fa-solid fa-cloud-arrow-up" style={{ fontSize: '32px', color: '#9CA3AF', marginBottom: '8px' }} />
+                    <Typography sx={{ fontSize: '13px', color: '#374151', fontWeight: 500 }}>
+                      {isDragging ? 'Suelta el archivo aquí' : 'Arrastra tu archivo o haz clic para seleccionar'}
+                    </Typography>
+                    <Typography sx={{ fontSize: '11px', color: '#6B7280', mt: 0.5 }}>
+                      PDF, JPG, JPEG o PNG (máx. 5MB)
+                    </Typography>
+                    <input
+                        id="file-input"
+                        type="file"
+                        accept=".pdf,.jpg,.jpeg,.png"
+                        onChange={handleFileSelect}
+                        style={{ display: 'none' }}
+                    />
+                  </Box>
+              ) : (
+                  <Box sx={{
+                    p: 1.5,
+                    border: '1px solid #E5E7EB',
+                    borderRadius: '8px',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    bgcolor: '#F9FAFB'
+                  }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                      <i
+                          className={`fa-solid ${comprobante.type === 'application/pdf' ? 'fa-file-pdf' : 'fa-file-image'}`}
+                          style={{ fontSize: '20px', color: '#3B82F6' }}
+                      />
+                      <Box>
+                        <Typography sx={{ fontSize: '13px', fontWeight: 600, color: '#111827' }}>
+                          {comprobante.name.length > 40 ? comprobante.name.substring(0, 40) + '...' : comprobante.name}
+                        </Typography>
+                        <Typography sx={{ fontSize: '11px', color: '#6B7280' }}>
+                          {(comprobante.size / 1024).toFixed(2)} KB
+                        </Typography>
+                      </Box>
+                    </Box>
+                    <button
+                        onClick={() => setComprobante(null)}
+                        style={{
+                          color: '#EF4444',
+                          background: 'none',
+                          border: 'none',
+                          cursor: 'pointer',
+                          fontSize: '16px',
+                          padding: '8px'
+                        }}
+                    >
+                      <i className="fa-solid fa-trash" />
+                    </button>
+                  </Box>
+              )}
+            </Box>
+          </Grid>
+
+          {/* CUARTA FILA - Total (ancho completo) */}
+          <Grid size={{ xs: 12 }}>
+            <Box sx={{
+              p: 2.5,
+              bgcolor: '#F0FDF4',
+              borderRadius: '8px',
+              border: '2px solid #059669'
+            }}>
+              <Typography sx={{
+                fontSize: '18px',
+                fontWeight: 700,
+                color: '#059669',
+                textAlign: 'right',
+                display: 'flex',
+                justifyContent: 'flex-end',
+                alignItems: 'center',
+                gap: 1
+              }}>
+                <span style={{ fontSize: '14px', fontWeight: 500 }}>Total:</span>
+                ${calcularTotal().toLocaleString('es-AR', { minimumFractionDigits: 2 })}
+              </Typography>
+            </Box>
+          </Grid>
         </Grid>
-      </Grid>
-    </BaseModal>
+      </BaseModal>
   );
 }
