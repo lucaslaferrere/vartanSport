@@ -183,7 +183,12 @@ func processVenta(c *gin.Context, usuarioID *int, clienteID int, formaPagoID int
 	}
 
 	// Calcular el saldo (lo que resta pagar)
-	saldo := total - sena
+	// Si no hay seña, el saldo es el total
+	senaValue := float64(0)
+	if sena > 0 {
+		senaValue = sena
+	}
+	saldo := total - senaValue
 
 	// Calcular descuento según forma de pago
 	var descuento float64
@@ -210,6 +215,12 @@ func processVenta(c *gin.Context, usuarioID *int, clienteID int, formaPagoID int
 		obs = &observaciones
 	}
 
+	// Manejar seña como puntero (opcional)
+	var senaPtr *float64
+	if sena > 0 {
+		senaPtr = &sena
+	}
+
 	// Iniciar transacción
 	tx := config.DB.Begin()
 	defer func() {
@@ -224,7 +235,7 @@ func processVenta(c *gin.Context, usuarioID *int, clienteID int, formaPagoID int
 		ClienteID:      clienteID,
 		FormaPagoID:    formaPagoID,
 		Total:          total,
-		Sena:           sena,
+		Sena:           senaPtr,
 		Saldo:          saldo,
 		Descuento:      descuento,
 		TotalFinal:     totalFinal,
@@ -544,10 +555,14 @@ func UpdateVenta(c *gin.Context) {
 	}
 
 	if req.Sena != nil {
-		venta.Sena = *req.Sena
-		venta.Saldo = venta.Total - venta.Sena
+		venta.Sena = req.Sena
 
-		// Recalcular descuento con el nuevo saldo
+		senaValue := float64(0)
+		if venta.Sena != nil {
+			senaValue = *venta.Sena
+		}
+		venta.Saldo = venta.Total - senaValue
+
 		if venta.UsaFinanciera {
 			venta.Descuento = venta.Saldo * 0.03
 		}
