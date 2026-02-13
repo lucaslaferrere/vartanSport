@@ -1,6 +1,6 @@
 "use client";
 import {usePathname} from "next/navigation";
-import {Breadcrumbs as MuiBreadcrumbs, Grid} from "@mui/material";
+import {Grid} from "@mui/material";
 import Typography from "@mui/material/Typography";
 import Link from '@mui/material/Link';
 import NextLink from 'next/link';
@@ -20,7 +20,7 @@ const Breadcrumbs = () => {
     }, [pathName]);
 
     return (
-        <MainCard shadow={"none"} sx={{mb: 3, bgcolor: 'transparent'}} border={false} content={false}>
+        <MainCard _shadow={"none"} sx={{mb: 3, bgcolor: 'transparent'}} _border={false} content={false}>
             <Grid
                 container
                 direction="row"

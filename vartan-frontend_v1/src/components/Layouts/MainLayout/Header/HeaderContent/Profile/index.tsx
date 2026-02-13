@@ -134,7 +134,7 @@ const Profile = () => {
                                         setSelectOpen(false);
                                     }
                                 }}>
-                                    <MainCard elevation={0} border={false} content={false}>
+                                    <MainCard _elevation={0} _border={false} content={false}>
                                         <CardContent sx={{px: 2.5, pt: 3}}>
                                             <Stack direction="row" spacing={1.25} alignItems="center">
                                                 <Avatar sx={{width: 32, height: 32}} src={mockUser.picture}/>
