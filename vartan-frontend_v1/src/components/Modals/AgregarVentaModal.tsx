@@ -29,7 +29,7 @@ export default function AgregarVentaModal({ open, onClose, onSuccess }: AgregarV
   const [productos, setProductos] = useState<IProducto[]>([]);
   const [clienteId, setClienteId] = useState<number | null>(null);
   const [formaPagoId, setFormaPagoId] = useState<number>(1);
-  const [sena, setSena] = useState<string>('');
+  const [sena, setSena] = useState<string>('0'); // Inicializar con '0' en lugar de ''
   const [usaFinanciera, setUsaFinanciera] = useState(false);
   const [observaciones, setObservaciones] = useState('');
   const [comprobante, setComprobante] = useState<File | null>(null);
@@ -158,12 +158,17 @@ export default function AgregarVentaModal({ open, onClose, onSuccess }: AgregarV
         });
       });
 
-      const senaNumero = sena === '' || sena === null || sena === undefined ? 0 : Number(sena);
+
+      let senaNumero = 0;
+      if (sena !== '' && sena !== null && sena !== undefined) {
+        const parsed = parseFloat(sena);
+        senaNumero = isNaN(parsed) ? 0 : parsed;
+      }
 
       const ventaData: IVentaCreateRequest = {
         cliente_id: Number(clienteId),
         forma_pago_id: Number(formaPagoId),
-        sena: isNaN(senaNumero) ? 0 : senaNumero,
+        sena: senaNumero, // Garantizado que es un número
         observaciones: observaciones || '',
         detalles
       };
@@ -190,7 +195,7 @@ export default function AgregarVentaModal({ open, onClose, onSuccess }: AgregarV
   const handleClose = () => {
     setClienteId(null);
     setFormaPagoId(1);
-    setSena('');
+    setSena('0');
     setUsaFinanciera(false);
     setObservaciones('');
     setComprobante(null);
@@ -483,7 +488,12 @@ export default function AgregarVentaModal({ open, onClose, onSuccess }: AgregarV
                 type="number"
                 placeholder="$0"
                 value={sena}
-                onChange={(e) => setSena(e.target.value)}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  // Si el usuario borra todo, poner '0'
+                  // Si ingresa un número, mantenerlo
+                  setSena(value === '' ? '0' : value);
+                }}
                 style={{
                   width: '100%',
                   padding: '8px 10px',

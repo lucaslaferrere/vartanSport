@@ -144,9 +144,17 @@ func UpdateCliente(c *gin.Context) {
 // @Security BearerAuth
 // @Param id path int true "ID del cliente"
 // @Success 200 {object} map[string]string "Cliente eliminado exitosamente"
+// @Failure 403 {object} map[string]string "Sin permisos"
 // @Failure 500 {object} map[string]string "Error interno"
-// @Router /api/owner/clientes/{id} [delete]
+// @Router /api/clientes/{id} [delete]
 func DeleteCliente(c *gin.Context) {
+	// Validar que solo el dueño puede eliminar
+	userRole := c.GetString("rol")
+	if userRole != "dueño" {
+		c.JSON(http.StatusForbidden, gin.H{"error": "No tienes permisos para eliminar clientes"})
+		return
+	}
+
 	id := c.Param("id")
 
 	if err := config.DB.Delete(&models.Cliente{}, id).Error; err != nil {

@@ -26,7 +26,8 @@ interface VendedorCardProps {
 
 export default function VendedorCard({ vendedor, formatCurrency, onConfigurar }: VendedorCardProps) {
     const isTopPerformer = vendedor.rank && vendedor.rank <= 3;
-    const rankEmoji = vendedor.rank === 1 ? '🥇' : vendedor.rank === 2 ? '🥈' : '🥉';
+    const rankIcon = vendedor.rank === 1 ? 'fa-solid fa-medal' : vendedor.rank === 2 ? 'fa-solid fa-award' : 'fa-solid fa-trophy';
+    const rankColor = vendedor.rank === 1 ? '#FFD700' : vendedor.rank === 2 ? '#C0C0C0' : '#CD7F32';
     const ventasSubieron = vendedor.ventas_mes_actual >= vendedor.ventas_mes_anterior;
 
     return (
@@ -55,8 +56,12 @@ export default function VendedorCard({ vendedor, formatCurrency, onConfigurar }:
                     fontSize: '12px',
                     fontWeight: 700,
                     boxShadow: '0 2px 8px rgba(245, 158, 11, 0.3)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 0.5,
                 }}>
-                    {rankEmoji} Top {vendedor.rank}
+                    <i className={rankIcon} style={{ fontSize: '14px', color: rankColor }} />
+                    Top {vendedor.rank}
                 </Box>
             )}
 
