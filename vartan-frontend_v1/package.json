@@ -33,6 +33,7 @@
     "react-dom": "19.2.3",
     "react-hook-form": "^7.71.1",
     "react-redux": "^9.2.0",
+    "recharts": "^3.7.0",
     "simplebar-react": "^3.3.2",
     "uuid": "^13.0.0",
     "zustand": "^5.0.10"
