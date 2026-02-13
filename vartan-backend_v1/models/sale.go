@@ -47,7 +47,7 @@ type VentaCreateRequest struct {
 	UsuarioID              *int                        `json:"usuario_id" form:"usuario_id"`
 	ClienteID              int                         `json:"cliente_id" form:"cliente_id" binding:"required"`
 	FormaPagoID            int                         `json:"forma_pago_id" form:"forma_pago_id" binding:"required"`
-	PrecioVenta            float64                     `json:"precio_venta" form:"precio_venta" binding:"required"`
+	PrecioVenta            float64                     `json:"precio_venta" form:"precio_venta"`
 	Sena                   float64                     `json:"sena" form:"sena"`
 	UsaDescuentoFinanciera bool                        `json:"usa_descuento_financiera" form:"usa_descuento_financiera"`
 	Observaciones          string                      `json:"observaciones" form:"observaciones"`
@@ -58,7 +58,7 @@ type VentaCreateFormRequest struct {
 	UsuarioID              string `form:"usuario_id"`
 	ClienteID              string `form:"cliente_id" binding:"required"`
 	FormaPagoID            string `form:"forma_pago_id" binding:"required"`
-	PrecioVenta            string `form:"precio_venta" binding:"required"`
+	PrecioVenta            string `form:"precio_venta"`
 	Sena                   string `form:"sena"`
 	UsaDescuentoFinanciera string `form:"usa_descuento_financiera"`
 	Observaciones          string `form:"observaciones"`

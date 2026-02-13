@@ -90,6 +90,23 @@ export const ventaService = {
         link.click();
         link.remove();
     },
+
+    // Actualizar pago de una venta (seña + comprobante)
+    updatePago: async (ventaId: number, sena: number, comprobante?: File): Promise<IVentaCreateResponse> => {
+        const formData = new FormData();
+        formData.append('sena', sena.toString());
+
+        if (comprobante) {
+            formData.append('comprobante', comprobante);
+        }
+
+        const response = await api.put<IVentaCreateResponse>(`/api/ventas/${ventaId}/pago`, formData, {
+            headers: {
+                'Content-Type': 'multipart/form-data',
+            },
+        });
+        return response.data;
+    },
 };
 
 

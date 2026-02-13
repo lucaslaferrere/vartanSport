@@ -9,6 +9,7 @@ import PrimaryButton from '@components/Buttons/PrimaryButton';
 import AgregarVentaModal from '@components/Modals/AgregarVentaModal';
 import DetalleVentaModal from '@components/Modals/DetalleVentaModal';
 import EditarVentaModal from '@components/Modals/EditarVentaModal';
+import RegistrarPagoModal from '@components/Modals/RegistrarPagoModal';
 import ConfirmModal from '@components/Modals/ConfirmModal';
 import { TableFilterType } from '@components/Tables/Filters/TableFilterType';
 import { colors } from '@/src/theme/colors';
@@ -58,6 +59,7 @@ export default function VentasPage() {
   const [agregarVentaModalOpen, setAgregarVentaModalOpen] = useState(false);
   const [detalleVentaModalOpen, setDetalleVentaModalOpen] = useState(false);
   const [editarVentaModalOpen, setEditarVentaModalOpen] = useState(false);
+  const [registrarPagoModalOpen, setRegistrarPagoModalOpen] = useState(false);
   const [eliminarVentaModalOpen, setEliminarVentaModalOpen] = useState(false);
   const [ventaSeleccionada, setVentaSeleccionada] = useState<IVenta | null>(null);
   const { user } = useAuthStore();
@@ -240,6 +242,25 @@ export default function VentasPage() {
       tooltip: 'Ver Detalle'
     },
     {
+      icon: 'fa-solid fa-money-bill-wave',
+      color: '#059669',
+      onClick: async (row: IVentaDisplay) => {
+        try {
+          const todasLasVentas = user?.rol === 'dueño'
+            ? await ventaService.getAll()
+            : await ventaService.getMisVentas();
+
+          const venta = todasLasVentas.find((v: IVenta) => v.id === row.id);
+          setVentaSeleccionada(venta || null);
+          setRegistrarPagoModalOpen(true);
+        } catch (err) {
+          console.error('Error cargando venta para pago:', err);
+          addNotification('Error al cargar la venta', 'error');
+        }
+      },
+      tooltip: 'Registrar Pago'
+    },
+    {
       icon: 'fa-solid fa-pen',
       color: '#6B7280',
       onClick: async (row: IVentaDisplay) => {
@@ -354,6 +375,18 @@ export default function VentasPage() {
             fetchVentas();
             setEditarVentaModalOpen(false);
             addNotification('Venta actualizada exitosamente', 'success');
+          }}
+          venta={ventaSeleccionada}
+        />
+
+        {/* Modal de registrar pago */}
+        <RegistrarPagoModal
+          open={registrarPagoModalOpen}
+          onClose={() => setRegistrarPagoModalOpen(false)}
+          onSuccess={(ventaActualizada) => {
+            fetchVentas();
+            setRegistrarPagoModalOpen(false);
+            setVentaSeleccionada(ventaActualizada);
           }}
           venta={ventaSeleccionada}
         />

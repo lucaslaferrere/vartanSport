@@ -48,6 +48,7 @@ func SetupRoutes(router *gin.Engine) {
 		api.POST("/ventas", controllers.CreateVenta)
 		api.GET("/ventas/:id", controllers.GetVenta)
 		api.PUT("/ventas/:id", controllers.UpdateVenta)
+		api.PUT("/ventas/:id/pago", controllers.UpdateVentaPago)
 		api.DELETE("/ventas/:id", controllers.DeleteVenta)
 		api.GET("/ventas/:id/comprobante", controllers.GetVentaComprobante)
 		api.DELETE("/ventas/:id/comprobante", controllers.DeleteVentaComprobante)

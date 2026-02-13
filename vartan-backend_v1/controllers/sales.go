@@ -192,7 +192,11 @@ func processVenta(c *gin.Context, usuarioID *int, clienteID int, formaPagoID int
 		costo += detalle.PrecioUnitario * float64(detalle.Cantidad)
 	}
 
-	// El precio_venta viene del usuario (lo que cobra al cliente)
+	// Si no viene precio_venta, usar el costo (retrocompatibilidad)
+	if precioVenta == 0 {
+		precioVenta = costo
+	}
+
 	// Ganancia = PrecioVenta - Costo
 	ganancia := precioVenta - costo
 
@@ -547,7 +551,6 @@ func UpdateVenta(c *gin.Context) {
 	}
 
 	if req.FormaPagoID != nil {
-		// Verificar que la forma de pago existe
 		var formaPago models.FormaPago
 		if err := config.DB.First(&formaPago, *req.FormaPagoID).Error; err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "Forma de pago no encontrada"})
@@ -555,15 +558,22 @@ func UpdateVenta(c *gin.Context) {
 		}
 		venta.FormaPagoID = *req.FormaPagoID
 
-		// Recalcular descuento si cambió la forma de pago
-		if formaPago.Nombre == "Transferencia Financiera" {
-			venta.UsaFinanciera = true
+		// Recalcular saldo
+		senaValue := float64(0)
+		if venta.Sena != nil {
+			senaValue = *venta.Sena
+		}
+		venta.Saldo = venta.PrecioVenta - senaValue
+
+		// Recalcular descuento basado en forma de pago y usa_financiera
+		if venta.UsaFinanciera && formaPago.Nombre == "Transferencia Financiera" {
 			venta.Descuento = venta.Saldo * 0.03
 		} else {
-			venta.UsaFinanciera = false
 			venta.Descuento = 0
+			venta.UsaFinanciera = false
 		}
-		venta.TotalFinal = venta.Total - venta.Descuento
+		venta.TotalFinal = venta.PrecioVenta - venta.Descuento
+		venta.Total = venta.PrecioVenta
 	}
 
 	if req.Sena != nil {
@@ -573,12 +583,14 @@ func UpdateVenta(c *gin.Context) {
 		if venta.Sena != nil {
 			senaValue = *venta.Sena
 		}
-		venta.Saldo = venta.Total - senaValue
+		venta.Saldo = venta.PrecioVenta - senaValue
 
+		// Recalcular descuento con el nuevo saldo
 		if venta.UsaFinanciera {
 			venta.Descuento = venta.Saldo * 0.03
 		}
-		venta.TotalFinal = venta.Total - venta.Descuento
+		venta.TotalFinal = venta.PrecioVenta - venta.Descuento
+		venta.Total = venta.PrecioVenta
 	}
 
 	if req.Observaciones != nil {
@@ -601,6 +613,136 @@ func UpdateVenta(c *gin.Context) {
 		First(&venta, venta.ID)
 
 	c.JSON(http.StatusOK, venta)
+}
+
+// UpdateVentaPago godoc
+// @Summary Actualizar pago de venta (seña y comprobante)
+// @Description Permite actualizar la seña y agregar/actualizar comprobante cuando el cliente hace un pago
+// @Tags Ventas
+// @Accept multipart/form-data
+// @Produce json
+// @Security BearerAuth
+// @Param id path int true "ID de la venta"
+// @Param sena formData number true "Nueva seña (acumulativa o total)"
+// @Param comprobante formData file false "Comprobante de pago"
+// @Success 200 {object} models.Venta
+// @Failure 400 {object} map[string]string "Datos inválidos"
+// @Failure 404 {object} map[string]string "Venta no encontrada"
+// @Failure 500 {object} map[string]string "Error interno"
+// @Router /api/ventas/{id}/pago [put]
+func UpdateVentaPago(c *gin.Context) {
+	ventaID := c.Param("id")
+
+	var venta models.Venta
+	if err := config.DB.First(&venta, ventaID).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Venta no encontrada"})
+		return
+	}
+
+	// Obtener nueva seña del formulario
+	senaStr := c.PostForm("sena")
+	if senaStr == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "El campo 'sena' es requerido"})
+		return
+	}
+
+	nuevaSena, err := strconv.ParseFloat(senaStr, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Seña inválida"})
+		return
+	}
+
+	// Validar que la nueva seña no supere el precio de venta
+	if nuevaSena > venta.PrecioVenta {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":        "La seña no puede superar el precio de venta",
+			"precio_venta": venta.PrecioVenta,
+			"sena_enviada": nuevaSena,
+		})
+		return
+	}
+
+	// Actualizar seña
+	venta.Sena = &nuevaSena
+
+	// Recalcular saldo
+	venta.Saldo = venta.PrecioVenta - nuevaSena
+
+	// Recalcular descuento si usa financiera
+	if venta.UsaFinanciera {
+		venta.Descuento = venta.Saldo * 0.03
+	}
+	venta.TotalFinal = venta.PrecioVenta - venta.Descuento
+
+	// Manejar comprobante si se envió uno nuevo
+	file, err := c.FormFile("comprobante")
+	if err == nil && file != nil {
+		// Validar extensión
+		ext := strings.ToLower(filepath.Ext(file.Filename))
+		allowedExts := map[string]bool{".pdf": true, ".jpg": true, ".jpeg": true, ".png": true}
+		if !allowedExts[ext] {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Solo se permiten archivos PDF, JPG, JPEG y PNG"})
+			return
+		}
+
+		// Validar tamaño (máximo 5MB)
+		if file.Size > 5*1024*1024 {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "El archivo no puede superar los 5MB"})
+			return
+		}
+
+		// Si ya existe un comprobante, eliminarlo
+		if venta.ComprobanteURL != nil && *venta.ComprobanteURL != "" {
+			os.Remove(*venta.ComprobanteURL)
+		}
+
+		// Guardar nuevo comprobante
+		uploadDir := "uploads/comprobantes"
+		filename := fmt.Sprintf("comprobante_pago_%d%s", time.Now().UnixNano(), ext)
+		filePath := filepath.Join(uploadDir, filename)
+
+		src, err := file.Open()
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error abriendo comprobante"})
+			return
+		}
+		defer src.Close()
+
+		dst, err := os.Create(filePath)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error creando archivo"})
+			return
+		}
+		defer dst.Close()
+
+		if _, err := io.Copy(dst, src); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error al guardar comprobante"})
+			return
+		}
+
+		venta.ComprobanteURL = &filePath
+	}
+
+	// Guardar cambios
+	if err := config.DB.Save(&venta).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error al actualizar venta"})
+		return
+	}
+
+	// Cargar la venta actualizada con todas sus relaciones
+	config.DB.
+		Preload("Usuario").
+		Preload("Cliente").
+		Preload("FormaPago").
+		Preload("Detalles").
+		Preload("Detalles.Producto").
+		First(&venta, venta.ID)
+
+	c.JSON(http.StatusOK, gin.H{
+		"message":      "Pago actualizado exitosamente",
+		"venta":        venta,
+		"saldo_actual": venta.Saldo,
+	})
 }
 
 // DeleteVenta godoc
