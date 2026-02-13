@@ -306,20 +306,115 @@ export default function AgregarVentaModal({ open, onClose, onSuccess }: AgregarV
       error={error}
     >
       <Grid container spacing={2}>
-        {/* Cliente */}
-        <Grid size={{ xs: 12 }}>
-          <Box>
+        <Grid size={{ xs: 12, md: 6 }}>
+          {/* Cliente */}
+          <Box sx={{ mb: 2 }}>
             <Typography sx={{ fontSize: '13px', fontWeight: 500, color: '#6B7280', mb: 0.75 }}>Cliente *</Typography>
             <select value={clienteId || ''} onChange={(e) => setClienteId(Number(e.target.value))} style={{ width: '100%', padding: '8px 12px', fontSize: '13px', border: '1px solid #E5E7EB', borderRadius: '6px', outline: 'none', backgroundColor: 'transparent', color: '#111827' }}>
               <option value="">Seleccione un cliente</option>
               {clientes.map(c => <option key={c.id} value={c.id}>{c.nombre}</option>)}
             </select>
           </Box>
+
+          {/* Forma de Pago */}
+          <Box sx={{ mb: 2 }}>
+            <Typography sx={{ fontSize: '13px', fontWeight: 500, color: '#6B7280', mb: 0.75 }}>Forma de Pago *</Typography>
+            <select value={formaPagoId} onChange={(e) => setFormaPagoId(Number(e.target.value))} style={{ width: '100%', padding: '8px 12px', fontSize: '13px', border: '1px solid #E5E7EB', borderRadius: '6px', outline: 'none', backgroundColor: 'transparent', color: '#111827' }}>
+              {formasPago.map(fp => <option key={fp.id} value={fp.id}>{fp.nombre}</option>)}
+            </select>
+          </Box>
+
+          {/* Seña y Financiera */}
+          <Box sx={{ mb: 2, display: 'flex', gap: 2, alignItems: 'flex-end' }}>
+            <Box sx={{ flex: 1 }}>
+              <FormField label="Seña (opcional)" type="number" placeholder="0" value={sena} onChange={(value) => setSena(value)} />
+            </Box>
+            <Box sx={{ pb: 0.5 }}>
+              <FormControlLabel
+                control={<Checkbox checked={usaFinanciera} onChange={(e) => setUsaFinanciera(e.target.checked)} size="small" />}
+                label={<Typography sx={{ fontSize: '12px' }}>-3% Financiera</Typography>}
+              />
+            </Box>
+          </Box>
+
+          {/* Comprobante */}
+          <Box sx={{ mb: 2 }}>
+            <Typography sx={{ fontSize: '13px', fontWeight: 500, color: '#6B7280', mb: 0.75 }}>
+              Comprobante (opcional)
+            </Typography>
+            {!comprobante ? (
+              <Box
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+                onDrop={handleDrop}
+                onClick={() => document.getElementById('file-input')?.click()}
+                sx={{
+                  border: `2px dashed ${isDragging ? '#3B82F6' : '#E5E7EB'}`,
+                  borderRadius: '6px',
+                  p: 1.5,
+                  textAlign: 'center',
+                  cursor: 'pointer',
+                  bgcolor: isDragging ? 'rgba(59, 130, 246, 0.05)' : 'transparent',
+                  transition: 'all 0.2s ease',
+                  '&:hover': { borderColor: '#3B82F6' }
+                }}
+              >
+                <i className="fa-solid fa-cloud-arrow-up" style={{ fontSize: '20px', color: '#6B7280' }} />
+                <Typography sx={{ fontSize: '11px', color: '#374151', mt: 0.5 }}>
+                  {isDragging ? 'Suelta aquí' : 'Arrastra o clic para subir'}
+                </Typography>
+                <input
+                  id="file-input"
+                  type="file"
+                  accept=".pdf,.jpg,.jpeg,.png"
+                  onChange={handleFileSelect}
+                  style={{ display: 'none' }}
+                />
+              </Box>
+            ) : (
+              <Box sx={{
+                p: 1,
+                border: '1px solid #E5E7EB',
+                borderRadius: '6px',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                bgcolor: '#F9FAFB'
+              }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <i className={`fa-solid ${comprobante.type === 'application/pdf' ? 'fa-file-pdf' : 'fa-file-image'}`}
+                     style={{ fontSize: '14px', color: '#3B82F6' }} />
+                  <Typography sx={{ fontSize: '11px', fontWeight: 500 }}>
+                    {comprobante.name.length > 25 ? comprobante.name.substring(0, 25) + '...' : comprobante.name}
+                  </Typography>
+                </Box>
+                <button
+                  onClick={() => setComprobante(null)}
+                  style={{
+                    color: '#EF4444',
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    fontSize: '13px'
+                  }}
+                >
+                  <i className="fa-solid fa-trash" />
+                </button>
+              </Box>
+            )}
+          </Box>
+
+          {/* Observaciones */}
+          <Box>
+            <Typography sx={{ fontSize: '13px', fontWeight: 500, color: '#6B7280', mb: 0.75 }}>Observaciones</Typography>
+            <textarea value={observaciones} onChange={(e) => setObservaciones(e.target.value)} placeholder="Observaciones..." rows={3} style={{ width: '100%', padding: '6px 10px', fontSize: '12px', border: '1px solid #E5E7EB', borderRadius: '6px', outline: 'none', backgroundColor: 'transparent', color: '#111827', fontFamily: 'inherit', resize: 'none' }} />
+          </Box>
         </Grid>
 
-        {/* Sección de Productos */}
-        <Grid size={{ xs: 12 }}>
-          <Box sx={{ p: 1.5, bgcolor: '#F9FAFB', borderRadius: '6px', border: '1px solid #E5E7EB' }}>
+        {/* COLUMNA DERECHA */}
+        <Grid size={{ xs: 12, md: 6 }}>
+          {/* Sección de Productos */}
+          <Box sx={{ p: 1.5, bgcolor: '#F9FAFB', borderRadius: '6px', border: '1px solid #E5E7EB', mb: 2 }}>
             <Typography sx={{ fontSize: '13px', fontWeight: 600, mb: 1, color: '#374151' }}>
               <i className="fa-solid fa-box" style={{ marginRight: '6px' }} />
               Productos de la venta
@@ -328,7 +423,7 @@ export default function AgregarVentaModal({ open, onClose, onSuccess }: AgregarV
             <Box sx={{ mb: 1.5 }}>
               <Typography sx={{ fontSize: '12px', fontWeight: 500, color: '#6B7280', mb: 0.5 }}>Agregar Producto</Typography>
               <select value="" onChange={(e) => handleProductoSelect(Number(e.target.value))} style={{ width: '100%', padding: '8px 12px', fontSize: '13px', border: '1px solid #E5E7EB', borderRadius: '6px', outline: 'none', backgroundColor: 'white', color: '#111827' }}>
-                <option value="">Seleccione un producto para agregar...</option>
+                <option value="">Seleccione un producto...</option>
                 {productos.map(p => <option key={p.id} value={p.id}>{p.nombre} - ${p.costo_unitario.toLocaleString('es-AR')}</option>)}
               </select>
             </Box>
@@ -349,24 +444,22 @@ export default function AgregarVentaModal({ open, onClose, onSuccess }: AgregarV
                   ))}
                 </Grid>
                 <Box sx={{ mt: 1, display: 'flex', gap: 0.75, justifyContent: 'flex-end' }}>
-                  <button onClick={agregarProducto} style={{ padding: '4px 10px', fontSize: '11px', fontWeight: 500, backgroundColor: '#3B82F6', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>Agregar</button>
-                  <button onClick={() => setProductoActual(null)} style={{ padding: '4px 10px', fontSize: '11px', fontWeight: 500, color: '#EF4444', backgroundColor: 'transparent', border: 'none', cursor: 'pointer' }}>Cancelar</button>
+                  <button onClick={agregarProducto} style={{ padding: '4px 12px', fontSize: '11px', backgroundColor: '#3B82F6', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 500 }}>Agregar</button>
+                  <button onClick={() => { setProductoActual(null); setTallesActuales({}); }} style={{ padding: '4px 12px', fontSize: '11px', backgroundColor: '#6B7280', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>Cancelar</button>
                 </Box>
               </Box>
             )}
 
-            {/* Lista de productos agregados */}
+            {/* Lista de Productos Agregados */}
             {productosSeleccionados.length > 0 && (
-              <Box>
-                <Typography sx={{ fontSize: '12px', fontWeight: 600, mb: 0.75, color: '#374151' }}>
-                  <i className="fa-solid fa-check-circle" style={{ marginRight: '4px', color: '#10B981' }} />
-                  Productos agregados ({productosSeleccionados.length})
-                </Typography>
+              <Box sx={{ maxHeight: '200px', overflowY: 'auto' }}>
                 {productosSeleccionados.map((item, idx) => (
-                  <Box key={idx} sx={{ p: 1, mb: 0.5, border: '1px solid #E5E7EB', borderRadius: '4px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', bgcolor: 'white' }}>
+                  <Box key={idx} sx={{ p: 0.75, mb: 0.5, border: '1px solid #E5E7EB', borderRadius: '4px', bgcolor: 'white', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <Box>
-                      <Typography sx={{ fontSize: '12px', fontWeight: 500 }}>{item.producto.nombre}</Typography>
-                      <Typography sx={{ fontSize: '10px', color: '#6B7280' }}>{item.talles.map(t => `${t.talle}:${t.cantidad}`).join(', ')}</Typography>
+                      <Typography sx={{ fontSize: '11px', fontWeight: 600 }}>{item.producto.nombre}</Typography>
+                      <Typography sx={{ fontSize: '10px', color: '#6B7280' }}>
+                        {item.talles.map(t => `${t.talle}: ${t.cantidad}`).join(', ')} - ${(item.talles.reduce((sum, t) => sum + (t.cantidad * item.producto.costo_unitario), 0)).toLocaleString('es-AR')}
+                      </Typography>
                     </Box>
                     <button onClick={() => eliminarProducto(idx)} style={{ color: '#EF4444', background: 'none', border: 'none', cursor: 'pointer', fontSize: '13px' }}><i className="fa-solid fa-trash" /></button>
                   </Box>
@@ -374,118 +467,13 @@ export default function AgregarVentaModal({ open, onClose, onSuccess }: AgregarV
               </Box>
             )}
           </Box>
-        </Grid>
 
-        {/* Fila 2: Seña, Forma de Pago, Financiera */}
-        <Grid size={{ xs: 12, sm: 4 }}>
-          <FormField label="Seña (opcional)" type="number" placeholder="0" value={sena} onChange={(value) => setSena(value)} />
-        </Grid>
-
-        <Grid size={{ xs: 12, sm: 5 }}>
-          <Box>
-            <Typography sx={{ fontSize: '13px', fontWeight: 500, color: '#6B7280', mb: 0.75 }}>Forma de Pago *</Typography>
-            <select value={formaPagoId} onChange={(e) => setFormaPagoId(Number(e.target.value))} style={{ width: '100%', padding: '8px 12px', fontSize: '13px', border: '1px solid #E5E7EB', borderRadius: '6px', outline: 'none', backgroundColor: 'transparent', color: '#111827' }}>
-              {formasPago.map(fp => <option key={fp.id} value={fp.id}>{fp.nombre}</option>)}
-            </select>
+          {/* Total */}
+          <Box sx={{ p: 1.5, bgcolor: '#F0FDF4', borderRadius: '6px', border: '1px solid #059669' }}>
+            <Typography sx={{ fontSize: '15px', fontWeight: 700, color: '#059669', textAlign: 'right' }}>
+              Total: ${calcularTotal().toLocaleString('es-AR', { minimumFractionDigits: 2 })}
+            </Typography>
           </Box>
-        </Grid>
-
-        <Grid size={{ xs: 12, sm: 3 }}>
-          <Box sx={{ display: 'flex', alignItems: 'flex-end', height: '100%', pb: 0.5 }}>
-            <FormControlLabel control={<Checkbox checked={usaFinanciera} onChange={(e) => setUsaFinanciera(e.target.checked)} size="small" />} label={<Typography sx={{ fontSize: '11px' }}>-3%</Typography>} />
-          </Box>
-        </Grid>
-
-        {/* Total */}
-<Grid size={{ xs: 12 }}>
-  <Box sx={{ p: 1, bgcolor: '#F0FDF4', borderRadius: '6px', textAlign: 'right' }}>
-    <Typography sx={{ fontSize: '15px', fontWeight: 700, color: '#059669' }}>
-      Total: ${calcularTotal().toLocaleString('es-AR', { minimumFractionDigits: 2 })}
-    </Typography>
-  </Box>
-</Grid>
-
-{/* 🔴 TEST - SI VES ESTO, EL CÓDIGO SE ESTÁ EJECUTANDO
-<Grid size={{ xs: 12 }}>
-  <Box sx={{ p: 2, bgcolor: '#FF0000', color: '#FFFFFF', textAlign: 'center' }}>
-    <Typography sx={{ fontSize: '20px', fontWeight: 700 }}>
-      🔴 PRUEBA - SI VES ESTO, EL ARCHIVO SE ACTUALIZÓ
-    </Typography>
-  </Box>
-</Grid> */}
-
-        <Grid size={{ xs: 12 }}>
-  <Typography sx={{ fontSize: '13px', fontWeight: 500, color: '#6B7280', mb: 0.75 }}>
-    Comprobante
-  </Typography>
-  {!comprobante ? (
-    <Box 
-      onDragOver={handleDragOver} 
-      onDragLeave={handleDragLeave} 
-      onDrop={handleDrop} 
-      onClick={() => document.getElementById('file-input')?.click()} 
-      sx={{ 
-        border: `2px dashed ${isDragging ? '#3B82F6' : '#E5E7EB'}`, 
-        borderRadius: '6px', 
-        p: 1.5, 
-        textAlign: 'center', 
-        cursor: 'pointer', 
-        bgcolor: isDragging ? 'rgba(59, 130, 246, 0.05)' : 'transparent', 
-        transition: 'all 0.2s ease', 
-        '&:hover': { borderColor: '#3B82F6' } 
-      }}
-    >
-      <i className="fa-solid fa-cloud-arrow-up" style={{ fontSize: '20px', color: '#6B7280' }} />
-      <Typography sx={{ fontSize: '11px', color: '#374151', mt: 0.5 }}>
-        {isDragging ? 'Suelta aquí' : 'Arrastra o clic'}
-      </Typography>
-      <input 
-        id="file-input" 
-        type="file" 
-        accept=".pdf,.jpg,.jpeg,.png" 
-        onChange={handleFileSelect} 
-        style={{ display: 'none' }} 
-      />
-    </Box>
-  ) : (
-    <Box sx={{ 
-      p: 1, 
-      border: '1px solid #E5E7EB', 
-      borderRadius: '6px', 
-      display: 'flex', 
-      justifyContent: 'space-between', 
-      alignItems: 'center', 
-      bgcolor: '#F9FAFB' 
-    }}>
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-        <i className={`fa-solid ${comprobante.type === 'application/pdf' ? 'fa-file-pdf' : 'fa-file-image'}`} 
-           style={{ fontSize: '14px', color: '#3B82F6' }} />
-        <Typography sx={{ fontSize: '11px', fontWeight: 500 }}>
-          {comprobante.name.substring(0, 20)}...
-        </Typography>
-      </Box>
-      <button 
-        onClick={() => setComprobante(null)} 
-        style={{ 
-          color: '#EF4444', 
-          background: 'none', 
-          border: 'none', 
-          cursor: 'pointer', 
-          fontSize: '13px' 
-        }}
-      >
-        <i className="fa-solid fa-trash" />
-      </button>
-    </Box>
-  )}
-</Grid>
-
-        {/* Fila 3: Comprobante y Observaciones */}
-        
-
-        <Grid size={{ xs: 12 }}>
-          <Typography sx={{ fontSize: '13px', fontWeight: 500, color: '#6B7280', mb: 0.75 }}>Observaciones</Typography>
-          <textarea value={observaciones} onChange={(e) => setObservaciones(e.target.value)} placeholder="Observaciones..." rows={3} style={{ width: '100%', padding: '6px 10px', fontSize: '12px', border: '1px solid #E5E7EB', borderRadius: '6px', outline: 'none', backgroundColor: 'transparent', color: '#111827', fontFamily: 'inherit', resize: 'none' }} />
         </Grid>
       </Grid>
     </BaseModal>

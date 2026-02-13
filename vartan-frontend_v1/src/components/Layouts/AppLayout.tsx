@@ -33,11 +33,13 @@ export default function AppLayout({ children }: AppLayoutProps) {
   const pathname = usePathname();
   const { user, logout } = useAuthStore();
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
 
   const drawerWidth = isCollapsed ? layoutConfig.drawer.widthCollapsed : layoutConfig.drawer.width;
 
   const toggleDrawer = () => setIsCollapsed(!isCollapsed);
+  const handleDrawerToggle = () => setMobileOpen(!mobileOpen);
   const handleUserMenuOpen = (e: React.MouseEvent<HTMLElement>) => setAnchorEl(e.currentTarget);
   const handleUserMenuClose = () => setAnchorEl(null);
 
@@ -70,7 +72,19 @@ export default function AppLayout({ children }: AppLayoutProps) {
       >
         <Toolbar sx={{ justifyContent: 'space-between' }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-            <IconButton onClick={toggleDrawer} size="small" sx={{ color: colors.textSecondary, '&:hover': { bgcolor: colors.primaryHover } }}>
+            <IconButton
+              onClick={() => {
+
+                const isMobile = window.innerWidth < 600;
+                if (isMobile) {
+                  handleDrawerToggle();
+                } else {
+                  toggleDrawer();
+                }
+              }}
+              size="small"
+              sx={{ color: colors.textSecondary, '&:hover': { bgcolor: colors.primaryHover } }}
+            >
               <i className="fa-solid fa-bars" style={{ fontSize: '20px' }} />
             </IconButton>
             <Typography variant="h6" sx={{ color: colors.textPrimary, fontWeight: 600, fontSize: '18px' }}>
@@ -107,8 +121,78 @@ export default function AppLayout({ children }: AppLayoutProps) {
       </AppBar>
 
       <Drawer
+        variant="temporary"
+        open={mobileOpen}
+        onClose={handleDrawerToggle}
+        ModalProps={{
+          keepMounted: true,
+        }}
+        sx={{
+          display: { xs: 'block', sm: 'none' },
+          '& .MuiDrawer-paper': {
+            width: drawerWidth,
+            boxSizing: 'border-box',
+            bgcolor: colors.white,
+            borderRight: 'none',
+            overflowX: 'hidden',
+            transition: transitions.drawer,
+          },
+        }}
+      >
+        <Box sx={{ p: '12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'center', height: 64 }}>
+          <Box
+            component="img"
+            src={isCollapsed ? layoutConfig.logos.collapsed : layoutConfig.logos.expanded}
+            alt="Vartan"
+            sx={{ height: isCollapsed ? 55 : 60, width: 'auto', objectFit: 'contain' }}
+          />
+        </Box>
+
+        <List sx={{ flexGrow: 1, py: 2 }}>
+          {menuItems.map((item) => {
+            const isActive = pathname === item.path;
+            return (
+              <ListItem key={item.path} disablePadding sx={{ px: isCollapsed ? 1 : 1.5, py: 0.25 }}>
+                <Tooltip title={isCollapsed ? item.label : ''} placement="right" arrow>
+                  <ListItemButton
+                    onClick={() => {
+                      router.push(item.path);
+                      handleDrawerToggle(); // Cerrar drawer al navegar en móvil
+                    }}
+                    sx={{
+                      p: '10px 16px',
+                      borderRadius: 2,
+                      m: '4px 0',
+                      transition: transitions.default,
+                      justifyContent: isCollapsed ? 'center' : 'flex-start',
+                      minHeight: 44,
+                      ...(isActive
+                        ? { bgcolor: colors.primaryMedium, color: colors.primary, '&:hover': { bgcolor: colors.primarySelected } }
+                        : { color: colors.textSecondary, '&:hover': { bgcolor: colors.primaryHover } }),
+                    }}
+                  >
+                    <ListItemIcon sx={{ minWidth: isCollapsed ? 'auto' : 40, color: 'inherit', display: 'flex', justifyContent: 'center' }}>
+                      <i className={item.icon} style={{ fontSize: 18 }} />
+                    </ListItemIcon>
+                    {!isCollapsed && (
+                      <ListItemText
+                        primary={item.label}
+                        slotProps={{ primary: { fontSize: 14, fontWeight: isActive ? 600 : 500, color: 'inherit' } }}
+                      />
+                    )}
+                  </ListItemButton>
+                </Tooltip>
+              </ListItem>
+            );
+          })}
+        </List>
+      </Drawer>
+
+      {/* Drawer para desktop (permanente) */}
+      <Drawer
         variant="permanent"
         sx={{
+          display: { xs: 'none', sm: 'block' },
           width: drawerWidth,
           flexShrink: 0,
           '& .MuiDrawer-paper': {

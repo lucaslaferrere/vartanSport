@@ -57,7 +57,12 @@ export const ventaService = {
     },
 
     getAll: async (): Promise<IVenta[]> => {
-        const response = await api.get<IVenta[]>('/api/owner/ventas');
+        const userStr = typeof window !== 'undefined' ? localStorage.getItem('user') : null;
+        const user = userStr ? JSON.parse(userStr) : null;
+        const isVendedor = user?.rol === 'vendedor';
+
+        const endpoint = isVendedor ? '/api/mis-ventas' : '/api/owner/ventas';
+        const response = await api.get<IVenta[]>(endpoint);
         return response.data;
     },
 

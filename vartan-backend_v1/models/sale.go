@@ -15,7 +15,7 @@ type Venta struct {
 	ClienteID      int       `gorm:"not null" json:"cliente_id"`
 	FormaPagoID    int       `gorm:"not null" json:"forma_pago_id"`
 	Total          float64   `gorm:"type:decimal(10,2);not null" json:"total"`           // Total de la venta (precio de productos)
-	Sena           float64   `gorm:"type:decimal(10,2);not null" json:"sena"`            // Seña abonada
+	Sena           *float64  `gorm:"type:decimal(10,2);" json:"sena,omitempty"`          // Seña abonada
 	Saldo          float64   `gorm:"type:decimal(10,2);not null" json:"saldo"`           // Lo que resta pagar
 	Descuento      float64   `gorm:"type:decimal(10,2);default:0" json:"descuento"`      // Descuento aplicado (3% de financiera)
 	TotalFinal     float64   `gorm:"type:decimal(10,2);not null" json:"total_final"`     // Total - Descuento
