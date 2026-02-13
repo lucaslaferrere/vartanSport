@@ -53,7 +53,7 @@ export const ventaService = {
             const payload = {
                 cliente_id: Number(data.cliente_id),
                 forma_pago_id: Number(data.forma_pago_id),
-                sena: isNaN(senaValue) ? 0 : senaValue, 
+                sena: isNaN(senaValue) ? 0 : senaValue,
                 observaciones: data.observaciones || '',
                 detalles: data.detalles
             };

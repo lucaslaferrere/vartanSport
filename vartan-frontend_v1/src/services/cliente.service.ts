@@ -24,6 +24,6 @@ export const clienteService = {
     },
 
     delete: async (id: number): Promise<void> => {
-        await api.delete(`/api/owner/clientes/${id}`);
+        await api.delete(`/api/clientes/${id}`);
     },
 };
