@@ -17,19 +17,22 @@ func CrearGasto(c *gin.Context) {
 	var input models.GastoInput
 
 	if err := c.ShouldBindJSON(&input); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Datos inválidos: " + err.Error()})
 		return
 	}
 
-	// Obtener cliente_id del contexto (del middleware de autenticación)
-	clienteID, exists := c.Get("cliente_id")
+	// Obtener usuario_id del contexto (del middleware de autenticación)
+	userID, exists := c.Get("user_id")
 	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Cliente no autenticado"})
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Usuario no autenticado - user_id no encontrado en contexto"})
 		return
 	}
 
-	// Obtener usuario_id (opcional)
-	usuarioID, _ := c.Get("usuario_id")
+	userIDInt, ok := userID.(int)
+	if !ok || userIDInt == 0 {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Usuario no autenticado - user_id inválido"})
+		return
+	}
 
 	// Parsear fecha
 	fecha, err := time.Parse("2006-01-02", input.Fecha)
@@ -48,12 +51,11 @@ func CrearGasto(c *gin.Context) {
 		MetodoPago:  input.MetodoPago,
 		Comprobante: input.Comprobante,
 		Notas:       input.Notas,
-		ClienteID:   clienteID.(uint),
-		UsuarioID:   usuarioID.(uint),
+		UsuarioID:   uint(userIDInt),
 	}
 
 	if err := config.DB.Create(&gasto).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error al crear gasto"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error al crear gasto: " + err.Error()})
 		return
 	}
 
@@ -65,7 +67,7 @@ func CrearGasto(c *gin.Context) {
 
 // ListarGastos lista todos los gastos con filtros opcionales
 func ListarGastos(c *gin.Context) {
-	clienteID, _ := c.Get("cliente_id")
+	userID := c.GetInt("user_id")
 
 	// Parámetros de consulta opcionales
 	categoria := c.Query("categoria")
@@ -79,7 +81,7 @@ func ListarGastos(c *gin.Context) {
 	offset := (page - 1) * limit
 
 	// Construir query
-	query := config.DB.Where("cliente_id = ?", clienteID)
+	query := config.DB.Where("usuario_id = ?", userID)
 
 	// Aplicar filtros
 	if categoria != "" {
@@ -119,11 +121,11 @@ func ListarGastos(c *gin.Context) {
 
 // ObtenerGasto obtiene un gasto por ID
 func ObtenerGasto(c *gin.Context) {
-	clienteID, _ := c.Get("cliente_id")
+	userID := c.GetInt("user_id")
 	gastoID := c.Param("id")
 
 	var gasto models.Gasto
-	if err := config.DB.Where("id = ? AND cliente_id = ?", gastoID, clienteID).First(&gasto).Error; err != nil {
+	if err := config.DB.Where("id = ? AND usuario_id = ?", gastoID, userID).First(&gasto).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			c.JSON(http.StatusNotFound, gin.H{"error": "Gasto no encontrado"})
 			return
@@ -137,12 +139,12 @@ func ObtenerGasto(c *gin.Context) {
 
 // ActualizarGasto actualiza un gasto existente
 func ActualizarGasto(c *gin.Context) {
-	clienteID, _ := c.Get("cliente_id")
+	userID := c.GetInt("user_id")
 	gastoID := c.Param("id")
 
-	// Verificar que el gasto existe y pertenece al cliente
+	// Verificar que el gasto existe y pertenece al usuario
 	var gasto models.Gasto
-	if err := config.DB.Where("id = ? AND cliente_id = ?", gastoID, clienteID).First(&gasto).Error; err != nil {
+	if err := config.DB.Where("id = ? AND usuario_id = ?", gastoID, userID).First(&gasto).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			c.JSON(http.StatusNotFound, gin.H{"error": "Gasto no encontrado"})
 			return
@@ -188,12 +190,12 @@ func ActualizarGasto(c *gin.Context) {
 
 // EliminarGasto elimina un gasto
 func EliminarGasto(c *gin.Context) {
-	clienteID, _ := c.Get("cliente_id")
+	userID := c.GetInt("user_id")
 	gastoID := c.Param("id")
 
-	// Verificar que existe y pertenece al cliente
+	// Verificar que existe y pertenece al usuario
 	var gasto models.Gasto
-	if err := config.DB.Where("id = ? AND cliente_id = ?", gastoID, clienteID).First(&gasto).Error; err != nil {
+	if err := config.DB.Where("id = ? AND usuario_id = ?", gastoID, userID).First(&gasto).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			c.JSON(http.StatusNotFound, gin.H{"error": "Gasto no encontrado"})
 			return
@@ -213,25 +215,27 @@ func EliminarGasto(c *gin.Context) {
 
 // ObtenerResumenGastos obtiene un resumen de gastos por categoría
 func ObtenerResumenGastos(c *gin.Context) {
-	clienteID, _ := c.Get("cliente_id")
+	userID := c.GetInt("user_id")
 
 	// Parámetros opcionales
 	fechaDesde := c.Query("fecha_desde")
 	fechaHasta := c.Query("fecha_hasta")
 
-	query := config.DB.Model(&models.Gasto{}).Where("cliente_id = ?", clienteID)
+	// Construir query base
+	queryBase := config.DB.Model(&models.Gasto{}).Where("usuario_id = ?", userID)
 
 	if fechaDesde != "" {
-		query = query.Where("fecha >= ?", fechaDesde)
+		queryBase = queryBase.Where("fecha >= ?", fechaDesde)
 	}
 
 	if fechaHasta != "" {
-		query = query.Where("fecha <= ?", fechaHasta)
+		queryBase = queryBase.Where("fecha <= ?", fechaHasta)
 	}
 
-	// Resumen por categoría
+	// Resumen por categoría (nueva sesión para evitar conflictos)
 	var resumenCategoria []models.GastoResumen
-	if err := query.Select("categoria, SUM(monto) as total, COUNT(*) as cantidad").
+	queryCategorias := queryBase.Session(&gorm.Session{})
+	if err := queryCategorias.Select("categoria, SUM(monto) as total, COUNT(*) as cantidad").
 		Group("categoria").
 		Order("total DESC").
 		Scan(&resumenCategoria).Error; err != nil {
@@ -239,14 +243,17 @@ func ObtenerResumenGastos(c *gin.Context) {
 		return
 	}
 
-	// Total general
+	// Total general (nueva sesión separada)
 	var totalGeneral float64
 	var cantidadTotal int64
-	if err := query.Select("SUM(monto) as total, COUNT(*) as cantidad").
-		Row().
-		Scan(&totalGeneral, &cantidadTotal); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error al obtener total de gastos"})
-		return
+	queryTotal := queryBase.Session(&gorm.Session{})
+
+	// Usar COALESCE para manejar NULL cuando no hay registros
+	row := queryTotal.Select("COALESCE(SUM(monto), 0) as total, COUNT(*) as cantidad").Row()
+	if err := row.Scan(&totalGeneral, &cantidadTotal); err != nil {
+		// Si hay error, devolver valores en cero en lugar de error 500
+		totalGeneral = 0
+		cantidadTotal = 0
 	}
 
 	c.JSON(http.StatusOK, gin.H{
@@ -260,7 +267,7 @@ func ObtenerResumenGastos(c *gin.Context) {
 
 // ObtenerGastosPorMes obtiene gastos agrupados por mes
 func ObtenerGastosPorMes(c *gin.Context) {
-	clienteID, _ := c.Get("cliente_id")
+	userID := c.GetInt("user_id")
 
 	// Año a consultar (por defecto año actual)
 	anio := c.DefaultQuery("anio", strconv.Itoa(time.Now().Year()))
@@ -274,7 +281,7 @@ func ObtenerGastosPorMes(c *gin.Context) {
 	var gastosPorMes []GastoPorMes
 	if err := config.DB.Model(&models.Gasto{}).
 		Select("EXTRACT(MONTH FROM fecha) as mes, SUM(monto) as total, COUNT(*) as cantidad").
-		Where("cliente_id = ? AND EXTRACT(YEAR FROM fecha) = ?", clienteID, anio).
+		Where("usuario_id = ? AND EXTRACT(YEAR FROM fecha) = ?", userID, anio).
 		Group("mes").
 		Order("mes").
 		Scan(&gastosPorMes).Error; err != nil {
@@ -290,11 +297,11 @@ func ObtenerGastosPorMes(c *gin.Context) {
 
 // ListarProveedores lista todos los proveedores únicos
 func ListarProveedores(c *gin.Context) {
-	clienteID, _ := c.Get("cliente_id")
+	userID := c.GetInt("user_id")
 
 	var proveedores []string
 	if err := config.DB.Model(&models.Gasto{}).
-		Where("cliente_id = ? AND proveedor != ''", clienteID).
+		Where("usuario_id = ? AND proveedor != ''", userID).
 		Distinct("proveedor").
 		Order("proveedor").
 		Pluck("proveedor", &proveedores).Error; err != nil {

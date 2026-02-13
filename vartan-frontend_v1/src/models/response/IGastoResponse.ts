@@ -21,9 +21,18 @@ export interface IEliminarGastoResponse {
     message: string;
 }
 
-export type IResumenGastosResponse = IGastoResumen[];
+export interface IResumenGastosResponse {
+    total: number;
+    cantidad: number;
+    por_categoria: IGastoResumen[];
+    fecha_desde?: string;
+    fecha_hasta?: string;
+}
 
-export type IGastosPorMesResponse = IGastoPorMes[];
+export interface IGastosPorMesResponse {
+    anio: string;
+    meses: IGastoPorMes[];
+}
 
 export type IProveedoresResponse = string[];
 

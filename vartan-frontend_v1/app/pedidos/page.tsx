@@ -13,7 +13,7 @@ import { IPedido } from '@models/entities/pedidoEntity';
 import { useAuthStore } from '@libraries/store';
 import { useMounted } from '@hooks/useMounted';
 import { useNotification } from '@components/Notifications';
-import { debugAuth } from '@/src/utils/debugAuth';
+// import { debugAuth } from '@/src/utils/debugAuth'; // Descomentar para debugging
 
 interface IPedidoDisplay {
   id: number;
@@ -57,8 +57,8 @@ function PedidosPage() {
   const fetchPedidos = useCallback(async () => {
     if (!mounted) return;
 
-    // Debug de autenticación
-    debugAuth();
+    // Debug de autenticación (descomentar si hay problemas)
+    // debugAuth();
 
     // Verificar que el usuario esté cargado
     if (!user) {
@@ -69,7 +69,7 @@ function PedidosPage() {
     setLoading(true);
     setError(null);
     try {
-      console.log('📦 Cargando pedidos - Rol:', user?.rol);
+      // console.log('📦 Cargando pedidos - Rol:', user?.rol); // Debug
       const pedidosData = user?.rol === 'dueño'
         ? await pedidoService.getAll()
         : await pedidoService.getMisPedidos();
@@ -77,7 +77,7 @@ function PedidosPage() {
       const transformed = pedidosData.map(transformPedido);
       setAllPedidos(transformed);
       setPedidos(transformed);
-      console.log('✅ Pedidos cargados:', transformed.length);
+      // console.log('✅ Pedidos cargados:', transformed.length); // Debug
     } catch (err: unknown) {
       console.error('❌ Error fetching pedidos:', err);
 

@@ -7,7 +7,60 @@ interface ICalcularComisionesResponse {
     comisiones: IComision[];
 }
 
+export interface IConfiguracionComision {
+    porcentaje_comision: number;
+    gasto_publicitario: number;
+    sueldo_base: number;
+    observaciones: string;
+}
+
+export interface IMesActualComision {
+    mes?: number;
+    anio?: number;
+    total_ventas: number;
+    cantidad_ventas: number;
+    comision_bruta?: number;
+    gasto_publicitario?: number;
+    comision_neta: number;
+    sueldo_base: number;
+    total_a_cobrar: number;
+    comision_registrada?: boolean;
+    observaciones_comision?: string;
+}
+
+export interface IHistorialComision {
+    id: number;
+    usuario_id: number;
+    mes: number;
+    anio: number;
+    total_ventas: number;
+    total_comision: number;
+    sueldo: number;
+    observaciones: string;
+}
+
+export interface IMiResumenComision {
+    usuario: {
+        id: number;
+        nombre: string;
+        email: string;
+        rol: string;
+    };
+    configuracion: IConfiguracionComision;
+    mes_actual: IMesActualComision;
+    historial: IHistorialComision[];
+}
+
 export const comisionService = {
+    // Para empleados/vendedores: ver MI resumen (solo lectura)
+    getMiResumen: async (): Promise<IMiResumenComision> => {
+        console.log('📡 comisionService.getMiResumen() - Iniciando petición');
+        console.log('📍 Endpoint:', '/api/mi-resumen-comision');
+        const response = await api.get<IMiResumenComision>('/api/mi-resumen-comision');
+        console.log('✅ comisionService.getMiResumen() - Respuesta:', response.data);
+        return response.data;
+    },
+
     // Obtener mis comisiones (usuario autenticado)
     getMisComisiones: async (): Promise<IComision[]> => {
         const response = await api.get<IComision[]>('/api/mis-comisiones');

@@ -50,7 +50,11 @@ export default function AppLayout({ children }: AppLayoutProps) {
   const getUserInitials = (name = 'Admin') =>
     name.split(' ').map((n) => n[0]).join('').toUpperCase().substring(0, 2);
 
-  const currentPageLabel = layoutConfig.menuItems.find((item) => item.path === pathname)?.label || 'Dashboard';
+  // Obtener menú según el rol del usuario
+  const userRole = user?.rol as 'dueño' | 'vendedor' | undefined;
+  const menuItems = layoutConfig.getMenuByRole(userRole);
+
+  const currentPageLabel = menuItems.find((item) => item.path === pathname)?.label || 'Dashboard';
 
   return (
     <Box sx={{ display: 'flex', minHeight: '100vh', bgcolor: colors.background }}>
@@ -127,7 +131,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
         </Box>
 
         <List sx={{ flexGrow: 1, py: 2 }}>
-          {layoutConfig.menuItems.map((item) => {
+          {menuItems.map((item) => {
             const isActive = pathname === item.path;
             return (
               <ListItem key={item.path} disablePadding sx={{ px: isCollapsed ? 1 : 1.5, py: 0.25 }}>

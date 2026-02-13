@@ -193,3 +193,105 @@ func UpdateObservaciones(c *gin.Context) {
 
 	c.JSON(http.StatusOK, comision)
 }
+
+// GetMiResumenComision godoc
+// @Summary Obtener mi resumen de comisión (para empleado/vendedor)
+// @Description Obtiene el resumen completo de comisiones del usuario autenticado (solo lectura)
+// @Tags Comisiones
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Success 200 {object} map[string]interface{} "Resumen de comisión"
+// @Failure 401 {object} map[string]string "No autenticado"
+// @Failure 500 {object} map[string]string "Error interno"
+// @Router /api/mi-resumen-comision [get]
+func GetMiResumenComision(c *gin.Context) {
+	userID := c.GetInt("user_id")
+
+	// Obtener información del usuario
+	var usuario models.Usuario
+	if err := config.DB.First(&usuario, userID).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Usuario no encontrado"})
+		return
+	}
+
+	// Obtener mes y año actual
+	now := time.Now()
+	mesActual := int(now.Month())
+	anioActual := now.Year()
+
+	// Calcular ventas del mes actual
+	var totalVentasMesActual float64
+	config.DB.Model(&models.Venta{}).
+		Where("usuario_id = ? AND EXTRACT(MONTH FROM fecha_venta) = ? AND EXTRACT(YEAR FROM fecha_venta) = ?",
+			userID, mesActual, anioActual).
+		Select("COALESCE(SUM(total_final), 0)").
+		Scan(&totalVentasMesActual)
+
+	// Contar cantidad de ventas del mes
+	var cantidadVentasMes int64
+	config.DB.Model(&models.Venta{}).
+		Where("usuario_id = ? AND EXTRACT(MONTH FROM fecha_venta) = ? AND EXTRACT(YEAR FROM fecha_venta) = ?",
+			userID, mesActual, anioActual).
+		Count(&cantidadVentasMes)
+
+	// Calcular comisión estimada del mes
+	porcentaje := usuario.PorcentajeComision / 100.0
+	comisionBruta := totalVentasMesActual * porcentaje
+	comisionNeta := comisionBruta - usuario.GastoPublicitario
+	if comisionNeta < 0 {
+		comisionNeta = 0
+	}
+
+	// Total a cobrar (sueldo + comisión)
+	totalACobrar := usuario.Sueldo + comisionNeta
+
+	// Obtener comisión registrada del mes actual (si existe)
+	var comisionMesActual models.Comision
+	comisionRegistrada := false
+	if err := config.DB.Where("usuario_id = ? AND mes = ? AND anio = ?", userID, mesActual, anioActual).
+		First(&comisionMesActual).Error; err == nil {
+		comisionRegistrada = true
+	}
+
+	// Obtener historial de comisiones (últimos 6 meses)
+	var historialComisiones []models.Comision
+	config.DB.Where("usuario_id = ?", userID).
+		Order("anio DESC, mes DESC").
+		Limit(6).
+		Find(&historialComisiones)
+
+	// Respuesta
+	c.JSON(http.StatusOK, gin.H{
+		// Información del usuario
+		"usuario": gin.H{
+			"id":     usuario.ID,
+			"nombre": usuario.Nombre,
+			"email":  usuario.Email,
+			"rol":    usuario.Rol,
+		},
+		// Configuración de comisión (establecida por el dueño)
+		"configuracion": gin.H{
+			"porcentaje_comision": usuario.PorcentajeComision,
+			"gasto_publicitario":  usuario.GastoPublicitario,
+			"sueldo_base":         usuario.Sueldo,
+			"observaciones":       usuario.ObservacionesConfig,
+		},
+		// Resumen del mes actual
+		"mes_actual": gin.H{
+			"mes":                    mesActual,
+			"anio":                   anioActual,
+			"total_ventas":           totalVentasMesActual,
+			"cantidad_ventas":        cantidadVentasMes,
+			"comision_bruta":         comisionBruta,
+			"gasto_publicitario":     usuario.GastoPublicitario,
+			"comision_neta":          comisionNeta,
+			"sueldo_base":            usuario.Sueldo,
+			"total_a_cobrar":         totalACobrar,
+			"comision_registrada":    comisionRegistrada,
+			"observaciones_comision": comisionMesActual.Observaciones,
+		},
+		// Historial de comisiones
+		"historial": historialComisiones,
+	})
+}

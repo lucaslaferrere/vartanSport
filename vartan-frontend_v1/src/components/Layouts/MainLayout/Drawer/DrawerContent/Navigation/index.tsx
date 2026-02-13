@@ -6,12 +6,14 @@ import Box from '@mui/material/Box';
 import NavGroup from './NavGroup';
 import {useAppSelector} from "@redux/hook";
 import {GetMenuItems} from "@routes/getMenuItems";
+import {useUserPermissions} from "@components/Validators/UserPermissionsContext";
 
 // ==============================|| DRAWER CONTENT - NAVIGATION ||============================== //
 
 export default function Navigation() {
     const drawerOpen = useAppSelector((state) => state.customization.drawerOpen);
-    const menuItem = GetMenuItems();
+    const { userRole } = useUserPermissions();
+    const menuItem = GetMenuItems(userRole);
 
     const navGroups = menuItem.items.map((item) => {
 

@@ -55,16 +55,7 @@ func SetupRoutes(router *gin.Engine) {
 		api.PUT("/pedidos/:id", controllers.UpdatePedidoEstado)
 
 		api.GET("/mis-comisiones", controllers.GetMisComisiones)
-
-		// Gastos
-		api.POST("/gastos", controllers.CrearGasto)
-		api.GET("/gastos", controllers.ListarGastos)
-		api.GET("/gastos/:id", controllers.ObtenerGasto)
-		api.PUT("/gastos/:id", controllers.ActualizarGasto)
-		api.DELETE("/gastos/:id", controllers.EliminarGasto)
-		api.GET("/gastos/resumen", controllers.ObtenerResumenGastos)
-		api.GET("/gastos/por-mes", controllers.ObtenerGastosPorMes)
-		api.GET("/gastos/proveedores", controllers.ListarProveedores)
+		api.GET("/mi-resumen-comision", controllers.GetMiResumenComision) // Resumen completo para empleado/vendedor
 
 		// Tareas
 		api.GET("/tareas", controllers.GetTareas)
@@ -74,6 +65,9 @@ func SetupRoutes(router *gin.Engine) {
 		api.DELETE("/tareas/:id", controllers.DeleteTarea)
 		api.GET("/empleados", controllers.GetEmpleadosConTareas)
 	}
+
+	// Rutas modulares de gastos
+	GastoRoutes(api)
 
 	owner := router.Group("/api/owner")
 	owner.Use(middleware.AuthMiddleware(), middleware.RequireDueño())

@@ -14,11 +14,8 @@ type Gasto struct {
 	Comprobante string    `json:"comprobante" gorm:"type:varchar(100)"`         // Número de factura/recibo
 	Notas       string    `json:"notas" gorm:"type:text"`                       // Notas adicionales
 
-	// Relación con cliente (multi-tenant)
-	ClienteID uint `json:"cliente_id" gorm:"not null;index"`
-
-	// Auditoría
-	UsuarioID uint      `json:"usuario_id" gorm:"index"` // Usuario que registró el gasto
+	// Usuario que registró el gasto
+	UsuarioID uint      `json:"usuario_id" gorm:"not null;index"` // Usuario que registró el gasto
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
 }
@@ -35,7 +32,7 @@ type GastoInput struct {
 	Fecha       string  `json:"fecha" binding:"required"` // "2025-02-02" formato YYYY-MM-DD
 	Categoria   string  `json:"categoria" binding:"required,oneof=Proveedor Alquiler Mercadería Servicios Otros"`
 	Proveedor   string  `json:"proveedor"`
-	MetodoPago  string  `json:"metodo_pago" binding:"oneof=Efectivo Transferencia Tarjeta ''"`
+	MetodoPago  string  `json:"metodo_pago"` // Efectivo, Transferencia, Tarjeta (opcional)
 	Comprobante string  `json:"comprobante"`
 	Notas       string  `json:"notas"`
 }

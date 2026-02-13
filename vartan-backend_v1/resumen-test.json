@@ -1,0 +1,30 @@
+﻿{
+    "configuracion":  {
+                          "gasto_publicitario":  47,
+                          "observaciones":  "dddd",
+                          "porcentaje_comision":  20,
+                          "sueldo_base":  800000
+                      },
+    "historial":  [
+
+                  ],
+    "mes_actual":  {
+                       "anio":  2026,
+                       "cantidad_ventas":  0,
+                       "comision_bruta":  0,
+                       "comision_neta":  0,
+                       "comision_registrada":  false,
+                       "gasto_publicitario":  47,
+                       "mes":  2,
+                       "observaciones_comision":  "",
+                       "sueldo_base":  800000,
+                       "total_a_cobrar":  800000,
+                       "total_ventas":  0
+                   },
+    "usuario":  {
+                    "email":  "santinom@vartan.com",
+                    "id":  7,
+                    "nombre":  "Santino M",
+                    "rol":  "vendedor"
+                }
+}

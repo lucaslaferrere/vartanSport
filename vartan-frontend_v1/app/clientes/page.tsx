@@ -259,7 +259,6 @@ function ClientesPage() {
           }}
         />
 
-        {/* Modal para editar cliente */}
         <EditarClienteModal
           open={editarClienteModalOpen}
           onClose={() => setEditarClienteModalOpen(false)}
