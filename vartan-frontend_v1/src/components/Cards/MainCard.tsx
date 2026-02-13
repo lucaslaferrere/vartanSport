@@ -1,6 +1,4 @@
 "use client";
-// material-ui
-import { useTheme } from '@mui/material/styles';
 import Card from '@mui/material/Card';
 import CardContent from '@mui/material/CardContent';
 import CardHeader from '@mui/material/CardHeader';
@@ -8,13 +6,12 @@ import Typography from '@mui/material/Typography';
 import { Divider, IconButton, Tooltip } from "@mui/material";
 import React, { forwardRef, Ref } from "react";
 
-// header style
 const headerSX = {
-    p: '18px 24px 14px 24px',
+    p: { xs: '14px 18px 12px 18px', sm: '18px 24px 14px 24px' },
     pb: 1.5,
     '& .MuiCardHeader-action': { m: '0px auto', alignSelf: 'center' },
     '& .MuiCardHeader-title': {
-        fontSize: '15px',
+        fontSize: { xs: '14px', sm: '15px' },
         fontWeight: 700,
         color: '#1F2937',
         letterSpacing: '-0.01em'
@@ -22,40 +19,39 @@ const headerSX = {
 };
 
 const MainCard = forwardRef(({
-    border = true,
-    boxShadow,
+    _border = true,
+    _boxShadow,
     children,
     subheader,
     content = true,
     contentSX = {},
     darkTitle,
     divider = false,
-    elevation,
+    _elevation,
     secondary,
-    shadow,
+    _shadow,
     sx = {},
     title,
     modal = false,
     onClose,
     ...others
 }: {
-    border?: boolean,
-    boxShadow?: boolean,
+    _border?: boolean,
+    _boxShadow?: boolean,
     children?: React.ReactNode,
     subheader?: React.ReactNode,
     content?: boolean,
     contentSX?: object,
     darkTitle?: boolean,
     divider?: boolean,
-    elevation?: number,
+    _elevation?: number,
     secondary?: React.ReactNode,
-    shadow?: string,
+    _shadow?: string,
     sx?: object,
     title?: React.ReactNode,
     modal?: boolean,
     onClose?: () => void
 }, ref: Ref<HTMLDivElement>) => {
-    const theme = useTheme();
 
     return (
         <Card
@@ -66,7 +62,7 @@ const MainCard = forwardRef(({
                 position: 'relative',
                 bgcolor: '#FFFFFF',
                 border: '1px solid #E5E7EB',
-                borderRadius: '14px',
+                borderRadius: { xs: '12px', sm: '14px' },
                 boxShadow: '0 1px 2px rgba(0, 0, 0, 0.04)',
                 transition: 'all 0.15s ease',
                 ...(!title && { p: 0 }),
@@ -75,11 +71,12 @@ const MainCard = forwardRef(({
                     top: '50%',
                     left: '50%',
                     transform: 'translate(-50%, -50%)',
-                    width: { xs: `calc( 100% - 50px)`, sm: 'auto' },
+                    width: { xs: 'calc(100% - 32px)', sm: 'calc(100% - 80px)', md: 'auto' },
+                    maxWidth: { xs: '100%', sm: '90%', md: '800px' },
                     '& .MuiCardContent-root': {
                         overflowY: 'auto',
                         minHeight: 'auto',
-                        maxHeight: `calc(100vh - 200px)`
+                        maxHeight: { xs: 'calc(100vh - 150px)', sm: 'calc(100vh - 200px)' }
                     }
                 }),
                 ...sx
@@ -117,13 +114,15 @@ const MainCard = forwardRef(({
             {!darkTitle && title && (
                 <CardHeader
                     sx={headerSX}
-                    titleTypographyProps={{
-                        variant: 'h6',
-                        sx: {
-                            fontSize: '15px',
-                            fontWeight: 700,
-                            color: '#1F2937',
-                            letterSpacing: '-0.01em'
+                    slotProps={{
+                        title: {
+                            variant: 'h6',
+                            sx: {
+                                fontSize: '15px',
+                                fontWeight: 700,
+                                color: '#1F2937',
+                                letterSpacing: '-0.01em'
+                            }
                         }
                     }}
                     title={title}
@@ -138,7 +137,7 @@ const MainCard = forwardRef(({
                         <Typography
                             variant="h4"
                             sx={{
-                                fontSize: '16px',
+                                fontSize: { xs: '14px', sm: '16px' },
                                 fontWeight: 700,
                                 color: '#1F2937',
                                 letterSpacing: '-0.01em'

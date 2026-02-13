@@ -282,7 +282,7 @@ export default function AgregarVentaModal({ open, onClose, onSuccess }: AgregarV
           {/* SECCIÓN 1: CLIENTE (Ancho Completo) */}
           <Grid size={{ xs: 12 }}>
             <Box sx={{ mb: 1 }}>
-              <Typography sx={{ fontSize: '13px', fontWeight: 600, color: '#374151', mb: 0.5 }}>
+              <Typography sx={{ fontSize: { xs: '12px', sm: '13px' }, fontWeight: 600, color: '#374151', mb: 0.5 }}>
                 Cliente
               </Typography>
               <select
@@ -290,8 +290,8 @@ export default function AgregarVentaModal({ open, onClose, onSuccess }: AgregarV
                   onChange={(e) => setClienteId(Number(e.target.value))}
                   style={{
                     width: '100%',
-                    padding: '10px 12px',
-                    fontSize: '14px',
+                    padding: '8px 10px',
+                    fontSize: '13px',
                     border: '1px solid #D1D5DB',
                     borderRadius: '8px',
                     outline: 'none',
@@ -309,15 +309,15 @@ export default function AgregarVentaModal({ open, onClose, onSuccess }: AgregarV
           {/* SECCIÓN 2: PRODUCTOS (Ancho Completo - Estilo Tarjeta) */}
           <Grid size={{ xs: 12 }}>
             <Box sx={{
-              p: 2,
+              p: { xs: 1.5, sm: 2 },
               bgcolor: '#F9FAFB',
               borderRadius: '8px',
               border: '1px solid #E5E7EB',
               boxShadow: 'sm'
             }}>
               <Box sx={{ display: 'flex', alignItems: 'center', mb: 1.5, gap: 1 }}>
-                <i className="fa-solid fa-cart-plus" style={{ color: '#6B7280' }} />
-                <Typography sx={{ fontSize: '13px', fontWeight: 600, color: '#374151' }}>
+                <i className="fa-solid fa-cart-plus" style={{ color: '#6B7280', fontSize: '14px' }} />
+                <Typography sx={{ fontSize: { xs: '12px', sm: '13px' }, fontWeight: 600, color: '#374151' }}>
                   Armado del Pedido
                 </Typography>
               </Box>
@@ -330,8 +330,8 @@ export default function AgregarVentaModal({ open, onClose, onSuccess }: AgregarV
                       onChange={(e) => handleProductoSelect(Number(e.target.value))}
                       style={{
                         width: '100%',
-                        padding: '8px 12px',
-                        fontSize: '13px',
+                        padding: '8px 10px',
+                        fontSize: '12px',
                         border: '1px solid #D1D5DB',
                         borderRadius: '6px',
                         outline: 'none',

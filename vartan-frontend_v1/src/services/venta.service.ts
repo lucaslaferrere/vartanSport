@@ -24,7 +24,6 @@ export const ventaService = {
             formData.append('cliente_id', data.cliente_id.toString());
             formData.append('forma_pago_id', data.forma_pago_id.toString());
 
-            // Asegurar que sena sea un número válido
             const senaValue = Number(data.sena);
             formData.append('sena', (isNaN(senaValue) ? 0 : senaValue).toString());
 
@@ -34,11 +33,6 @@ export const ventaService = {
             formData.append('detalles', JSON.stringify(data.detalles));
             formData.append('comprobante', data.comprobante as File);
 
-            console.log('📤 Enviando venta con comprobante (FormData)');
-            console.log('  cliente_id:', data.cliente_id);
-            console.log('  forma_pago_id:', data.forma_pago_id);
-            console.log('  sena:', isNaN(senaValue) ? 0 : senaValue);
-            console.log('  comprobante:', data.comprobante instanceof File ? data.comprobante.name : 'N/A');
 
             const response = await api.post<IVentaCreateResponse>('/api/ventas', formData, {
                 headers: {
@@ -48,7 +42,6 @@ export const ventaService = {
             });
             return response.data;
         } else {
-            // Sin comprobante, enviar como JSON
             const senaValue = Number(data.sena);
             const payload = {
                 cliente_id: Number(data.cliente_id),

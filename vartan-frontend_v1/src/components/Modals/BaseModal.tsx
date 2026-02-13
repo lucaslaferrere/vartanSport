@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Box, Typography, Alert, Button, Stack } from '@mui/material';
+import { Box, Alert, Button, Stack } from '@mui/material';
 import AnimatedModal from '@components/Modals/AnimatedModal';
 import MainCard from '@components/Cards/MainCard';
 import { colors } from '@/src/theme/colors';
@@ -34,12 +34,18 @@ export default function BaseModal({
         darkTitle
         content={false}
         title={title}
-        sx={{ width: "50%", zIndex: 9999 }}
+        sx={{
+          width: { xs: "95%", sm: "85%", md: "70%", lg: "50%" },
+          maxWidth: { xs: "100%", sm: "600px", md: "800px" },
+          maxHeight: { xs: "90vh", sm: "85vh" },
+          overflow: "auto",
+          zIndex: 9999
+        }}
         onClose={onClose}
       >
-        <Box sx={{ p: 2.5 }}>
+        <Box sx={{ p: { xs: 1.5, sm: 2.5 } }}>
           {error && (
-            <Alert severity="error" sx={{ mb: 3 }}>
+            <Alert severity="error" sx={{ mb: { xs: 2, sm: 3 }, fontSize: { xs: '12px', sm: '14px' } }}>
               {error}
             </Alert>
           )}
@@ -50,7 +56,7 @@ export default function BaseModal({
           direction="row"
           spacing={1}
           justifyContent="flex-end"
-          sx={{ px: 2.5, pb: 2 }}
+          sx={{ px: { xs: 1.5, sm: 2.5 }, pb: { xs: 1.5, sm: 2 } }}
         >
           <Button
             size="small"
@@ -61,11 +67,11 @@ export default function BaseModal({
               border: 'none',
               textTransform: 'none',
               fontWeight: 500,
-              fontSize: '12px',
-              px: 1,
+              fontSize: { xs: '11px', sm: '12px' },
+              px: { xs: 0.75, sm: 1 },
               py: 0.25,
-              minHeight: '26px',
-              minWidth: '50px',
+              minHeight: { xs: '24px', sm: '26px' },
+              minWidth: { xs: '45px', sm: '50px' },
               '&:hover': {
                 backgroundColor: 'rgba(239, 68, 68, 0.08)',
                 border: 'none'
@@ -85,11 +91,11 @@ export default function BaseModal({
               borderRadius: '6px',
               textTransform: 'none',
               fontWeight: 500,
-              fontSize: '12px',
-              px: 1.5,
+              fontSize: { xs: '11px', sm: '12px' },
+              px: { xs: 1, sm: 1.5 },
               py: 0.25,
-              minHeight: '26px',
-              minWidth: '60px',
+              minHeight: { xs: '24px', sm: '26px' },
+              minWidth: { xs: '55px', sm: '60px' },
               border: 'none',
               boxShadow: 'none',
               '&:hover': {

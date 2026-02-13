@@ -209,19 +209,13 @@ func processVenta(c *gin.Context, usuarioID *int, clienteID int, formaPagoID int
 	// Total final = Total - Descuento
 	totalFinal := total - descuento
 
-	// Manejar observaciones
 	var obs *string
 	if observaciones != "" {
 		obs = &observaciones
 	}
 
-	// Manejar seña como puntero (opcional)
-	var senaPtr *float64
-	if sena > 0 {
-		senaPtr = &sena
-	}
+	senaPtr := &sena
 
-	// Iniciar transacción
 	tx := config.DB.Begin()
 	defer func() {
 		if r := recover(); r != nil {

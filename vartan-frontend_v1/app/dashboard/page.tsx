@@ -195,16 +195,16 @@ export default function DashboardPage() {
   return (
     <>
       <Box>
-        <Box sx={{ mb: 4 }}>
-          <Typography variant="h4" sx={{ fontWeight: 700, color: colors.textPrimary, fontSize: '24px', mb: 0.5 }}>
+        <Box sx={{ mb: { xs: 2, sm: 4 } }}>
+          <Typography variant="h4" sx={{ fontWeight: 700, color: colors.textPrimary, fontSize: { xs: '20px', sm: '24px' }, mb: 0.5 }}>
             Dashboard {user && `- Bienvenido ${user.nombre}`}
           </Typography>
-          <Typography variant="body2" sx={{ color: colors.textSecondary, fontSize: '14px' }}>
+          <Typography variant="body2" sx={{ color: colors.textSecondary, fontSize: { xs: '12px', sm: '14px' } }}>
             Resumen de actividad y estadísticas del día
           </Typography>
         </Box>
 
-        <Grid container spacing={3} sx={{ mb: 4 }}>
+        <Grid container spacing={{ xs: 2, sm: 3 }} sx={{ mb: { xs: 3, sm: 4 } }}>
           <Grid size={{ xs: 12, sm: 6, md: 3 }}>
             <StatCard title="Ventas Hoy" value={stats.ventasHoy} icon="fa-solid fa-cart-shopping" />
           </Grid>
@@ -219,7 +219,7 @@ export default function DashboardPage() {
           </Grid>
         </Grid>
 
-        <Box sx={{ mb: 4 }}>
+        <Box sx={{ mb: { xs: 3, sm: 4 } }}>
           <TableClientSide title="Ventas Recientes" data={ventas} columns={ventasColumns} showFilters={true} />
         </Box>
       </Box>

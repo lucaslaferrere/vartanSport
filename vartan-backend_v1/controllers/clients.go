@@ -137,18 +137,19 @@ func UpdateCliente(c *gin.Context) {
 
 // DeleteCliente godoc
 // @Summary Eliminar cliente
-// @Description Elimina un cliente (solo dueño)
+// @Description Elimina un cliente (solo dueño). No se puede eliminar si tiene ventas o pedidos asociados.
 // @Tags Clientes
 // @Accept json
 // @Produce json
 // @Security BearerAuth
 // @Param id path int true "ID del cliente"
 // @Success 200 {object} map[string]string "Cliente eliminado exitosamente"
+// @Failure 400 {object} map[string]string "Cliente tiene ventas o pedidos asociados"
 // @Failure 403 {object} map[string]string "Sin permisos"
+// @Failure 404 {object} map[string]string "Cliente no encontrado"
 // @Failure 500 {object} map[string]string "Error interno"
 // @Router /api/clientes/{id} [delete]
 func DeleteCliente(c *gin.Context) {
-	// Validar que solo el dueño puede eliminar
 	userRole := c.GetString("rol")
 	if userRole != "dueño" {
 		c.JSON(http.StatusForbidden, gin.H{"error": "No tienes permisos para eliminar clientes"})
@@ -157,8 +158,41 @@ func DeleteCliente(c *gin.Context) {
 
 	id := c.Param("id")
 
-	if err := config.DB.Delete(&models.Cliente{}, id).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error al eliminar cliente"})
+	var cliente models.Cliente
+	if err := config.DB.First(&cliente, id).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Cliente no encontrado"})
+		return
+	}
+
+	var ventasCount int64
+	config.DB.Model(&models.Venta{}).Where("cliente_id = ?", id).Count(&ventasCount)
+
+	if ventasCount > 0 {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":   "No se puede eliminar el cliente porque tiene ventas asociadas",
+			"detalle": "Este cliente tiene ventas registradas. Para eliminarlo, primero debe eliminar todas sus ventas.",
+			"ventas":  ventasCount,
+		})
+		return
+	}
+
+	var pedidosCount int64
+	config.DB.Model(&models.Pedido{}).
+		Joins("JOIN ventas ON pedidos.venta_id = ventas.id").
+		Where("ventas.cliente_id = ?", id).
+		Count(&pedidosCount)
+
+	if pedidosCount > 0 {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":   "No se puede eliminar el cliente porque tiene pedidos asociados",
+			"detalle": "Este cliente tiene pedidos registrados. Para eliminarlo, primero debe eliminar todos sus pedidos.",
+			"pedidos": pedidosCount,
+		})
+		return
+	}
+
+	if err := config.DB.Delete(&cliente).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error al eliminar cliente: " + err.Error()})
 		return
 	}
 
