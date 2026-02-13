@@ -79,7 +79,7 @@ export default function AuthLogin() {
               name="email"
               label="Correo Electrónico"
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="demo@vartan.com"
+              placeholder="tunombre@vartan.com"
               fullWidth
               required
               autoComplete="email"
@@ -144,11 +144,7 @@ export default function AuthLogin() {
           </Button>
         </Grid>
 
-        <Grid size={{ xs: 12 }}>
-          <Box sx={{ textAlign: 'center', mt: 1 }}>
-            <Typography variant="caption" sx={{ color: colors.textSecondary }}>Usuario demo: demo@vartan.com | Contraseña: demo1234</Typography>
-          </Box>
-        </Grid>
+
       </Grid>
     </Box>
   );

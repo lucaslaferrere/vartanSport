@@ -104,13 +104,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
                 <Typography variant="body2" fontWeight={600} color={colors.textPrimary}>{user?.nombre || 'Admin'}</Typography>
                 <Typography variant="caption" color={colors.textSecondary}>{user?.email || 'admin@vartan.com'}</Typography>
               </Box>
-              <Divider />
-              <MenuItem onClick={handleUserMenuClose}>
-                <i className="fa-solid fa-user" style={{ marginRight: 12, fontSize: 14 }} />Mi Perfil
-              </MenuItem>
-              <MenuItem onClick={handleUserMenuClose}>
-                <i className="fa-solid fa-gear" style={{ marginRight: 12, fontSize: 14 }} />Configuracion
-              </MenuItem>
+
               <Divider />
               <MenuItem onClick={handleLogout} sx={{ color: colors.error }}>
                 <i className="fa-solid fa-right-from-bracket" style={{ marginRight: 12, fontSize: 14 }} />Cerrar Sesion
