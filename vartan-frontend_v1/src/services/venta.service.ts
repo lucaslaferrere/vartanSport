@@ -38,12 +38,11 @@ export const ventaService = {
             console.log('  cliente_id:', data.cliente_id);
             console.log('  forma_pago_id:', data.forma_pago_id);
             console.log('  sena:', isNaN(senaValue) ? 0 : senaValue);
-            console.log('  comprobante:', data.comprobante.name);
+            console.log('  comprobante:', data.comprobante instanceof File ? data.comprobante.name : 'N/A');
 
             const response = await api.post<IVentaCreateResponse>('/api/ventas', formData, {
                 headers: {
-                    // ✅ Eliminar Content-Type para que axios lo setee automáticamente
-                    // con el boundary correcto para multipart/form-data
+
                     'Content-Type': undefined,
                 },
             });
@@ -54,7 +53,7 @@ export const ventaService = {
             const payload = {
                 cliente_id: Number(data.cliente_id),
                 forma_pago_id: Number(data.forma_pago_id),
-                sena: isNaN(senaValue) ? 0 : senaValue, // Asegurar que sea un número válido
+                sena: isNaN(senaValue) ? 0 : senaValue, 
                 observaciones: data.observaciones || '',
                 detalles: data.detalles
             };
