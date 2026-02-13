@@ -28,8 +28,9 @@ export default function EditarVentaModal({ open, onClose, onSuccess, venta }: Ed
   const [productosSeleccionados, setProductosSeleccionados] = useState<ProductoConTalles[]>([]);
   const [productoActual, setProductoActual] = useState<IProducto | null>(null);
   const [tallesActuales, setTallesActuales] = useState<Record<string, number>>({});
+  const [precioVenta, setPrecioVenta] = useState<string>(''); // NUEVO
   const [sena, setSena] = useState<string>('');
-  const [usaFinanciera, setUsaFinanciera] = useState(false);
+  const [usaDescuentoFinanciera, setUsaDescuentoFinanciera] = useState(false); // NUEVO
   const [observaciones, setObservaciones] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -49,8 +50,9 @@ export default function EditarVentaModal({ open, onClose, onSuccess, venta }: Ed
   useEffect(() => {
     if (open && venta) {
       loadProductos();
+      setPrecioVenta(venta.precio_venta?.toString() || venta.total.toString()); // NUEVO
       setSena(venta.sena.toString());
-      setUsaFinanciera(venta.usa_financiera);
+      setUsaDescuentoFinanciera(venta.usa_financiera || false); // NUEVO
       setObservaciones(venta.observaciones || '');
 
       // Convertir los detalles de la venta a productos seleccionados
@@ -122,17 +124,20 @@ export default function EditarVentaModal({ open, onClose, onSuccess, venta }: Ed
     setProductosSeleccionados(prev => prev.filter((_, i) => i !== index));
   };
 
-  const calcularTotal = () => {
-    let total = 0;
+  const calcularCosto = () => {
+    let costo = 0;
     productosSeleccionados.forEach(item => {
       item.talles.forEach(t => {
-        total += item.producto.costo_unitario * t.cantidad;
+        costo += item.producto.costo_unitario * t.cantidad;
       });
     });
-    if (usaFinanciera) {
-      total = total * 0.97;
-    }
-    return total;
+    return costo;
+  };
+
+  const calcularGanancia = () => {
+    const costo = calcularCosto();
+    const precio = parseFloat(precioVenta) || 0;
+    return precio - costo;
   };
 
   const handleSubmit = async () => {
@@ -167,8 +172,9 @@ export default function EditarVentaModal({ open, onClose, onSuccess, venta }: Ed
     setProductosSeleccionados([]);
     setProductoActual(null);
     setTallesActuales({});
+    setPrecioVenta('');
     setSena('');
-    setUsaFinanciera(false);
+    setUsaDescuentoFinanciera(false);
     setObservaciones('');
     setError(null);
     onClose();
@@ -254,21 +260,95 @@ export default function EditarVentaModal({ open, onClose, onSuccess, venta }: Ed
           </Box>
         </Grid>
 
-        {/* Seña y Financiera */}
-        <Grid size={{ xs: 12, sm: 8 }}>
+        {/* Seña */}
+        <Grid size={{ xs: 12, sm: 6 }}>
           <FormField label="Seña" type="number" placeholder="0" value={sena} onChange={(value) => setSena(value)} />
         </Grid>
 
-        <Grid size={{ xs: 12, sm: 4 }}>
-          <Box sx={{ display: 'flex', alignItems: 'flex-end', height: '100%', pb: 0.5 }}>
-            <FormControlLabel control={<Checkbox checked={usaFinanciera} onChange={(e) => setUsaFinanciera(e.target.checked)} size="small" />} label={<Typography sx={{ fontSize: '11px' }}>Financiera -3%</Typography>} />
-          </Box>
+        <Grid size={{ xs: 12, sm: 6 }}>
+          <Box sx={{ height: '100%' }} />
         </Grid>
 
-        {/* Total */}
+        {/* Resumen Financiero */}
         <Grid size={{ xs: 12 }}>
-          <Box sx={{ p: 1, bgcolor: '#F0FDF4', borderRadius: '6px', textAlign: 'right' }}>
-            <Typography sx={{ fontSize: '15px', fontWeight: 700, color: '#059669' }}>Total: ${calcularTotal().toLocaleString('es-AR', { minimumFractionDigits: 2 })}</Typography>
+          <Box sx={{ p: 2, bgcolor: '#F9FAFB', borderRadius: '8px', border: '1px solid #E5E7EB' }}>
+            <Typography sx={{ fontSize: '13px', fontWeight: 700, color: '#1F2937', mb: 2 }}>
+              Resumen de Venta
+            </Typography>
+
+            {/* Costo (Calculado) */}
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1.5 }}>
+              <Typography sx={{ fontSize: '12px', color: '#6B7280', fontWeight: 500 }}>
+                Costo (Productos):
+              </Typography>
+              <Typography sx={{ fontSize: '16px', fontWeight: 600, color: '#DC2626' }}>
+                ${calcularCosto().toLocaleString('es-AR', { minimumFractionDigits: 2 })}
+              </Typography>
+            </Box>
+
+            {/* Precio de Venta (Input) */}
+            <Box sx={{ mb: 1.5 }}>
+              <Typography sx={{ fontSize: '12px', color: '#6B7280', fontWeight: 500, mb: 0.5 }}>
+                Precio de Venta *
+              </Typography>
+              <Box
+                component="input"
+                type="number"
+                value={precioVenta}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPrecioVenta(e.target.value)}
+                placeholder="Ingrese el precio final"
+                required
+                sx={{
+                  width: '100%',
+                  padding: '10px 12px',
+                  fontSize: '14px',
+                  border: '1px solid #D1D5DB',
+                  borderRadius: '6px',
+                  outline: 'none',
+                  backgroundColor: 'white',
+                  '&:focus': {
+                    borderColor: '#588a9e'
+                  }
+                }}
+              />
+            </Box>
+
+            {/* Ganancia (Calculada) */}
+            <Box sx={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              p: 1.5,
+              bgcolor: calcularGanancia() >= 0 ? '#ECFDF5' : '#FEF2F2',
+              borderRadius: '6px',
+              border: calcularGanancia() >= 0 ? '1px solid #A7F3D0' : '1px solid #FECACA',
+              mb: 1.5
+            }}>
+              <Typography sx={{ fontSize: '13px', color: calcularGanancia() >= 0 ? '#047857' : '#DC2626', fontWeight: 600 }}>
+                Ganancia:
+              </Typography>
+              <Typography sx={{ fontSize: '18px', fontWeight: 700, color: calcularGanancia() >= 0 ? '#059669' : '#DC2626' }}>
+                ${calcularGanancia().toLocaleString('es-AR', { minimumFractionDigits: 2 })}
+              </Typography>
+            </Box>
+
+            {/* Checkbox Descuento Financiera - Solo si es Transferencia Financiera */}
+            {venta?.forma_pago_id === 1 && (
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    checked={usaDescuentoFinanciera}
+                    onChange={(e) => setUsaDescuentoFinanciera(e.target.checked)}
+                    size="small"
+                  />
+                }
+                label={
+                  <Typography sx={{ fontSize: '12px', color: '#6B7280' }}>
+                    Aplicar descuento financiera (3%)
+                  </Typography>
+                }
+              />
+            )}
           </Box>
         </Grid>
 

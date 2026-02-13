@@ -1,10 +1,11 @@
 
 export interface IVentaCreateRequest {
-    usuario_id?: number; // Opcional - para que el dueño pueda asignar ventas a vendedores específicos
+    usuario_id?: number;
     cliente_id: number;
     forma_pago_id: number;
+    precio_venta: number;
     sena: number;
-    usa_financiera?: boolean; // Opcional, el backend lo calcula automáticamente
+    usa_descuento_financiera?: boolean;
     comprobante?: File | null;
     observaciones?: string;
     detalles: IVentaDetalleCreateRequest[];

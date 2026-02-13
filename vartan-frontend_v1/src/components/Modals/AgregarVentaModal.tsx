@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { Grid, Box, Typography, Checkbox, FormControlLabel, Divider, IconButton } from '@mui/material'; // Agregué Divider e IconButton
+import { Grid, Box, Typography, Checkbox, FormControlLabel, Divider, IconButton } from '@mui/material';
 import BaseModal from './BaseModal';
 import { IVentaCreateRequest, IVentaDetalleCreateRequest } from '@models/request/IVentaRequest';
 import { ventaService } from '@services/venta.service';
@@ -29,8 +29,9 @@ export default function AgregarVentaModal({ open, onClose, onSuccess }: AgregarV
   const [productos, setProductos] = useState<IProducto[]>([]);
   const [clienteId, setClienteId] = useState<number | null>(null);
   const [formaPagoId, setFormaPagoId] = useState<number>(1);
-  const [sena, setSena] = useState<string>('0'); // Inicializar con '0' en lugar de ''
-  const [usaFinanciera, setUsaFinanciera] = useState(false);
+  const [precioVenta, setPrecioVenta] = useState<string>(''); // NUEVO
+  const [sena, setSena] = useState<string>('0');
+  const [usaDescuentoFinanciera, setUsaDescuentoFinanciera] = useState(false); // NUEVO
   const [observaciones, setObservaciones] = useState('');
   const [comprobante, setComprobante] = useState<File | null>(null);
   const [isDragging, setIsDragging] = useState(false);
@@ -70,7 +71,7 @@ export default function AgregarVentaModal({ open, onClose, onSuccess }: AgregarV
     if (open) {
       loadData();
     }
-  }, [open]);
+  }, [open, loadData]);
 
   const handleProductoSelect = (productoId: number) => {
     if (!productoId) return;
@@ -117,17 +118,22 @@ export default function AgregarVentaModal({ open, onClose, onSuccess }: AgregarV
     setProductosSeleccionados(prev => prev.filter((_, i) => i !== index));
   };
 
-  const calcularTotal = () => {
-    let total = 0;
+  // Calcular costo de los productos
+  const calcularCosto = () => {
+    let costo = 0;
     productosSeleccionados.forEach(item => {
       item.talles.forEach(t => {
-        total += item.producto.costo_unitario * t.cantidad;
+        costo += item.producto.costo_unitario * t.cantidad;
       });
     });
-    if (usaFinanciera) {
-      total = total * 0.97;
-    }
-    return total;
+    return costo;
+  };
+
+  // Calcular ganancia
+  const calcularGanancia = () => {
+    const costo = calcularCosto();
+    const precio = parseFloat(precioVenta) || 0;
+    return precio - costo;
   };
 
   const handleSubmit = async () => {
@@ -140,6 +146,11 @@ export default function AgregarVentaModal({ open, onClose, onSuccess }: AgregarV
 
     if (productosSeleccionados.length === 0) {
       setError('Debe agregar al menos un producto');
+      return;
+    }
+
+    if (!precioVenta || parseFloat(precioVenta) <= 0) {
+      setError('Debe ingresar un precio de venta válido');
       return;
     }
 
@@ -158,7 +169,6 @@ export default function AgregarVentaModal({ open, onClose, onSuccess }: AgregarV
         });
       });
 
-
       let senaNumero = 0;
       if (sena !== '' && sena !== null && sena !== undefined) {
         const parsed = parseFloat(sena);
@@ -168,7 +178,9 @@ export default function AgregarVentaModal({ open, onClose, onSuccess }: AgregarV
       const ventaData: IVentaCreateRequest = {
         cliente_id: Number(clienteId),
         forma_pago_id: Number(formaPagoId),
-        sena: senaNumero, // Garantizado que es un número
+        precio_venta: parseFloat(precioVenta), // NUEVO
+        sena: senaNumero,
+        usa_descuento_financiera: usaDescuentoFinanciera, // NUEVO
         observaciones: observaciones || '',
         detalles
       };
@@ -176,6 +188,8 @@ export default function AgregarVentaModal({ open, onClose, onSuccess }: AgregarV
       if (comprobante instanceof File) {
         ventaData.comprobante = comprobante;
       }
+
+      console.log('📤 Enviando venta:', ventaData);
 
       await ventaService.create(ventaData);
       addNotification('Venta creada exitosamente', 'success');
@@ -195,8 +209,9 @@ export default function AgregarVentaModal({ open, onClose, onSuccess }: AgregarV
   const handleClose = () => {
     setClienteId(null);
     setFormaPagoId(1);
+    setPrecioVenta('');
     setSena('0');
-    setUsaFinanciera(false);
+    setUsaDescuentoFinanciera(false);
     setObservaciones('');
     setComprobante(null);
     setProductosSeleccionados([]);
@@ -459,8 +474,6 @@ export default function AgregarVentaModal({ open, onClose, onSuccess }: AgregarV
             <Divider sx={{ my: 1, borderColor: '#E5E7EB' }}><Typography variant="caption" sx={{ color: '#9CA3AF' }}>DETALLES DE PAGO</Typography></Divider>
           </Grid>
 
-          {/* SECCIÓN 3: PAGO Y OBSERVACIONES (Grid Mixto) */}
-
           {/* Forma de Pago */}
           <Grid size={{ xs: 12, sm: 6 }}>
             <Typography sx={{ fontSize: '12px', fontWeight: 600, color: '#374151', mb: 0.5 }}>Forma de Pago</Typography>
@@ -482,7 +495,7 @@ export default function AgregarVentaModal({ open, onClose, onSuccess }: AgregarV
           </Grid>
 
           {/* Seña */}
-          <Grid size={{ xs: 6, sm: 3 }}>
+          <Grid size={{ xs: 12, sm: 6 }}>
             <Typography sx={{ fontSize: '12px', fontWeight: 600, color: '#374151', mb: 0.5 }}>Seña</Typography>
             <input
                 type="number"
@@ -490,8 +503,6 @@ export default function AgregarVentaModal({ open, onClose, onSuccess }: AgregarV
                 value={sena}
                 onChange={(e) => {
                   const value = e.target.value;
-                  // Si el usuario borra todo, poner '0'
-                  // Si ingresa un número, mantenerlo
                   setSena(value === '' ? '0' : value);
                 }}
                 style={{
@@ -505,24 +516,7 @@ export default function AgregarVentaModal({ open, onClose, onSuccess }: AgregarV
             />
           </Grid>
 
-          {/* Checkbox Financiera */}
-          <Grid size={{ xs: 6, sm: 3 }}>
-            <Box sx={{ height: '100%', display: 'flex', alignItems: 'flex-end', pb: 0.5 }}>
-              <FormControlLabel
-                  control={
-                    <Checkbox
-                        size="small"
-                        checked={usaFinanciera}
-                        onChange={(e) => setUsaFinanciera(e.target.checked)}
-                        sx={{ color: '#9CA3AF', '&.Mui-checked': { color: '#3B82F6' } }}
-                    />
-                  }
-                  label={<Typography sx={{ fontSize: '12px', color: '#374151' }}>Financiera </Typography>}
-              />
-            </Box>
-          </Grid>
-
-          {/* Observaciones (Ancho completo para escribir cómodo) */}
+          {/* Observaciones */}
           <Grid size={{ xs: 12 }}>
             <Typography sx={{ fontSize: '12px', fontWeight: 600, color: '#374151', mb: 0.5 }}>Observaciones</Typography>
             <textarea
@@ -543,10 +537,8 @@ export default function AgregarVentaModal({ open, onClose, onSuccess }: AgregarV
             />
           </Grid>
 
-          {/* SECCIÓN 4: COMPROBANTE Y TOTAL (Diseño Compacto) */}
-
-          {/* Comprobante - Estilo Barra Horizontal */}
-          <Grid size={{ xs: 12, md: 7 }}>
+          {/* Comprobante */}
+          <Grid size={{ xs: 12, md: 12 }}>
             {!comprobante ? (
                 <Box
                     onDragOver={handleDragOver}
@@ -556,7 +548,7 @@ export default function AgregarVentaModal({ open, onClose, onSuccess }: AgregarV
                     sx={{
                       border: `1px dashed ${isDragging ? '#3B82F6' : '#D1D5DB'}`,
                       borderRadius: '6px',
-                      height: '46px', // Altura fija reducida
+                      height: '46px',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
@@ -597,23 +589,86 @@ export default function AgregarVentaModal({ open, onClose, onSuccess }: AgregarV
             )}
           </Grid>
 
-          {/* Total - Estilo Compacto Derecha */}
-          <Grid size={{ xs: 12, md: 5 }}>
-            <Box sx={{
-              height: '46px',
-              bgcolor: '#ECFDF5',
-              borderRadius: '6px',
-              border: '1px solid #A7F3D0',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'flex-end',
-              px: 2,
-              gap: 1
-            }}>
-              <Typography sx={{ fontSize: '13px', color: '#047857', fontWeight: 500 }}>TOTAL:</Typography>
-              <Typography sx={{ fontSize: '18px', fontWeight: 700, color: '#059669' }}>
-                ${calcularTotal().toLocaleString('es-AR', { minimumFractionDigits: 2 })}
+          {/* Resumen Financiero */}
+          <Grid size={{ xs: 12 }}>
+            <Box sx={{ p: 2, bgcolor: '#F9FAFB', borderRadius: '8px', border: '1px solid #E5E7EB' }}>
+              <Typography sx={{ fontSize: '13px', fontWeight: 700, color: '#1F2937', mb: 2 }}>
+                Resumen de Venta
               </Typography>
+
+              {/* Costo (Calculado) */}
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1.5 }}>
+                <Typography sx={{ fontSize: '12px', color: '#6B7280', fontWeight: 500 }}>
+                  Costo (Productos):
+                </Typography>
+                <Typography sx={{ fontSize: '16px', fontWeight: 600, color: '#DC2626' }}>
+                  ${calcularCosto().toLocaleString('es-AR', { minimumFractionDigits: 2 })}
+                </Typography>
+              </Box>
+
+              {/* Precio de Venta (Input) */}
+              <Box sx={{ mb: 1.5 }}>
+                <Typography sx={{ fontSize: '12px', color: '#6B7280', fontWeight: 500, mb: 0.5 }}>
+                  Precio de Venta *
+                </Typography>
+                <Box
+                  component="input"
+                  type="number"
+                  value={precioVenta}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPrecioVenta(e.target.value)}
+                  placeholder="Ingrese el precio final"
+                  required
+                  sx={{
+                    width: '100%',
+                    padding: '10px 12px',
+                    fontSize: '14px',
+                    border: '1px solid #D1D5DB',
+                    borderRadius: '6px',
+                    outline: 'none',
+                    backgroundColor: 'white',
+                    '&:focus': {
+                      borderColor: '#588a9e'
+                    }
+                  }}
+                />
+              </Box>
+
+              {/* Ganancia (Calculada) */}
+              <Box sx={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                p: 1.5,
+                bgcolor: calcularGanancia() >= 0 ? '#ECFDF5' : '#FEF2F2',
+                borderRadius: '6px',
+                border: calcularGanancia() >= 0 ? '1px solid #A7F3D0' : '1px solid #FECACA',
+                mb: 1.5
+              }}>
+                <Typography sx={{ fontSize: '13px', color: calcularGanancia() >= 0 ? '#047857' : '#DC2626', fontWeight: 600 }}>
+                  Ganancia:
+                </Typography>
+                <Typography sx={{ fontSize: '18px', fontWeight: 700, color: calcularGanancia() >= 0 ? '#059669' : '#DC2626' }}>
+                  ${calcularGanancia().toLocaleString('es-AR', { minimumFractionDigits: 2 })}
+                </Typography>
+              </Box>
+
+              {/* Checkbox Descuento Financiera - Solo si es Transferencia Financiera */}
+              {formaPagoId === 1 && (
+                <FormControlLabel
+                  control={
+                    <Checkbox
+                      checked={usaDescuentoFinanciera}
+                      onChange={(e) => setUsaDescuentoFinanciera(e.target.checked)}
+                      size="small"
+                    />
+                  }
+                  label={
+                    <Typography sx={{ fontSize: '12px', color: '#6B7280' }}>
+                      Aplicar descuento financiera (3%)
+                    </Typography>
+                  }
+                />
+              )}
             </Box>
           </Grid>
 
@@ -621,3 +676,4 @@ export default function AgregarVentaModal({ open, onClose, onSuccess }: AgregarV
       </BaseModal>
   );
 }
+

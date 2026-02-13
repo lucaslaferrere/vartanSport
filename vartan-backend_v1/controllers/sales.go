@@ -44,8 +44,7 @@ func CreateVenta(c *gin.Context) {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "Datos inválidos: " + err.Error()})
 			return
 		}
-		// Procesar como JSON (sin comprobante)
-		processVenta(c, jsonReq.UsuarioID, jsonReq.ClienteID, jsonReq.FormaPagoID, jsonReq.Sena, jsonReq.Observaciones, jsonReq.Detalles, nil)
+		processVenta(c, jsonReq.UsuarioID, jsonReq.ClienteID, jsonReq.FormaPagoID, jsonReq.PrecioVenta, jsonReq.Sena, jsonReq.UsaDescuentoFinanciera, jsonReq.Observaciones, jsonReq.Detalles, nil)
 		return
 	}
 
@@ -137,6 +136,12 @@ func CreateVenta(c *gin.Context) {
 			return
 		}
 
+		precioVenta, err := strconv.ParseFloat(formReq.PrecioVenta, 64)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "precio_venta inválido"})
+			return
+		}
+
 		var sena float64
 		if formReq.Sena != "" {
 			var errSena error
@@ -147,7 +152,12 @@ func CreateVenta(c *gin.Context) {
 			}
 		}
 
-		processVenta(c, usuarioID, clienteID, formaPagoID, sena, formReq.Observaciones, detalles, comprobanteURL)
+		usaDescuentoFinanciera := false
+		if formReq.UsaDescuentoFinanciera == "true" || formReq.UsaDescuentoFinanciera == "1" {
+			usaDescuentoFinanciera = true
+		}
+
+		processVenta(c, usuarioID, clienteID, formaPagoID, precioVenta, sena, usaDescuentoFinanciera, formReq.Observaciones, detalles, comprobanteURL)
 		return
 	}
 
@@ -156,7 +166,7 @@ func CreateVenta(c *gin.Context) {
 }
 
 // processVenta procesa la creación de la venta
-func processVenta(c *gin.Context, usuarioID *int, clienteID int, formaPagoID int, sena float64, observaciones string, detalles []models.VentaDetalleCreateRequest, comprobanteURL *string) {
+func processVenta(c *gin.Context, usuarioID *int, clienteID int, formaPagoID int, precioVenta float64, sena float64, usaDescuentoFinanciera bool, observaciones string, detalles []models.VentaDetalleCreateRequest, comprobanteURL *string) {
 	// Determinar el vendedor que realiza la venta
 	var vendedorID int
 	if usuarioID != nil && *usuarioID > 0 {
@@ -176,21 +186,26 @@ func processVenta(c *gin.Context, usuarioID *int, clienteID int, formaPagoID int
 		vendedorID = c.GetInt("user_id")
 	}
 
-	// Calcular el total de la venta (suma de productos)
-	var total float64
+	// Calcular el costo total (suma de precio_unitario * cantidad de productos)
+	var costo float64
 	for _, detalle := range detalles {
-		total += detalle.PrecioUnitario * float64(detalle.Cantidad)
+		costo += detalle.PrecioUnitario * float64(detalle.Cantidad)
 	}
 
-	// Calcular el saldo (lo que resta pagar)
-	// Si no hay seña, el saldo es el total
+	// El precio_venta viene del usuario (lo que cobra al cliente)
+	// Ganancia = PrecioVenta - Costo
+	ganancia := precioVenta - costo
+
+	// Total = PrecioVenta (para mantener compatibilidad)
+	total := precioVenta
+
+	// Calcular el saldo (lo que resta pagar después de la seña)
 	senaValue := float64(0)
 	if sena > 0 {
 		senaValue = sena
 	}
 	saldo := total - senaValue
 
-	// Calcular descuento según forma de pago
 	var descuento float64
 	var formaPago models.FormaPago
 	var usaFinanciera bool
@@ -200,8 +215,8 @@ func processVenta(c *gin.Context, usuarioID *int, clienteID int, formaPagoID int
 		return
 	}
 
-	// Si es "Transferencia Financiera" (ID 1), aplicar 3% de descuento sobre el SALDO
-	if formaPago.Nombre == "Transferencia Financiera" {
+	// Solo aplicar descuento si el usuario marca el checkbox
+	if usaDescuentoFinanciera && formaPago.Nombre == "Transferencia Financiera" {
 		descuento = saldo * 0.03
 		usaFinanciera = true
 	}
@@ -228,6 +243,9 @@ func processVenta(c *gin.Context, usuarioID *int, clienteID int, formaPagoID int
 		UsuarioID:      vendedorID,
 		ClienteID:      clienteID,
 		FormaPagoID:    formaPagoID,
+		Costo:          costo,
+		PrecioVenta:    precioVenta,
+		Ganancia:       ganancia,
 		Total:          total,
 		Sena:           senaPtr,
 		Saldo:          saldo,

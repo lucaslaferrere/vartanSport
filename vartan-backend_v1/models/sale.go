@@ -12,6 +12,9 @@ type Venta struct {
 	UsuarioID      int       `gorm:"not null" json:"usuario_id"`
 	ClienteID      int       `gorm:"not null" json:"cliente_id"`
 	FormaPagoID    int       `gorm:"not null" json:"forma_pago_id"`
+	Costo          float64   `gorm:"type:decimal(10,2);not null" json:"costo"`
+	PrecioVenta    float64   `gorm:"type:decimal(10,2);not null" json:"precio_venta"`
+	Ganancia       float64   `gorm:"type:decimal(10,2);not null" json:"ganancia"`
 	Total          float64   `gorm:"type:decimal(10,2);not null" json:"total"`
 	Sena           *float64  `gorm:"type:decimal(10,2);" json:"sena,omitempty"`
 	Saldo          float64   `gorm:"type:decimal(10,2);not null" json:"saldo"`
@@ -41,21 +44,25 @@ type VentaDetalle struct {
 }
 
 type VentaCreateRequest struct {
-	UsuarioID     *int                        `json:"usuario_id" form:"usuario_id"`
-	ClienteID     int                         `json:"cliente_id" form:"cliente_id" binding:"required"`
-	FormaPagoID   int                         `json:"forma_pago_id" form:"forma_pago_id" binding:"required"`
-	Sena          float64                     `json:"sena" form:"sena"`
-	Observaciones string                      `json:"observaciones" form:"observaciones"`
-	Detalles      []VentaDetalleCreateRequest `json:"detalles" binding:"required"`
+	UsuarioID              *int                        `json:"usuario_id" form:"usuario_id"`
+	ClienteID              int                         `json:"cliente_id" form:"cliente_id" binding:"required"`
+	FormaPagoID            int                         `json:"forma_pago_id" form:"forma_pago_id" binding:"required"`
+	PrecioVenta            float64                     `json:"precio_venta" form:"precio_venta" binding:"required"`
+	Sena                   float64                     `json:"sena" form:"sena"`
+	UsaDescuentoFinanciera bool                        `json:"usa_descuento_financiera" form:"usa_descuento_financiera"`
+	Observaciones          string                      `json:"observaciones" form:"observaciones"`
+	Detalles               []VentaDetalleCreateRequest `json:"detalles" binding:"required"`
 }
 
 type VentaCreateFormRequest struct {
-	UsuarioID     string `form:"usuario_id"`
-	ClienteID     string `form:"cliente_id" binding:"required"`
-	FormaPagoID   string `form:"forma_pago_id" binding:"required"`
-	Sena          string `form:"sena"`
-	Observaciones string `form:"observaciones"`
-	Detalles      string `form:"detalles" binding:"required"`
+	UsuarioID              string `form:"usuario_id"`
+	ClienteID              string `form:"cliente_id" binding:"required"`
+	FormaPagoID            string `form:"forma_pago_id" binding:"required"`
+	PrecioVenta            string `form:"precio_venta" binding:"required"`
+	Sena                   string `form:"sena"`
+	UsaDescuentoFinanciera string `form:"usa_descuento_financiera"`
+	Observaciones          string `form:"observaciones"`
+	Detalles               string `form:"detalles" binding:"required"`
 }
 
 type VentaDetalleCreateRequest struct {
