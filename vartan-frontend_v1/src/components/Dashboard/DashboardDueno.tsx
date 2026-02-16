@@ -74,8 +74,7 @@ export default function DashboardDueno() {
     }).length;
 
     const ventasMes = ventasData.filter(v => new Date(v.fecha_venta) >= inicioMes);
-    const ingresosMes = ventasMes.reduce((sum, v) => sum + (v.precio_venta || v.total), 0);
-
+    const ingresosMes = ventasMes.reduce((sum, v) => sum + (v.total_final || v.precio_venta || v.total), 0);
     // Calcular ganancia bruta usando el campo ganancia de cada venta
     const gananciasBrutas = ventasMes.reduce((sum, v) => sum + (v.ganancia || 0), 0);
 

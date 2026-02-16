@@ -197,9 +197,6 @@ func processVenta(c *gin.Context, usuarioID *int, clienteID int, formaPagoID int
 		precioVenta = costo
 	}
 
-	// Ganancia = PrecioVenta - Costo
-	ganancia := precioVenta - costo
-
 	// Total = PrecioVenta (para mantener compatibilidad)
 	total := precioVenta
 
@@ -227,6 +224,9 @@ func processVenta(c *gin.Context, usuarioID *int, clienteID int, formaPagoID int
 
 	// Total final = Total - Descuento
 	totalFinal := total - descuento
+
+	// Ganancia = TotalFinal - Costo
+	ganancia := totalFinal - costo
 
 	var obs *string
 	if observaciones != "" {
