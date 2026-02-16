@@ -42,10 +42,9 @@ export default function AgregarVentaModal({ open, onClose, onSuccess }: AgregarV
   const [error, setError] = useState<string | null>(null);
 
   const formasPago = [
-    { id: 1, nombre: 'Transferencia Financiera' },
-    { id: 2, nombre: 'Efectivo' },
-    { id: 3, nombre: 'Transferencia a Cero' },
-    { id: 4, nombre: 'Transferencia Bancaria' },
+    { id: 1, nombre: 'Financiera' },
+    { id: 2, nombre: 'Transferencia a Cuenta 0' },
+    { id: 3, nombre: 'Efectivo' },
   ];
 
   const tallesDisponibles = Object.values(TalleEnum);
