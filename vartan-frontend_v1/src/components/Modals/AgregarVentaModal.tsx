@@ -663,7 +663,7 @@ export default function AgregarVentaModal({ open, onClose, onSuccess }: AgregarV
                   }
                   label={
                     <Typography sx={{ fontSize: '12px', color: '#6B7280' }}>
-                      Aplicar descuento financiera (3%)
+                      Aplicar comisión financiera (3%)
                     </Typography>
                   }
                 />
