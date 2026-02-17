@@ -1,4 +1,12 @@
 export enum TalleEnum {
+  // Talles niños
+  T6 = '6',
+  T8 = '8',
+  T10 = '10',
+  T12 = '12',
+  T14 = '14',
+  T16 = '16',
+  // Talles adultos
   S = 'S',
   M = 'M',
   L = 'L',

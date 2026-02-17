@@ -6,13 +6,11 @@ import BaseModal from './BaseModal';
 import FormField from '@components/Forms/FormField';
 import FormFieldWithAdd from '@components/Forms/FormFieldWithAdd';
 import AgregarTipoProductoModal from './AgregarTipoProductoModal';
-import AgregarEquipoModal from './AgregarEquipoModal';
 import { IProductoCreateRequest } from '@models/request/IProductoRequest';
 import { TALLES_OPTIONS } from '@models/enums/TalleEnum';
-import { COLORES_OPTIONS } from '@models/enums/ColorEnum';
-import { ITipoProducto, IEquipo } from '@models/entities/catalogoEntity';
+import { ITipoProducto } from '@models/entities/catalogoEntity';
 import { productoService } from '@services/producto.service';
-import { tipoProductoService, equipoService } from '@services/catalogo.service';
+import { tipoProductoService } from '@services/catalogo.service';
 import { useNotification } from '@components/Notifications';
 
 interface AgregarProductoModalProps {
@@ -27,29 +25,21 @@ export default function AgregarProductoModal({ open, onClose, onSuccess }: Agreg
     nombre: '',
     costo_unitario: 0,
     talles: [],
-    colores: [],
-    tipo_producto_id: undefined,
-    equipo_id: undefined
+    //colores: [],
+    tipo_producto_id: undefined
   });
   const [tiposProducto, setTiposProducto] = useState<ITipoProducto[]>([]);
-  const [equipos, setEquipos] = useState<IEquipo[]>([]);
   const [selectedTipoProducto, setSelectedTipoProducto] = useState<ITipoProducto | null>(null);
-  const [selectedEquipo, setSelectedEquipo] = useState<IEquipo | null>(null);
   const [loading, setLoading] = useState(false);
   const [loadingCatalogos, setLoadingCatalogos] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [tipoProductoModalOpen, setTipoProductoModalOpen] = useState(false);
-  const [equipoModalOpen, setEquipoModalOpen] = useState(false);
 
   const loadCatalogos = useCallback(async () => {
     setLoadingCatalogos(true);
     try {
-      const [tiposData, equiposData] = await Promise.all([
-        tipoProductoService.getAll(),
-        equipoService.getAll()
-      ]);
+      const tiposData = await tipoProductoService.getAll();
       setTiposProducto(tiposData.filter(t => t.activo));
-      setEquipos(equiposData.filter(e => e.activo));
     } catch (err) {
       console.error('Error cargando catálogos:', err);
       addNotification('Error al cargar las categorías', 'error');
@@ -82,10 +72,10 @@ export default function AgregarProductoModal({ open, onClose, onSuccess }: Agreg
       return;
     }
 
-    if (!formData.colores || formData.colores.length === 0) {
+    /*if (!formData.colores || formData.colores.length === 0) {
       setError('Debe seleccionar al menos un color');
       return;
-    }
+    }*/
 
     setLoading(true);
 
@@ -107,12 +97,10 @@ export default function AgregarProductoModal({ open, onClose, onSuccess }: Agreg
       nombre: '',
       costo_unitario: 0,
       talles: [],
-      colores: [],
-      tipo_producto_id: undefined,
-      equipo_id: undefined
+      //colores: [],
+      tipo_producto_id: undefined
     });
     setSelectedTipoProducto(null);
-    setSelectedEquipo(null);
     setError(null);
     onClose();
   };
@@ -125,24 +113,10 @@ export default function AgregarProductoModal({ open, onClose, onSuccess }: Agreg
     }));
   };
 
-  const handleEquipoChange = (newValue: IEquipo | null) => {
-    setSelectedEquipo(newValue);
-    setFormData(prev => ({
-      ...prev,
-      equipo_id: newValue ? newValue.id : undefined
-    }));
-  };
-
   const handleTipoProductoSuccess = () => {
     loadCatalogos();
     setTipoProductoModalOpen(false);
     addNotification('Tipo de producto agregado exitosamente', 'success');
-  };
-
-  const handleEquipoSuccess = () => {
-    loadCatalogos();
-    setEquipoModalOpen(false);
-    addNotification('Equipo agregado exitosamente', 'success');
   };
 
   return (
@@ -180,18 +154,6 @@ export default function AgregarProductoModal({ open, onClose, onSuccess }: Agreg
           addButtonTooltip="Agregar nuevo tipo de producto"
         />
 
-        <FormFieldWithAdd
-          label="Equipo"
-          placeholder="Seleccione el equipo"
-          value={selectedEquipo}
-          onChange={handleEquipoChange}
-          options={equipos}
-          getOptionLabel={(option) => option.nombre}
-          loading={loadingCatalogos}
-          onAddNew={() => setEquipoModalOpen(true)}
-          addButtonTooltip="Agregar nuevo equipo"
-        />
-
         <FormField
           label="Costo Unitario"
           required
@@ -221,34 +183,13 @@ export default function AgregarProductoModal({ open, onClose, onSuccess }: Agreg
           getOptionLabel={(option) => option}
           error={!!error && (!formData.talles || formData.talles.length === 0)}
         />
-
-        <FormField
-          label="Colores"
-
-          type="multiselect"
-          placeholder="Seleccione los colores disponibles"
-          value={formData.colores}
-          onChange={(value) => {
-            setFormData(prev => ({ ...prev, colores: value || [] }));
-            if (error) setError(null);
-          }}
-          options={COLORES_OPTIONS}
-          getOptionLabel={(option) => option}
-          error={!!error && (!formData.colores || formData.colores.length === 0)}
-        />
       </BaseModal>
 
-      {/* Modales para agregar categorías */}
+      {/* Modal para agregar Tipo de Producto */}
       <AgregarTipoProductoModal
         open={tipoProductoModalOpen}
         onClose={() => setTipoProductoModalOpen(false)}
         onSuccess={handleTipoProductoSuccess}
-      />
-
-      <AgregarEquipoModal
-        open={equipoModalOpen}
-        onClose={() => setEquipoModalOpen(false)}
-        onSuccess={handleEquipoSuccess}
       />
     </>
   );
