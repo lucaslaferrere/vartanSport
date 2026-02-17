@@ -224,7 +224,7 @@ export default function VentasPage() {
   const confirmEliminar = async () => {
     if (!ventaSeleccionada) return;
     try {
-      // TODO: Implementar ventaService.delete(ventaSeleccionada.id)
+      await ventaService.delete(ventaSeleccionada.id);
       addNotification('Venta eliminada correctamente', 'success');
       setEliminarVentaModalOpen(false);
       fetchVentas();

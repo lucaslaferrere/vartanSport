@@ -114,6 +114,10 @@ export const ventaService = {
         });
         return response.data;
     },
+
+    delete: async (ventaId: number): Promise<void> => {
+        await api.delete(`/api/ventas/${ventaId}`);
+    },
 };
 
 
