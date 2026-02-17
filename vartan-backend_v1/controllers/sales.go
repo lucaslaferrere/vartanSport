@@ -799,11 +799,11 @@ func DeleteVenta(c *gin.Context) {
 	}
 
 	// Eliminar comisiones asociadas
-	if err := tx.Where("venta_id = ?", venta.ID).Delete(&models.Comision{}).Error; err != nil {
+	/*if err := tx.Where("venta_id = ?", venta.ID).Delete(&models.Comision{}).Error; err != nil {
 		tx.Rollback()
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error al eliminar comisiones"})
 		return
-	}
+	}*/
 
 	// Eliminar detalles de la venta
 	if err := tx.Where("venta_id = ?", venta.ID).Delete(&models.VentaDetalle{}).Error; err != nil {
