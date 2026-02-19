@@ -10,6 +10,14 @@ import (
 type TalleEnum string
 
 const (
+	// Talles niños
+	Talle6  TalleEnum = "6"
+	Talle8  TalleEnum = "8"
+	Talle10 TalleEnum = "10"
+	Talle12 TalleEnum = "12"
+	Talle14 TalleEnum = "14"
+	Talle16 TalleEnum = "16"
+	// Talles adultos
 	TalleS   TalleEnum = "S"
 	TalleM   TalleEnum = "M"
 	TalleL   TalleEnum = "L"
@@ -19,6 +27,14 @@ const (
 
 // Talles válidos para validación
 var TallesValidos = map[TalleEnum]bool{
+	// Talles niños
+	Talle6:  true,
+	Talle8:  true,
+	Talle10: true,
+	Talle12: true,
+	Talle14: true,
+	Talle16: true,
+	// Talles adultos
 	TalleS:   true,
 	TalleM:   true,
 	TalleL:   true,
