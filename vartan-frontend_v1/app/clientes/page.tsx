@@ -20,6 +20,7 @@ import { useNotification } from '@components/Notifications';
 interface IClienteDisplay {
   id: number;
   nombre: string;
+  dni: string;
   telefono: string;
   email: string;
   direccion: string;
@@ -54,6 +55,7 @@ function ClientesPage() {
   const transformCliente = (cliente: ICliente): IClienteDisplay => ({
     id: cliente.id,
     nombre: cliente.nombre,
+    dni: cliente.dni || '-',
     telefono: cliente.telefono || '-',
     email: cliente.email || '-',
     direccion: cliente.direccion || '-',
@@ -160,6 +162,7 @@ function ClientesPage() {
         filterProps: { placeholder: 'Buscar nombre...' }
       }
     },
+    { accessorKey: 'dni', header: 'DNI' },
     { accessorKey: 'telefono', header: 'Teléfono' },
     {
       accessorKey: 'email',
