@@ -5,6 +5,7 @@ import "time"
 type Cliente struct {
 	ID            int       `gorm:"primaryKey;autoIncrement" json:"id"`
 	Nombre        string    `gorm:"type:varchar(100);not null" json:"nombre"`
+	DNI           string    `gorm:"type:varchar(20)" json:"dni"` // DNI agregado
 	Telefono      string    `gorm:"type:varchar(20)" json:"telefono"`
 	Email         string    `gorm:"type:varchar(100)" json:"email"`
 	Direccion     string    `gorm:"type:varchar(255)" json:"direccion"`
@@ -17,6 +18,7 @@ type Cliente struct {
 // Para crear un cliente nuevo
 type ClienteCreateRequest struct {
 	Nombre    string `json:"nombre" binding:"required"`
+	DNI       string `json:"dni"`
 	Telefono  string `json:"telefono"`
 	Email     string `json:"email"`
 	Direccion string `json:"direccion"`

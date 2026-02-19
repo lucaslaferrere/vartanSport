@@ -1,5 +1,6 @@
 export interface IClienteCreateRequest {
     nombre: string;
+    dni?: string
     telefono?: string;
     email?: string;
     direccion?: string;
@@ -10,6 +11,7 @@ export interface IClienteCreateRequest {
 
 export interface IClienteUpdateRequest {
     nombre: string;
+    dni?: string;
     telefono?: string;
     email?: string;
     direccion?: string;

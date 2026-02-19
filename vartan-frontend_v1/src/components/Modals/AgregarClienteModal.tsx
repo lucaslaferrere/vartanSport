@@ -55,6 +55,7 @@ export default function AgregarClienteModal({ open, onClose, onSuccess }: Agrega
   const handleClose = () => {
     setFormData({
       nombre: '',
+      dni: '',
       email: '',
       telefono: '',
       direccion: '',
@@ -86,6 +87,15 @@ export default function AgregarClienteModal({ open, onClose, onSuccess }: Agrega
           if (error) setError(null);
         }}
         error={!!error && !formData.nombre.trim()}
+      />
+      
+      <FormField
+        label="DNI"
+        placeholder="Ingrese el DNI del cliente"
+        value={formData.dni}
+        onChange={(value) => {
+          setFormData(prev => ({ ...prev, dni: value }));
+        }}
       />
 
       <Grid container spacing={2}>
