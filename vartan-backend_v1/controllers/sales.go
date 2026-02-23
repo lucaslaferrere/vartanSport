@@ -44,7 +44,7 @@ func CreateVenta(c *gin.Context) {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "Datos inválidos: " + err.Error()})
 			return
 		}
-		processVenta(c, jsonReq.UsuarioID, jsonReq.ClienteID, jsonReq.FormaPagoID, jsonReq.PrecioVenta, jsonReq.Sena, jsonReq.UsaDescuentoFinanciera, jsonReq.Observaciones, jsonReq.Detalles, nil)
+		processVenta(c, jsonReq.UsuarioID, jsonReq.ClienteID, jsonReq.FormaPagoID, jsonReq.Transporte, jsonReq.PrecioVenta, jsonReq.Sena, jsonReq.UsaDescuentoFinanciera, jsonReq.Observaciones, jsonReq.Detalles, nil)
 		return
 	}
 
@@ -157,7 +157,7 @@ func CreateVenta(c *gin.Context) {
 			usaDescuentoFinanciera = true
 		}
 
-		processVenta(c, usuarioID, clienteID, formaPagoID, precioVenta, sena, usaDescuentoFinanciera, formReq.Observaciones, detalles, comprobanteURL)
+		processVenta(c, usuarioID, clienteID, formaPagoID, formReq.Transporte, precioVenta, sena, usaDescuentoFinanciera, formReq.Observaciones, detalles, comprobanteURL)
 		return
 	}
 
@@ -166,7 +166,7 @@ func CreateVenta(c *gin.Context) {
 }
 
 // processVenta procesa la creación de la venta
-func processVenta(c *gin.Context, usuarioID *int, clienteID int, formaPagoID int, precioVenta float64, sena float64, usaDescuentoFinanciera bool, observaciones string, detalles []models.VentaDetalleCreateRequest, comprobanteURL *string) {
+func processVenta(c *gin.Context, usuarioID *int, clienteID int, formaPagoID int, transporte string, precioVenta float64, sena float64, usaDescuentoFinanciera bool, observaciones string, detalles []models.VentaDetalleCreateRequest, comprobanteURL *string) {
 	// Determinar el vendedor que realiza la venta
 	var vendedorID int
 	if usuarioID != nil && *usuarioID > 0 {
@@ -247,6 +247,7 @@ func processVenta(c *gin.Context, usuarioID *int, clienteID int, formaPagoID int
 		UsuarioID:      vendedorID,
 		ClienteID:      clienteID,
 		FormaPagoID:    formaPagoID,
+		Transporte:     transporte,
 		Costo:          costo,
 		PrecioVenta:    precioVenta,
 		Ganancia:       ganancia,

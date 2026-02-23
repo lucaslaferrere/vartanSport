@@ -12,6 +12,7 @@ type Venta struct {
 	UsuarioID      int       `gorm:"not null" json:"usuario_id"`
 	ClienteID      int       `gorm:"not null" json:"cliente_id"`
 	FormaPagoID    int       `gorm:"not null" json:"forma_pago_id"`
+	Transporte     string    `gorm:"type:varchar(50" json:"transporte"`
 	Costo          float64   `gorm:"type:decimal(10,2);not null" json:"costo"`
 	PrecioVenta    float64   `gorm:"type:decimal(10,2);not null" json:"precio_venta"`
 	Ganancia       float64   `gorm:"type:decimal(10,2);not null" json:"ganancia"`
@@ -48,6 +49,7 @@ type VentaCreateRequest struct {
 	ClienteID              int                         `json:"cliente_id" form:"cliente_id" binding:"required"`
 	FormaPagoID            int                         `json:"forma_pago_id" form:"forma_pago_id" binding:"required"`
 	PrecioVenta            float64                     `json:"precio_venta" form:"precio_venta"`
+	Transporte             string                      `json:"transporte" form:"transporte"`
 	Sena                   float64                     `json:"sena" form:"sena"`
 	UsaDescuentoFinanciera bool                        `json:"usa_descuento_financiera" form:"usa_descuento_financiera"`
 	Observaciones          string                      `json:"observaciones" form:"observaciones"`
@@ -58,6 +60,7 @@ type VentaCreateFormRequest struct {
 	UsuarioID              string `form:"usuario_id"`
 	ClienteID              string `form:"cliente_id" binding:"required"`
 	FormaPagoID            string `form:"forma_pago_id" binding:"required"`
+	Transporte             string `form:"transporte"`
 	PrecioVenta            string `form:"precio_venta"`
 	Sena                   string `form:"sena"`
 	UsaDescuentoFinanciera string `form:"usa_descuento_financiera"`

@@ -11,18 +11,20 @@ type Cliente struct {
 	Direccion     string    `gorm:"type:varchar(255)" json:"direccion"`
 	Ciudad        string    `gorm:"type:varchar(100)" json:"ciudad"`
 	Provincia     string    `gorm:"type:varchar(100)" json:"provincia"`
+	CodigoPostal  string    `gorm:"type:varchar(20)" json:"codigo_postal"`
 	Pais          string    `gorm:"type:varchar(100)" json:"pais"`
 	FechaCreacion time.Time `gorm:"default:CURRENT_TIMESTAMP" json:"fecha_creacion"`
 }
 
 // Para crear un cliente nuevo
 type ClienteCreateRequest struct {
-	Nombre    string `json:"nombre" binding:"required"`
-	DNI       string `json:"dni"`
-	Telefono  string `json:"telefono"`
-	Email     string `json:"email"`
-	Direccion string `json:"direccion"`
-	Ciudad    string `json:"ciudad"`
-	Provincia string `json:"provincia"`
-	Pais      string `json:"pais"`
+	Nombre       string `json:"nombre" binding:"required"`
+	DNI          string `json:"dni"`
+	Telefono     string `json:"telefono"`
+	Email        string `json:"email"`
+	Direccion    string `json:"direccion"`
+	Ciudad       string `json:"ciudad"`
+	Provincia    string `json:"provincia"`
+	CodigoPostal string `json:"codigo_postal"`
+	Pais         string `json:"pais"`
 }
