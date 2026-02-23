@@ -14,7 +14,6 @@ interface RegistrarPagoModalProps {
   venta: IVenta | null;
 }
 
-
 export default function RegistrarPagoModal({ open, onClose, onSuccess, venta }: RegistrarPagoModalProps) {
   const { addNotification } = useNotification();
   const [nuevaSena, setNuevaSena] = useState<string>('');
@@ -36,32 +35,27 @@ export default function RegistrarPagoModal({ open, onClose, onSuccess, venta }: 
   const senaActual = venta.sena || 0;
   const precioVenta = venta.precio_venta || venta.total;
   const saldoPendiente = precioVenta - senaActual;
-  const nuevaSenaNum = parseFloat(nuevaSena) || 0;
-  const nuevoSaldo = precioVenta - nuevaSenaNum;
-  const montoPago = nuevaSenaNum - senaActual;
+  const pagoDeHoy = parseFloat(nuevaSena) || 0;
+  const nuevaSenaTotal = senaActual + pagoDeHoy;
+  const nuevoSaldo = precioVenta - nuevaSenaTotal;
 
   const handleSubmit = async () => {
     setError(null);
 
-    if (!nuevaSena || nuevaSenaNum <= 0) {
+    if (!nuevaSena || pagoDeHoy <= 0) {
       setError('Debe ingresar un monto válido');
       return;
     }
 
-    if (nuevaSenaNum <= senaActual) {
-      setError(`La nueva seña debe ser mayor a $${senaActual.toLocaleString('es-AR')}`);
-      return;
-    }
-
-    if (nuevaSenaNum > precioVenta) {
-      setError(`La seña no puede superar el precio de venta ($${precioVenta.toLocaleString('es-AR')})`);
+    if (nuevaSenaTotal > precioVenta) {
+      setError(`El pago supera el saldo pendiente ($${saldoPendiente.toLocaleString('es-AR')})`);
       return;
     }
 
     setLoading(true);
 
     try {
-      const result = await ventaService.updatePago(venta.id, nuevaSenaNum, comprobante || undefined);
+      const result = await ventaService.updatePago(venta.id, nuevaSenaTotal, comprobante || undefined);
 
       addNotification('Pago registrado exitosamente', 'success');
 
@@ -198,20 +192,20 @@ export default function RegistrarPagoModal({ open, onClose, onSuccess, venta }: 
           </Box>
         </Grid>
 
-        {/* Nueva Seña */}
+        {/* Pago de hoy */}
         <Grid size={{ xs: 12 }}>
           <Typography sx={{ fontSize: '12px', fontWeight: 600, color: '#374151', mb: 0.5 }}>
-            Nueva Seña Total *
+            Monto a Pagar Hoy *
           </Typography>
           <Typography sx={{ fontSize: '11px', color: '#6B7280', mb: 1 }}>
-            Ingrese el monto TOTAL pagado hasta ahora (incluyendo pagos anteriores)
+            Ingrese el monto que el cliente está pagando ahora
           </Typography>
           <TextField
             fullWidth
             type="number"
             value={nuevaSena}
             onChange={(e) => setNuevaSena(e.target.value)}
-            placeholder={`Mínimo: $${(senaActual + 1).toLocaleString('es-AR')}`}
+            placeholder={`Saldo pendiente: $${saldoPendiente.toLocaleString('es-AR')}`}
             required
             slotProps={{
               input: {
@@ -222,7 +216,7 @@ export default function RegistrarPagoModal({ open, onClose, onSuccess, venta }: 
         </Grid>
 
         {/* Vista previa del cálculo */}
-        {nuevaSenaNum > senaActual && nuevaSenaNum <= precioVenta && (
+        {pagoDeHoy > 0 && nuevaSenaTotal <= precioVenta && (
           <Grid size={{ xs: 12 }}>
             <Box sx={{
               p: 2,
@@ -247,14 +241,14 @@ export default function RegistrarPagoModal({ open, onClose, onSuccess, venta }: 
               <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
                 <Typography sx={{ fontSize: '12px', color: '#6B7280' }}>Monto de este pago:</Typography>
                 <Typography sx={{ fontSize: '13px', fontWeight: 600, color: '#059669' }}>
-                  + ${montoPago.toLocaleString('es-AR', { minimumFractionDigits: 2 })}
+                  + ${pagoDeHoy.toLocaleString('es-AR', { minimumFractionDigits: 2 })}
                 </Typography>
               </Box>
 
               <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
                 <Typography sx={{ fontSize: '12px', color: '#6B7280' }}>Nueva seña total:</Typography>
                 <Typography sx={{ fontSize: '13px', fontWeight: 600 }}>
-                  ${nuevaSenaNum.toLocaleString('es-AR', { minimumFractionDigits: 2 })}
+                  ${nuevaSenaTotal.toLocaleString('es-AR', { minimumFractionDigits: 2 })}
                 </Typography>
               </Box>
 
@@ -352,17 +346,6 @@ export default function RegistrarPagoModal({ open, onClose, onSuccess, venta }: 
               </IconButton>
             </Box>
           )}
-        </Grid>
-
-        {/* Advertencia */}
-        <Grid size={{ xs: 12 }}>
-          <Box sx={{ p: 1.5, bgcolor: '#FEF3C7', borderRadius: '6px', border: '1px solid #FCD34D' }}>
-            <Typography sx={{ fontSize: '11px', color: '#92400E' }}>
-              <i className="fa-solid fa-info-circle" style={{ marginRight: '6px' }} />
-              Recuerda: La seña es <strong>acumulativa</strong>. Debes ingresar el monto TOTAL pagado hasta ahora,
-              no solo el pago de hoy.
-            </Typography>
-          </Box>
         </Grid>
 
       </Grid>
