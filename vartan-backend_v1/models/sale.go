@@ -12,7 +12,7 @@ type Venta struct {
 	UsuarioID      int       `gorm:"not null" json:"usuario_id"`
 	ClienteID      int       `gorm:"not null" json:"cliente_id"`
 	FormaPagoID    int       `gorm:"not null" json:"forma_pago_id"`
-	Transporte     string    `gorm:"type:varchar(50" json:"transporte"`
+	Transporte     string    `gorm:"type:varchar(50)" json:"transporte"`
 	Costo          float64   `gorm:"type:decimal(10,2);not null" json:"costo"`
 	PrecioVenta    float64   `gorm:"type:decimal(10,2);not null" json:"precio_venta"`
 	Ganancia       float64   `gorm:"type:decimal(10,2);not null" json:"ganancia"`
