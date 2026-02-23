@@ -12,6 +12,7 @@ export interface IVenta {
     usuario_id: number;
     cliente_id: number;
     forma_pago_id: number;
+    transporte?: string;
     costo: number;
     precio_venta: number;
     ganancia: number;

@@ -7,6 +7,7 @@ export interface ICliente {
     direccion?: string;
     ciudad?: string;
     provincia?: string;
+    codigo_postal?: string
     pais?: string;
     fecha_creacion: string;
 }

@@ -3,6 +3,7 @@ export interface IVentaCreateRequest {
     usuario_id?: number;
     cliente_id: number;
     forma_pago_id: number;
+    transporte?: string;
     precio_venta: number;
     sena: number;
     usa_descuento_financiera?: boolean;

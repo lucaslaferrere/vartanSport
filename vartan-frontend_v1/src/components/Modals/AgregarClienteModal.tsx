@@ -24,6 +24,7 @@ export default function AgregarClienteModal({ open, onClose, onSuccess }: Agrega
     direccion: '',
     ciudad: '',
     provincia: '',
+    codigo_postal: '',
     pais: ''
   });
   const [loading, setLoading] = useState(false);
@@ -61,6 +62,7 @@ export default function AgregarClienteModal({ open, onClose, onSuccess }: Agrega
       direccion: '',
       ciudad: '',
       provincia: '',
+      codigo_postal: '',
       pais: ''
     });
     setError(null);
@@ -133,37 +135,39 @@ export default function AgregarClienteModal({ open, onClose, onSuccess }: Agrega
       />
 
       <Grid container spacing={2}>
-        <Grid size={{ xs: 12, sm: 4 }}>
-          <FormField
-            label="Ciudad"
-            placeholder="Ciudad"
-            value={formData.ciudad}
-            onChange={(value) => {
-              setFormData(prev => ({ ...prev, ciudad: capitalizeWords(value) }));
-            }}
-          />
-        </Grid>
-        <Grid size={{ xs: 12, sm: 4 }}>
-          <FormField
-            label="Provincia"
-            placeholder="Provincia"
-            value={formData.provincia}
-            onChange={(value) => {
-              setFormData(prev => ({ ...prev, provincia: capitalizeWords(value) }));
-            }}
-          />
-        </Grid>
-        <Grid size={{ xs: 12, sm: 4 }}>
-          <FormField
-            label="País"
-            placeholder="País"
-            value={formData.pais}
-            onChange={(value) => {
-              setFormData(prev => ({ ...prev, pais: capitalizeWords(value) }));
-            }}
-          />
-        </Grid>
-      </Grid>
+  <Grid size={{ xs: 12, sm: 3 }}>
+    <FormField
+      label="Ciudad"
+      placeholder="Ciudad"
+      value={formData.ciudad}
+      onChange={(value) => setFormData(prev => ({ ...prev, ciudad: capitalizeWords(value) }))}
+    />
+  </Grid>
+  <Grid size={{ xs: 12, sm: 3 }}>
+    <FormField
+      label="Provincia"
+      placeholder="Provincia"
+      value={formData.provincia}
+      onChange={(value) => setFormData(prev => ({ ...prev, provincia: capitalizeWords(value) }))}
+    />
+  </Grid>
+  <Grid size={{ xs: 12, sm: 3 }}>
+    <FormField
+      label="Código Postal"
+      placeholder="CP"
+      value={formData.codigo_postal}
+      onChange={(value) => setFormData(prev => ({ ...prev, codigo_postal: value }))}
+    />
+  </Grid>
+  <Grid size={{ xs: 12, sm: 3 }}>
+    <FormField
+      label="País"
+      placeholder="País"
+      value={formData.pais}
+      onChange={(value) => setFormData(prev => ({ ...prev, pais: capitalizeWords(value) }))}
+    />
+  </Grid>
+</Grid>
     </BaseModal>
   );
 }

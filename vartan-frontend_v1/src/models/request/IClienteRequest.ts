@@ -6,6 +6,7 @@ export interface IClienteCreateRequest {
     direccion?: string;
     ciudad?: string;
     provincia?: string;
+    codigo_postal?: string,
     pais?: string;
 }
 
@@ -17,5 +18,6 @@ export interface IClienteUpdateRequest {
     direccion?: string;
     ciudad?: string;
     provincia?: string;
+    codigo_postal?: string,
     pais?: string;
 }

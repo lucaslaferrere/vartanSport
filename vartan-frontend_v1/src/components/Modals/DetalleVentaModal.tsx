@@ -29,6 +29,113 @@ const handleVerComprobante = () => {
   }
 };
 
+const handleImprimirEtiqueta = () => {
+  const cliente = venta.cliente;
+  const contenido = `
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <meta charset="UTF-8" />
+        <title>Etiqueta de Envío</title>
+        <style>
+          * { margin: 0; padding: 0; box-sizing: border-box; }
+          body {
+            font-family: Arial, sans-serif;
+            width: 15cm;
+            height: 10cm;
+            padding: 0.5cm;
+          }
+          .etiqueta {
+            border: 2px solid #000;
+            padding: 10px;
+            width: 100%;
+          }
+          .header {
+            text-align: center;
+            font-size: 14px;
+            font-weight: bold;
+            letter-spacing: 2px;
+            border-bottom: 1px solid #000;
+            padding-bottom: 6px;
+            margin-bottom: 8px;
+          }
+          .campo { margin-bottom: 4px; font-size: 12px; }
+          .label { font-weight: bold; font-size: 10px; color: #555; display: block; }
+          .valor { font-size: 13px; }
+          .divider { border-top: 1px dashed #999; margin: 8px 0; }
+          .transporte {
+            text-align: center;
+            font-size: 15px;
+            font-weight: bold;
+            border: 1px solid #000;
+            padding: 5px;
+            margin-top: 8px;
+            border-radius: 4px;
+          }
+          .pedido {
+            text-align: right;
+            font-size: 10px;
+            color: #888;
+            margin-top: 6px;
+          }
+          @media print {
+            body { margin: 0; }
+            @page { margin: 0; size: 150cm 100mm; }
+          }
+        </style>
+      </head>
+      <body>
+        <div class="etiqueta">
+          <div class="header">VARTAN SPORTS</div>
+
+          <div class="campo">
+            <span class="label">DESTINATARIO</span>
+            <span class="valor">${cliente?.nombre || '-'}</span>
+          </div>
+          <div class="campo">
+            <span class="label">DNI</span>
+            <span class="valor">${cliente?.dni || '-'}</span>
+          </div>
+          <div class="campo">
+            <span class="label">TELÉFONO</span>
+            <span class="valor">${cliente?.telefono || '-'}</span>
+          </div>
+
+          <div class="divider"></div>
+
+          <div class="campo">
+            <span class="label">DIRECCIÓN</span>
+            <span class="valor">${cliente?.direccion || '-'}</span>
+          </div>
+          <div class="campo">
+            <span class="label">LOCALIDAD</span>
+            <span class="valor">${cliente?.ciudad || '-'}</span>
+          </div>
+          <div class="campo">
+            <span class="label">PROVINCIA</span>
+            <span class="valor">${cliente?.provincia || '-'}</span>
+          </div>
+          <div class="campo">
+            <span class="label">CÓDIGO POSTAL</span>
+            <span class="valor">${cliente?.codigo_postal || '-'}</span>
+          </div>
+
+          <div class="transporte">
+            🚚 ${venta.transporte || 'Sin transporte especificado'}
+          </div>
+
+          <div class="pedido">Pedido #${venta.id}</div>
+        </div>
+        <script>window.onload = () => { window.print(); window.onafterprint = () => window.close(); }</script>
+      </body>
+    </html>
+  `;
+
+  const ventana = window.open('', '_blank', 'width=600,height=420');
+  ventana?.document.write(contenido);
+  ventana?.document.close();
+};
+
   return (
     <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth PaperProps={{ sx: { borderRadius: '12px' } }}>
       <DialogTitle sx={{ pb: 2, borderBottom: '1px solid #E5E7EB' }}>
@@ -190,6 +297,25 @@ const handleVerComprobante = () => {
       </DialogContent>
 
       <DialogActions sx={{ p: 2, borderTop: '1px solid #E5E7EB' }}>
+        
+          <button
+            onClick={handleImprimirEtiqueta}
+            style={{
+        padding: '6px 14px',
+        fontSize: '12px',
+        fontWeight: 500,
+        color: '#fff',
+        backgroundColor: '#2563EB',
+        border: 'none',
+        borderRadius: '6px',
+        cursor: 'pointer',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '6px'
+    }}
+  >
+    <i className="fa-solid fa-print" /> Imprimir Etiqueta
+  </button>
         <button onClick={onClose} style={{ padding: '6px 14px', fontSize: '12px', fontWeight: 500, color: '#6B7280', backgroundColor: 'transparent', border: 'none', borderRadius: '6px', cursor: 'pointer' }}>
           Cerrar
         </button>

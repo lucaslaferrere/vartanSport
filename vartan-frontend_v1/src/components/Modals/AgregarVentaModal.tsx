@@ -26,6 +26,7 @@ interface AgregarVentaModalProps {
 export default function AgregarVentaModal({ open, onClose, onSuccess }: AgregarVentaModalProps) {
   const { addNotification } = useNotification();
   const [clientes, setClientes] = useState<ICliente[]>([]);
+  const [transporte, setTransporte] = useState<string>('');
   const [productos, setProductos] = useState<IProducto[]>([]);
   const [clienteId, setClienteId] = useState<number | null>(null);
   const [formaPagoId, setFormaPagoId] = useState<number>(1);
@@ -177,6 +178,7 @@ export default function AgregarVentaModal({ open, onClose, onSuccess }: AgregarV
       const ventaData: IVentaCreateRequest = {
         cliente_id: Number(clienteId),
         forma_pago_id: Number(formaPagoId),
+        transporte: transporte || undefined,  //AGREGO TRANSPORTE
         precio_venta: parseFloat(precioVenta), // NUEVO
         sena: senaNumero,
         usa_descuento_financiera: usaDescuentoFinanciera, // NUEVO
@@ -209,6 +211,7 @@ export default function AgregarVentaModal({ open, onClose, onSuccess }: AgregarV
     setClienteId(null);
     setFormaPagoId(1);
     setPrecioVenta('');
+    setTransporte('');
     setSena('0');
     setUsaDescuentoFinanciera(false);
     setObservaciones('');
@@ -492,6 +495,31 @@ export default function AgregarVentaModal({ open, onClose, onSuccess }: AgregarV
               {formasPago.map(fp => <option key={fp.id} value={fp.id}>{fp.nombre}</option>)}
             </select>
           </Grid>
+
+          {/* Transporte */}
+<Grid size={{ xs: 12, sm: 6 }}>
+  <Typography sx={{ fontSize: '12px', fontWeight: 600, color: '#374151', mb: 0.5 }}>Transporte</Typography>
+  <select
+      value={transporte}
+      onChange={(e) => setTransporte(e.target.value)}
+      style={{
+        width: '100%',
+        padding: '8px 10px',
+        fontSize: '13px',
+        border: '1px solid #D1D5DB',
+        borderRadius: '6px',
+        backgroundColor: 'white',
+        outline: 'none'
+      }}
+  >
+    <option value="">Sin especificar</option>
+    <option value="Correo Argentino">Correo Argentino</option>
+    <option value="Viacargo">Viacargo</option>
+    <option value="Moto">Moto</option>
+    <option value="Retira">Retira</option>
+  </select>
+</Grid>
+          
 
           {/* Seña */}
           <Grid size={{ xs: 12, sm: 6 }}>

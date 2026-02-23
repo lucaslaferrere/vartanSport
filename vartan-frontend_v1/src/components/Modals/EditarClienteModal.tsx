@@ -21,11 +21,13 @@ export default function EditarClienteModal({ open, onClose, onSuccess, cliente }
   const { addNotification } = useNotification();
   const [formData, setFormData] = useState<IClienteUpdateRequest>({
     nombre: '',
+    dni: '',
     email: '',
     telefono: '',
     direccion: '',
     ciudad: '',
     provincia: '',
+    codigo_postal: '',
     pais: ''
   });
   const [loading, setLoading] = useState(false);
@@ -35,11 +37,13 @@ export default function EditarClienteModal({ open, onClose, onSuccess, cliente }
     if (cliente && open) {
       setFormData({
         nombre: cliente.nombre,
+        dni: cliente.dni || '',
         email: cliente.email || '',
         telefono: cliente.telefono || '',
         direccion: cliente.direccion || '',
         ciudad: cliente.ciudad || '',
         provincia: cliente.provincia || '',
+        codigo_postal: cliente.codigo_postal || '',
         pais: cliente.pais || ''
       });
     }
@@ -76,11 +80,13 @@ export default function EditarClienteModal({ open, onClose, onSuccess, cliente }
   const handleClose = () => {
     setFormData({
       nombre: '',
+      dni: '',
       email: '',
       telefono: '',
       direccion: '',
       ciudad: '',
       provincia: '',
+      codigo_postal: '',
       pais: ''
     });
     setError(null);
@@ -110,6 +116,12 @@ export default function EditarClienteModal({ open, onClose, onSuccess, cliente }
         }}
         error={!!error && !formData.nombre.trim()}
       />
+      <FormField
+        label="DNI"
+        placeholder="Ingrese el DNI del cliente"
+        value={formData.dni || ''}
+        onChange={(value) => setFormData(prev => ({ ...prev, dni: value }))}
+  />
 
       <Grid container spacing={2}>
         <Grid size={{ xs: 12, sm: 6 }}>
@@ -145,38 +157,41 @@ export default function EditarClienteModal({ open, onClose, onSuccess, cliente }
         }}
       />
 
-      <Grid container spacing={2}>
-        <Grid size={{ xs: 12, sm: 4 }}>
-          <FormField
-            label="Ciudad"
-            placeholder="Ciudad"
-            value={formData.ciudad}
-            onChange={(value) => {
-              setFormData(prev => ({ ...prev, ciudad: capitalizeWords(value) }));
-            }}
-          />
-        </Grid>
-        <Grid size={{ xs: 12, sm: 4 }}>
-          <FormField
-            label="Provincia"
-            placeholder="Provincia"
-            value={formData.provincia}
-            onChange={(value) => {
-              setFormData(prev => ({ ...prev, provincia: capitalizeWords(value) }));
-            }}
-          />
-        </Grid>
-        <Grid size={{ xs: 12, sm: 4 }}>
-          <FormField
-            label="País"
-            placeholder="País"
-            value={formData.pais}
-            onChange={(value) => {
-              setFormData(prev => ({ ...prev, pais: capitalizeWords(value) }));
-            }}
-          />
-        </Grid>
-      </Grid>
+      {/* Grid Ciudad/Provincia/CP/País */}
+<Grid container spacing={2}>
+  <Grid size={{ xs: 12, sm: 3 }}>
+    <FormField
+      label="Ciudad"
+      placeholder="Ciudad"
+      value={formData.ciudad}
+      onChange={(value) => setFormData(prev => ({ ...prev, ciudad: capitalizeWords(value) }))}
+    />
+  </Grid>
+  <Grid size={{ xs: 12, sm: 3 }}>
+    <FormField
+      label="Provincia"
+      placeholder="Provincia"
+      value={formData.provincia}
+      onChange={(value) => setFormData(prev => ({ ...prev, provincia: capitalizeWords(value) }))}
+    />
+  </Grid>
+  <Grid size={{ xs: 12, sm: 3 }}>
+    <FormField
+      label="Código Postal"
+      placeholder="CP"
+      value={formData.codigo_postal || ''}
+      onChange={(value) => setFormData(prev => ({ ...prev, codigo_postal: value }))}
+    />
+  </Grid>
+  <Grid size={{ xs: 12, sm: 3 }}>
+    <FormField
+      label="País"
+      placeholder="País"
+      value={formData.pais}
+      onChange={(value) => setFormData(prev => ({ ...prev, pais: capitalizeWords(value) }))}
+    />
+  </Grid>
+</Grid>
     </BaseModal>
   );
 }
