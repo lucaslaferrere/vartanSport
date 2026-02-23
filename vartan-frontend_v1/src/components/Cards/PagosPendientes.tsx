@@ -62,7 +62,7 @@ export default function PagosPendientes() {
         <Table size="small">
           <TableHead>
             <TableRow>
-              {['Cliente', 'Seña', 'Saldo', 'Total', 'Vendedor'].map(h => (
+              {['Cliente', 'Seña', 'Deuda', 'Total', 'Vendedor'].map(h => (
                 <TableCell key={h} sx={{ fontSize: '11px', fontWeight: 600, color: '#9CA3AF', textTransform: 'uppercase', borderBottom: '1px solid #F3F4F6' }}>
                   {h}
                 </TableCell>
