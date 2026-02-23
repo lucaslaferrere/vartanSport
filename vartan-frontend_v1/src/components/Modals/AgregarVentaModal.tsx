@@ -481,7 +481,11 @@ export default function AgregarVentaModal({ open, onClose, onSuccess }: AgregarV
             <Typography sx={{ fontSize: '12px', fontWeight: 600, color: '#374151', mb: 0.5 }}>Forma de Pago</Typography>
             <select
                 value={formaPagoId}
-                onChange={(e) => setFormaPagoId(Number(e.target.value))}
+                onChange={(e) => {
+                  const id = Number(e.target.value);
+                  setFormaPagoId(id);
+                  setUsaDescuentoFinanciera(id === 1); // automático
+                  }}
                 style={{
                   width: '100%',
                   padding: '8px 10px',
@@ -681,21 +685,13 @@ export default function AgregarVentaModal({ open, onClose, onSuccess }: AgregarV
 
               {/* Checkbox Descuento Financiera - Solo si es Transferencia Financiera */}
               {formaPagoId === 1 && (
-                <FormControlLabel
-                  control={
-                    <Checkbox
-                      checked={usaDescuentoFinanciera}
-                      onChange={(e) => setUsaDescuentoFinanciera(e.target.checked)}
-                      size="small"
-                    />
-                  }
-                  label={
-                    <Typography sx={{ fontSize: '12px', color: '#6B7280' }}>
-                      Aplicar comisión financiera (3%)
-                    </Typography>
-                  }
-                />
-              )}
+         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.5 }}>
+         <i className="fa-solid fa-circle-info" style={{ color: '#D97706', fontSize: '12px' }} />
+    <Typography sx={{ fontSize: '12px', color: '#D97706', fontWeight: 500 }}>
+      Comisión financiera (3%) aplicada automáticamente
+    </Typography>
+           </Box>
+          )}
             </Box>
           </Grid>
 

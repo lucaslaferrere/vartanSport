@@ -118,11 +118,12 @@ export const ventaService = {
     delete: async (ventaId: number): Promise<void> => {
         await api.delete(`/api/ventas/${ventaId}`);
     },
+        // Agrego Pagos Pendientes
+        getPendientes: async (): Promise<IVenta[]> => {
+        const response = await api.get<IVenta[]>('/api/ventas/pendientes');
+        return response.data;
+    },
 };
-
-
-
-
 
 
 

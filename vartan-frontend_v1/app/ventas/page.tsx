@@ -18,6 +18,7 @@ import { IVenta } from '@models/entities/ventaEntity';
 import { useAuthStore } from '@libraries/store';
 import { useMounted } from '@hooks/useMounted';
 import { useNotification } from '@components/Notifications';
+import PagosPendientes from '@components/Cards/PagosPendientes';
 
 interface IVentaDisplay {
   id: number;
@@ -339,6 +340,10 @@ export default function VentasPage() {
             <StatCard title="Total del Mes" value={formatCurrency(stats.totalMes)} icon="fa-solid fa-chart-line" />
           </Grid>
         </Grid>
+
+        <Box sx={{ mb: 4 }}>
+          <PagosPendientes />
+        </Box>
 
         {/* Tabla con filtros */}
         <TableClientSide
