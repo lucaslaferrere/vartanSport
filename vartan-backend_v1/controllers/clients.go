@@ -74,6 +74,7 @@ func CreateCliente(c *gin.Context) {
 
 	cliente := models.Cliente{
 		Nombre:    req.Nombre,
+		DNI:       req.DNI,
 		Telefono:  req.Telefono,
 		Email:     req.Email,
 		Direccion: req.Direccion,
@@ -120,6 +121,7 @@ func UpdateCliente(c *gin.Context) {
 	}
 
 	cliente.Nombre = req.Nombre
+	cliente.DNI = req.DNI
 	cliente.Telefono = req.Telefono
 	cliente.Email = req.Email
 	cliente.Direccion = req.Direccion
