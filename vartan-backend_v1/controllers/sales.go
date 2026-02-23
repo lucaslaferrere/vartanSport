@@ -34,6 +34,34 @@ import (
 // @Failure 400 {object} map[string]string "Datos inválidos o stock insuficiente"
 // @Failure 500 {object} map[string]string "Error interno"
 // @Router /api/ventas [post]
+
+func GetPagosPendientes(c *gin.Context) {
+	userID := c.GetInt("user_id")
+	userRol := c.GetString("user_rol") // asumiendo que tu middleware lo setea
+
+	query := config.DB.
+		Where("saldo > 0").
+		Preload("Usuario").
+		Preload("Cliente").
+		Preload("FormaPago").
+		Preload("Detalles").
+		Preload("Detalles.Producto").
+		Order("fecha_venta DESC")
+
+	// Empleado solo ve los suyos; dueño ve todos
+	if userRol != "dueño" {
+		query = query.Where("usuario_id = ?", userID)
+	}
+
+	var ventas []models.Venta
+	if err := query.Find(&ventas).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error al obtener pagos pendientes"})
+		return
+	}
+
+	c.JSON(http.StatusOK, ventas)
+}
+
 func CreateVenta(c *gin.Context) {
 	contentType := c.ContentType()
 
