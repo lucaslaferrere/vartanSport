@@ -9,7 +9,11 @@ import { ventaService } from '@services/venta.service';
 import { IVenta } from '@models/entities/ventaEntity';
 import { colors } from '@/src/theme/colors';
 
-export default function PagosPendientes() {
+interface PagosPendientesProps {
+  onRefresh?: (fn: () => void) => void;
+}
+
+export default function PagosPendientes({ onRefresh }: PagosPendientesProps) {
   const [pendientes, setPendientes] = useState<IVenta[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -25,6 +29,11 @@ export default function PagosPendientes() {
   }, []);
 
   useEffect(() => { fetchPendientes(); }, [fetchPendientes]);
+  useEffect(() => {
+  if (onRefresh) {
+    onRefresh(fetchPendientes);
+  }
+}, [onRefresh, fetchPendientes]);
 
   const totalPendiente = pendientes.reduce((acc, v) => acc + v.saldo, 0);
   const fmt = (n: number) => '$' + n.toLocaleString('es-AR');

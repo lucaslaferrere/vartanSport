@@ -14,6 +14,7 @@ interface RegistrarPagoModalProps {
   venta: IVenta | null;
 }
 
+
 export default function RegistrarPagoModal({ open, onClose, onSuccess, venta }: RegistrarPagoModalProps) {
   const { addNotification } = useNotification();
   const [nuevaSena, setNuevaSena] = useState<string>('');

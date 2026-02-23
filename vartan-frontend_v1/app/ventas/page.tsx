@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { Box, Typography, Chip, Grid, CircularProgress } from '@mui/material';
 import { ColumnDef } from '@tanstack/react-table';
 import TableClientSide from '@components/Tables/TableClientSide';
@@ -11,6 +11,7 @@ import DetalleVentaModal from '@components/Modals/DetalleVentaModal';
 import EditarVentaModal from '@components/Modals/EditarVentaModal';
 import RegistrarPagoModal from '@components/Modals/RegistrarPagoModal';
 import ConfirmModal from '@components/Modals/ConfirmModal';
+import PagosPendientes from '@components/Cards/PagosPendientes';
 import { TableFilterType } from '@components/Tables/Filters/TableFilterType';
 import { colors } from '@/src/theme/colors';
 import { ventaService } from '@services/venta.service';
@@ -18,7 +19,6 @@ import { IVenta } from '@models/entities/ventaEntity';
 import { useAuthStore } from '@libraries/store';
 import { useMounted } from '@hooks/useMounted';
 import { useNotification } from '@components/Notifications';
-import PagosPendientes from '@components/Cards/PagosPendientes';
 
 interface IVentaDisplay {
   id: number;
@@ -64,6 +64,9 @@ export default function VentasPage() {
   const [eliminarVentaModalOpen, setEliminarVentaModalOpen] = useState(false);
   const [ventaSeleccionada, setVentaSeleccionada] = useState<IVenta | null>(null);
   const { user } = useAuthStore();
+
+  // Ref para refrescar PagosPendientes desde afuera
+  const refreshPendientes = useRef<() => void>(() => {});
 
   const transformVenta = (venta: IVenta): IVentaDisplay => {
     const primerDetalle = venta.detalles?.[0];
@@ -341,8 +344,9 @@ export default function VentasPage() {
           </Grid>
         </Grid>
 
+        {/* Pagos Pendientes */}
         <Box sx={{ mb: 4 }}>
-          <PagosPendientes />
+          <PagosPendientes onRefresh={(fn) => { refreshPendientes.current = fn; }} />
         </Box>
 
         {/* Tabla con filtros */}
@@ -390,6 +394,7 @@ export default function VentasPage() {
           onClose={() => setRegistrarPagoModalOpen(false)}
           onSuccess={(ventaActualizada) => {
             fetchVentas();
+            refreshPendientes.current(); // Refresca la lista de pagos pendientes
             setRegistrarPagoModalOpen(false);
             setVentaSeleccionada(ventaActualizada);
           }}
