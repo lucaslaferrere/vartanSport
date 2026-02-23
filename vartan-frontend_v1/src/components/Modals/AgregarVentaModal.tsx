@@ -31,7 +31,7 @@ export default function AgregarVentaModal({ open, onClose, onSuccess }: AgregarV
   const [clienteId, setClienteId] = useState<number | null>(null);
   const [formaPagoId, setFormaPagoId] = useState<number>(1);
   const [precioVenta, setPrecioVenta] = useState<string>(''); // NUEVO
-  const [sena, setSena] = useState<string>('0');
+  const [sena, setSena] = useState<string>('');
   const [usaDescuentoFinanciera, setUsaDescuentoFinanciera] = useState(false); // NUEVO
   const [observaciones, setObservaciones] = useState('');
   const [comprobante, setComprobante] = useState<File | null>(null);
@@ -212,7 +212,7 @@ export default function AgregarVentaModal({ open, onClose, onSuccess }: AgregarV
     setFormaPagoId(1);
     setPrecioVenta('');
     setTransporte('');
-    setSena('0');
+    setSena('');
     setUsaDescuentoFinanciera(false);
     setObservaciones('');
     setComprobante(null);
@@ -523,18 +523,17 @@ export default function AgregarVentaModal({ open, onClose, onSuccess }: AgregarV
     <option value="Retira">Retira</option>
   </select>
 </Grid>
-          
-
           {/* Seña */}
           <Grid size={{ xs: 12, sm: 6 }}>
             <Typography sx={{ fontSize: '12px', fontWeight: 600, color: '#374151', mb: 0.5 }}>Seña</Typography>
             <input
-                type="number"
+                type="text"
+                inputMode="numeric"
                 placeholder="$0"
                 value={sena}
                 onChange={(e) => {
-                  const value = e.target.value;
-                  setSena(value === '' ? '0' : value);
+                  const value = e.target.value.replace(/[^0-9]/g, '');
+                  setSena(value);
                 }}
                 style={{
                   width: '100%',
