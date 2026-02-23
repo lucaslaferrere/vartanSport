@@ -100,6 +100,10 @@ export default function DetalleVentaModal({ open, onClose, venta }: DetalleVenta
               <span class="label">TELÉFONO</span>
               <span class="valor">${cliente?.telefono || '-'}</span>
             </div>
+            <div class="campo">
+              <span class="label">EMAIL</span>
+              <span class="valor">${cliente?.email || '-'}</span>
+            </div>
 
             <div class="divider"></div>
 
@@ -319,6 +323,10 @@ export default function DetalleVentaModal({ open, onClose, venta }: DetalleVenta
             <Box sx={{ mb: 0.5 }}>
               <Typography sx={{ fontSize: '9px', color: '#555', fontWeight: 700 }}>TELÉFONO</Typography>
               <Typography sx={{ fontSize: '12px' }}>{venta.cliente?.telefono || '-'}</Typography>
+            </Box>
+            <Box sx={{ mb: 0.5 }}>
+              <Typography sx={{ fontSize: '9px', color: '#555', fontWeight: 700 }}>EMAIL</Typography>
+              <Typography sx={{ fontSize: '12px' }}>{venta.cliente?.email || '-'}</Typography>
             </Box>
 
             <Divider sx={{ borderStyle: 'dashed', my: 1 }} />
