@@ -37,7 +37,7 @@ import (
 
 func GetPagosPendientes(c *gin.Context) {
 	userID := c.GetInt("user_id")
-	userRol := c.GetString("user_rol") // asumiendo que tu middleware lo setea
+	userRol := c.GetString("user_rol")
 
 	query := config.DB.
 		Where("saldo > 0").
@@ -48,7 +48,6 @@ func GetPagosPendientes(c *gin.Context) {
 		Preload("Detalles.Producto").
 		Order("fecha_venta DESC")
 
-	// Empleado solo ve los suyos; dueño ve todos
 	if userRol != "dueño" {
 		query = query.Where("usuario_id = ?", userID)
 	}
@@ -65,7 +64,6 @@ func GetPagosPendientes(c *gin.Context) {
 func CreateVenta(c *gin.Context) {
 	contentType := c.ContentType()
 
-	// Si es JSON, procesar como JSON
 	if strings.Contains(contentType, "application/json") {
 		var jsonReq models.VentaCreateRequest
 		if err := c.ShouldBindJSON(&jsonReq); err != nil {
@@ -76,7 +74,6 @@ func CreateVenta(c *gin.Context) {
 		return
 	}
 
-	// Si es multipart/form-data, procesar con archivo
 	if strings.Contains(contentType, "multipart/form-data") {
 		var formReq models.VentaCreateFormRequest
 		if err := c.ShouldBind(&formReq); err != nil {
@@ -84,18 +81,15 @@ func CreateVenta(c *gin.Context) {
 			return
 		}
 
-		// Parsear detalles desde JSON string
 		var detalles []models.VentaDetalleCreateRequest
 		if err := json.Unmarshal([]byte(formReq.Detalles), &detalles); err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "Formato de detalles inválido: " + err.Error()})
 			return
 		}
 
-		// Manejar el archivo comprobante
 		var comprobanteURL *string
 		file, err := c.FormFile("comprobante")
 		if err == nil && file != nil {
-			// Validar extensión
 			ext := strings.ToLower(filepath.Ext(file.Filename))
 			allowedExts := map[string]bool{".pdf": true, ".jpg": true, ".jpeg": true, ".png": true}
 			if !allowedExts[ext] {
@@ -103,20 +97,15 @@ func CreateVenta(c *gin.Context) {
 				return
 			}
 
-			// Validar tamaño (máximo 5MB)
 			if file.Size > 5*1024*1024 {
 				c.JSON(http.StatusBadRequest, gin.H{"error": "El archivo no puede superar los 5MB"})
 				return
 			}
 
-			// Usar directorio existente (ya creado por el volumen)
 			uploadDir := "uploads/comprobantes"
-
-			// Generar nombre único
 			filename := fmt.Sprintf("comprobante_%d%s", time.Now().UnixNano(), ext)
 			filePath := filepath.Join(uploadDir, filename)
 
-			// Guardar archivo sin chmod (compatible con Windows/volumenes NTFS)
 			src, err := file.Open()
 			if err != nil {
 				c.JSON(http.StatusInternalServerError, gin.H{"error": "Error abriendo comprobante: " + err.Error()})
@@ -141,7 +130,6 @@ func CreateVenta(c *gin.Context) {
 			comprobanteURL = &filePath
 		}
 
-		// Convertir los valores de string a los tipos correctos
 		var usuarioID *int
 		if formReq.UsuarioID != "" {
 			id, err := strconv.Atoi(formReq.UsuarioID)
@@ -189,16 +177,12 @@ func CreateVenta(c *gin.Context) {
 		return
 	}
 
-	// Content-Type no soportado
 	c.JSON(http.StatusBadRequest, gin.H{"error": "Content-Type no soportado. Use application/json o multipart/form-data"})
 }
 
-// processVenta procesa la creación de la venta
 func processVenta(c *gin.Context, usuarioID *int, clienteID int, formaPagoID int, transporte string, precioVenta float64, sena float64, usaDescuentoFinanciera bool, observaciones string, detalles []models.VentaDetalleCreateRequest, comprobanteURL *string) {
-	// Determinar el vendedor que realiza la venta
 	var vendedorID int
 	if usuarioID != nil && *usuarioID > 0 {
-		// Verificar que el usuario existe y es un vendedor
 		var usuario models.Usuario
 		if err := config.DB.First(&usuario, *usuarioID).Error; err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "Usuario vendedor no encontrado"})
@@ -210,30 +194,24 @@ func processVenta(c *gin.Context, usuarioID *int, clienteID int, formaPagoID int
 		}
 		vendedorID = *usuarioID
 	} else {
-		// Si no se especifica, usar el usuario autenticado
 		vendedorID = c.GetInt("user_id")
 	}
 
-	// Calcular el costo total (suma de precio_unitario * cantidad de productos)
 	var costo float64
 	for _, detalle := range detalles {
 		costo += detalle.PrecioUnitario * float64(detalle.Cantidad)
 	}
 
-	// Si no viene precio_venta, usar el costo (retrocompatibilidad)
 	if precioVenta == 0 {
 		precioVenta = costo
 	}
 
-	// Total = PrecioVenta (para mantener compatibilidad)
 	total := precioVenta
 
-	// Calcular el saldo (lo que resta pagar después de la seña)
 	senaValue := float64(0)
 	if sena > 0 {
 		senaValue = sena
 	}
-	saldo := total - senaValue
 
 	var descuento float64
 	var formaPago models.FormaPago
@@ -244,16 +222,19 @@ func processVenta(c *gin.Context, usuarioID *int, clienteID int, formaPagoID int
 		return
 	}
 
-	// Solo aplicar descuento si el usuario marca el checkbox
+	// Calcular saldo sin descuento primero
+	saldoSinDescuento := total - senaValue
+
+	// Aplicar descuento sobre el saldo pendiente
 	if usaDescuentoFinanciera && formaPago.Nombre == "Transferencia Financiera" {
-		descuento = saldo * 0.03
+		descuento = saldoSinDescuento * 0.03
 		usaFinanciera = true
 	}
 
-	// Total final = Total - Descuento
+	// Total final y saldo final con descuento aplicado
 	totalFinal := total - descuento
+	saldo := saldoSinDescuento - descuento
 
-	// Ganancia = TotalFinal - Costo
 	ganancia := totalFinal - costo
 
 	var obs *string
@@ -270,7 +251,6 @@ func processVenta(c *gin.Context, usuarioID *int, clienteID int, formaPagoID int
 		}
 	}()
 
-	// Crear la venta
 	venta := models.Venta{
 		UsuarioID:      vendedorID,
 		ClienteID:      clienteID,
@@ -313,7 +293,6 @@ func processVenta(c *gin.Context, usuarioID *int, clienteID int, formaPagoID int
 			return
 		}
 
-		// Descontar del stock
 		var stock models.ProductoStock
 		if err := tx.Where("producto_id = ? AND talle = ?", detalleReq.ProductoID, detalleReq.Talle).First(&stock).Error; err != nil {
 			tx.Rollback()
@@ -335,7 +314,6 @@ func processVenta(c *gin.Context, usuarioID *int, clienteID int, formaPagoID int
 		}
 	}
 
-	// Crear el pedido automáticamente
 	pedido := models.Pedido{
 		VentaID: venta.ID,
 		Estado:  "pendiente",
@@ -347,13 +325,11 @@ func processVenta(c *gin.Context, usuarioID *int, clienteID int, formaPagoID int
 		return
 	}
 
-	// Commit de la transacción
 	if err := tx.Commit().Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error al confirmar venta"})
 		return
 	}
 
-	// Cargar la venta con todas sus relaciones
 	config.DB.
 		Preload("Usuario").
 		Preload("Cliente").
@@ -476,7 +452,6 @@ func GetVentaComprobante(c *gin.Context) {
 		return
 	}
 
-	// Verificar que el archivo existe
 	if _, err := os.Stat(*venta.ComprobanteURL); os.IsNotExist(err) {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Archivo de comprobante no encontrado"})
 		return
@@ -509,13 +484,11 @@ func DeleteVentaComprobante(c *gin.Context) {
 		return
 	}
 
-	// Eliminar archivo
 	if err := os.Remove(*venta.ComprobanteURL); err != nil && !os.IsNotExist(err) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error al eliminar archivo"})
 		return
 	}
 
-	// Actualizar venta
 	venta.ComprobanteURL = nil
 	if err := config.DB.Save(&venta).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error al actualizar venta"})
@@ -554,9 +527,7 @@ func UpdateVenta(c *gin.Context) {
 		return
 	}
 
-	// Actualizar campos si fueron enviados
 	if req.UsuarioID != nil {
-		// Verificar que el usuario existe y es un vendedor
 		var usuario models.Usuario
 		if err := config.DB.First(&usuario, *req.UsuarioID).Error; err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "Usuario vendedor no encontrado"})
@@ -570,7 +541,6 @@ func UpdateVenta(c *gin.Context) {
 	}
 
 	if req.ClienteID != nil {
-		// Verificar que el cliente existe
 		var cliente models.Cliente
 		if err := config.DB.First(&cliente, *req.ClienteID).Error; err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "Cliente no encontrado"})
@@ -587,21 +557,21 @@ func UpdateVenta(c *gin.Context) {
 		}
 		venta.FormaPagoID = *req.FormaPagoID
 
-		// Recalcular saldo
 		senaValue := float64(0)
 		if venta.Sena != nil {
 			senaValue = *venta.Sena
 		}
-		venta.Saldo = venta.PrecioVenta - senaValue
 
-		// Recalcular descuento basado en forma de pago y usa_financiera
+		saldoSinDescuento := venta.PrecioVenta - senaValue
+
 		if venta.UsaFinanciera && formaPago.Nombre == "Transferencia Financiera" {
-			venta.Descuento = venta.Saldo * 0.03
+			venta.Descuento = saldoSinDescuento * 0.03
 		} else {
 			venta.Descuento = 0
 			venta.UsaFinanciera = false
 		}
 		venta.TotalFinal = venta.PrecioVenta - venta.Descuento
+		venta.Saldo = saldoSinDescuento - venta.Descuento
 		venta.Total = venta.PrecioVenta
 	}
 
@@ -612,13 +582,14 @@ func UpdateVenta(c *gin.Context) {
 		if venta.Sena != nil {
 			senaValue = *venta.Sena
 		}
-		venta.Saldo = venta.PrecioVenta - senaValue
 
-		// Recalcular descuento con el nuevo saldo
+		saldoSinDescuento := venta.PrecioVenta - senaValue
+
 		if venta.UsaFinanciera {
-			venta.Descuento = venta.Saldo * 0.03
+			venta.Descuento = saldoSinDescuento * 0.03
 		}
 		venta.TotalFinal = venta.PrecioVenta - venta.Descuento
+		venta.Saldo = saldoSinDescuento - venta.Descuento
 		venta.Total = venta.PrecioVenta
 	}
 
@@ -626,13 +597,11 @@ func UpdateVenta(c *gin.Context) {
 		venta.Observaciones = req.Observaciones
 	}
 
-	// Guardar cambios
 	if err := config.DB.Save(&venta).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error al actualizar venta"})
 		return
 	}
 
-	// Cargar la venta con todas sus relaciones
 	config.DB.
 		Preload("Usuario").
 		Preload("Cliente").
@@ -668,7 +637,6 @@ func UpdateVentaPago(c *gin.Context) {
 		return
 	}
 
-	// Obtener nueva seña del formulario
 	senaStr := c.PostForm("sena")
 	if senaStr == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "El campo 'sena' es requerido"})
@@ -681,7 +649,6 @@ func UpdateVentaPago(c *gin.Context) {
 		return
 	}
 
-	// Validar que la nueva seña no supere el precio de venta
 	if nuevaSena > venta.PrecioVenta {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error":        "La seña no puede superar el precio de venta",
@@ -694,19 +661,20 @@ func UpdateVentaPago(c *gin.Context) {
 	// Actualizar seña
 	venta.Sena = &nuevaSena
 
-	// Recalcular saldo
-	venta.Saldo = venta.PrecioVenta - nuevaSena
+	// Calcular saldo sin descuento primero
+	saldoSinDescuento := venta.PrecioVenta - nuevaSena
 
-	// Recalcular descuento si usa financiera
+	// Aplicar descuento sobre el saldo pendiente
 	if venta.UsaFinanciera {
-		venta.Descuento = venta.Saldo * 0.03
+		venta.Descuento = saldoSinDescuento * 0.03
 	}
-	venta.TotalFinal = venta.PrecioVenta - venta.Descuento
 
-	// Manejar comprobante si se envió uno nuevo
+	// Total final y saldo con descuento aplicado
+	venta.TotalFinal = venta.PrecioVenta - venta.Descuento
+	venta.Saldo = saldoSinDescuento - venta.Descuento
+
 	file, err := c.FormFile("comprobante")
 	if err == nil && file != nil {
-		// Validar extensión
 		ext := strings.ToLower(filepath.Ext(file.Filename))
 		allowedExts := map[string]bool{".pdf": true, ".jpg": true, ".jpeg": true, ".png": true}
 		if !allowedExts[ext] {
@@ -714,18 +682,15 @@ func UpdateVentaPago(c *gin.Context) {
 			return
 		}
 
-		// Validar tamaño (máximo 5MB)
 		if file.Size > 5*1024*1024 {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "El archivo no puede superar los 5MB"})
 			return
 		}
 
-		// Si ya existe un comprobante, eliminarlo
 		if venta.ComprobanteURL != nil && *venta.ComprobanteURL != "" {
 			os.Remove(*venta.ComprobanteURL)
 		}
 
-		// Guardar nuevo comprobante
 		uploadDir := "uploads/comprobantes"
 		filename := fmt.Sprintf("comprobante_pago_%d%s", time.Now().UnixNano(), ext)
 		filePath := filepath.Join(uploadDir, filename)
@@ -752,13 +717,11 @@ func UpdateVentaPago(c *gin.Context) {
 		venta.ComprobanteURL = &filePath
 	}
 
-	// Guardar cambios
 	if err := config.DB.Save(&venta).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error al actualizar venta"})
 		return
 	}
 
-	// Cargar la venta actualizada con todas sus relaciones
 	config.DB.
 		Preload("Usuario").
 		Preload("Cliente").
@@ -794,7 +757,6 @@ func DeleteVenta(c *gin.Context) {
 		return
 	}
 
-	// Iniciar transacción
 	tx := config.DB.Begin()
 	defer func() {
 		if r := recover(); r != nil {
@@ -802,7 +764,6 @@ func DeleteVenta(c *gin.Context) {
 		}
 	}()
 
-	// Restaurar stock de cada detalle
 	for _, detalle := range venta.Detalles {
 		var stock models.ProductoStock
 		if err := tx.Where("producto_id = ? AND talle = ?", detalle.ProductoID, detalle.Talle).First(&stock).Error; err == nil {
@@ -815,40 +776,28 @@ func DeleteVenta(c *gin.Context) {
 		}
 	}
 
-	// Eliminar comprobante si existe
 	if venta.ComprobanteURL != nil && *venta.ComprobanteURL != "" {
 		os.Remove(*venta.ComprobanteURL)
 	}
 
-	// Eliminar pedido asociado
 	if err := tx.Where("venta_id = ?", venta.ID).Delete(&models.Pedido{}).Error; err != nil {
 		tx.Rollback()
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error al eliminar pedido"})
 		return
 	}
 
-	// Eliminar comisiones asociadas
-	/*if err := tx.Where("venta_id = ?", venta.ID).Delete(&models.Comision{}).Error; err != nil {
-		tx.Rollback()
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error al eliminar comisiones"})
-		return
-	}*/
-
-	// Eliminar detalles de la venta
 	if err := tx.Where("venta_id = ?", venta.ID).Delete(&models.VentaDetalle{}).Error; err != nil {
 		tx.Rollback()
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error al eliminar detalles de venta"})
 		return
 	}
 
-	// Eliminar la venta
 	if err := tx.Delete(&venta).Error; err != nil {
 		tx.Rollback()
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error al eliminar venta"})
 		return
 	}
 
-	// Commit de la transacción
 	if err := tx.Commit().Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error al confirmar eliminación"})
 		return
