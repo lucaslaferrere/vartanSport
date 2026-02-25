@@ -216,7 +216,7 @@ export default function DetalleVentaModal({ open, onClose, venta }: DetalleVenta
                   <Typography sx={{ fontSize: '12px', fontWeight: 600 }}>${(venta.sena || 0).toLocaleString('es-AR', { minimumFractionDigits: 2 })}</Typography>
                 </Box>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
-                  <Typography sx={{ fontSize: '12px', color: '#6B7280' }}>Saldo:</Typography>
+                  <Typography sx={{ fontSize: '12px', color: '#6B7280' }}>Deuda:</Typography>
                   <Typography sx={{ fontSize: '12px', fontWeight: 600 }}>${(venta.saldo || 0).toLocaleString('es-AR', { minimumFractionDigits: 2 })}</Typography>
                 </Box>
                 {(venta.descuento ?? 0) > 0 && (
