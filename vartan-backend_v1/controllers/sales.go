@@ -37,7 +37,7 @@ import (
 
 func GetPagosPendientes(c *gin.Context) {
 	userID := c.GetInt("user_id")
-	userRol := c.GetString("user_rol")
+	userRol := c.GetString("rol")
 
 	query := config.DB.
 		Where("saldo > 0").

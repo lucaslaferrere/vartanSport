@@ -64,17 +64,39 @@ func AuthMiddleware() gin.HandlerFunc {
 	}
 }
 
-// RequireDueño - Middleware que verifica que el usuario sea dueño
-func RequireDueño() gin.HandlerFunc {
+// RequireDueno - Middleware que verifica que el usuario sea dueño.
+// Se usa nombre ASCII para evitar problemas de encoding en identificadores.
+func RequireDueno() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		rol := c.GetString("rol")
 
-		if rol != "dueño" {
+		if rol != "dueño" && rol != "dueno" {
 			c.JSON(http.StatusForbidden, gin.H{"error": "Acceso denegado. Solo dueños pueden realizar esta acción"})
 			c.Abort()
 			return
 		}
 
 		c.Next()
+	}
+}
+
+// RequireDueño mantiene compatibilidad con código existente.
+func RequireDueño() gin.HandlerFunc {
+	return RequireDueno()
+}
+
+// RequireWrite - Middleware para operaciones de escritura.
+func RequireWrite() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		rol := c.GetString("rol")
+		switch rol {
+		case "dueño", "dueno", "empleado", "vendedor":
+			c.Next()
+			return
+		default:
+			c.JSON(http.StatusForbidden, gin.H{"error": "No tenés permisos para realizar esta acción"})
+			c.Abort()
+			return
+		}
 	}
 }

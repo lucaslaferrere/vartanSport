@@ -39,33 +39,33 @@ func SetupRoutes(router *gin.Engine) {
 
 		api.GET("/clientes", controllers.GetClientes)
 		api.GET("/clientes/:id", controllers.GetCliente)
-		api.POST("/clientes", controllers.CreateCliente)
-		api.PUT("/clientes/:id", controllers.UpdateCliente)
-		api.DELETE("/clientes/:id", controllers.DeleteCliente)
+		api.POST("/clientes", middleware.RequireWrite(), controllers.CreateCliente)
+		api.PUT("/clientes/:id", middleware.RequireWrite(), controllers.UpdateCliente)
+		api.DELETE("/clientes/:id", middleware.RequireWrite(), controllers.DeleteCliente)
 
 		api.GET("/formas-pago", controllers.GetFormasPago)
 		api.GET("/mis-ventas", controllers.GetMisVentas)
-		api.POST("/ventas", controllers.CreateVenta)
+		api.POST("/ventas", middleware.RequireWrite(), controllers.CreateVenta)
 		api.GET("/ventas/:id", controllers.GetVenta)
-		api.PUT("/ventas/:id", controllers.UpdateVenta)
-		api.PUT("/ventas/:id/pago", controllers.UpdateVentaPago)
-		api.DELETE("/ventas/:id", controllers.DeleteVenta)
+		api.PUT("/ventas/:id", middleware.RequireWrite(), controllers.UpdateVenta)
+		api.PUT("/ventas/:id/pago", middleware.RequireWrite(), controllers.UpdateVentaPago)
+		api.DELETE("/ventas/:id", middleware.RequireWrite(), controllers.DeleteVenta)
 		api.GET("/ventas/:id/comprobante", controllers.GetVentaComprobante)
-		api.DELETE("/ventas/:id/comprobante", controllers.DeleteVentaComprobante)
-		api.GET("/ventas/pendientes", controllers.GetPagosPendientes)
+		api.DELETE("/ventas/:id/comprobante", middleware.RequireWrite(), controllers.DeleteVentaComprobante)
+		api.GET("/ventas-pendientes", controllers.GetPagosPendientes)
 
 		api.GET("/mis-pedidos", controllers.GetMisPedidos)
-		api.PUT("/pedidos/:id", controllers.UpdatePedidoEstado)
+		api.PUT("/pedidos/:id", middleware.RequireWrite(), controllers.UpdatePedidoEstado)
 
 		api.GET("/mis-comisiones", controllers.GetMisComisiones)
 		api.GET("/mi-resumen-comision", controllers.GetMiResumenComision) // Resumen completo para empleado/vendedor
 
 		// Tareas
 		api.GET("/tareas", controllers.GetTareas)
-		api.POST("/tareas", controllers.CreateTarea)
+		api.POST("/tareas", middleware.RequireWrite(), controllers.CreateTarea)
 		api.GET("/tareas/:id", controllers.GetTarea)
-		api.PATCH("/tareas/:id", controllers.UpdateTarea)
-		api.DELETE("/tareas/:id", controllers.DeleteTarea)
+		api.PATCH("/tareas/:id", middleware.RequireWrite(), controllers.UpdateTarea)
+		api.DELETE("/tareas/:id", middleware.RequireWrite(), controllers.DeleteTarea)
 		api.GET("/empleados", controllers.GetEmpleadosConTareas)
 	}
 
@@ -73,7 +73,7 @@ func SetupRoutes(router *gin.Engine) {
 	GastoRoutes(api)
 
 	owner := router.Group("/api/owner")
-	owner.Use(middleware.AuthMiddleware(), middleware.RequireDueño())
+	owner.Use(middleware.AuthMiddleware(), middleware.RequireDueno())
 	{
 		// Usuarios
 		owner.GET("/usuarios/vendedores", controllers.GetVendedores)
