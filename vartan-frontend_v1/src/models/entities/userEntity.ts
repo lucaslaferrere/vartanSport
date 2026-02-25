@@ -2,7 +2,7 @@ export interface IUser {
     id: number;
     nombre: string;
     email: string;
-    rol: 'dueño' | 'vendedor';
+    rol: 'dueño' | 'vendedor' | 'demo';
     activo: boolean;
     porcentaje_comision: number;     // Porcentaje de comisión (ej: 10 = 10%)
     gasto_publicitario: number;       // Monto fijo de gasto publicitario

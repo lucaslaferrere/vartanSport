@@ -22,7 +22,7 @@ export const layoutConfig = {
     { label: 'Tareas', icon: 'fa-solid fa-list-check', path: '/tareas' },
   ],
   // Función para obtener menú según rol
-  getMenuByRole: (userRole?: 'dueño' | 'vendedor') => {
+  getMenuByRole: (userRole?: 'dueño' | 'vendedor' | 'demo') => {
     const commonItems = [
       { label: 'Dashboard', icon: 'fa-solid fa-chart-line', path: '/dashboard' },
       { label: 'Productos', icon: 'fa-solid fa-box', path: '/productos' },
@@ -31,7 +31,7 @@ export const layoutConfig = {
       { label: 'Pedidos', icon: 'fa-solid fa-truck', path: '/pedidos' },
     ];
 
-    const isOwner = userRole === 'dueño' || !userRole;
+    const isOwner = userRole === 'dueño' || userRole === 'demo' || !userRole;
 
     // Items específicos según rol
     const roleSpecificItems = isOwner

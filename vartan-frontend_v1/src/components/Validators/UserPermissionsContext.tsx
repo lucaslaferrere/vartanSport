@@ -7,7 +7,7 @@ type UserPermissionsContextType = {
   userPermissions: Set<PermissionType>;
   reloadPermissions: () => void;
   validatePermission: (permissions: PermissionType[]) => boolean;
-  userRole: 'dueño' | 'vendedor';
+  userRole: 'dueño' | 'vendedor' | 'demo';
 };
 
 const UserPermissionsContext = createContext<UserPermissionsContextType>({
@@ -19,17 +19,24 @@ const UserPermissionsContext = createContext<UserPermissionsContextType>({
 
 export function UserPermissionsProvider({children}: { children: React.ReactNode }) {
   const { user } = useAuthStore();
-
-  const userRole: 'dueño' | 'vendedor' = user?.rol === 'vendedor' ? 'vendedor' : 'dueño';
+  
+  // ✅ Reconocer rol 'demo'
+  const userRole: 'dueño' | 'vendedor' | 'demo' = 
+    user?.rol === 'vendedor' ? 'vendedor' : 
+    user?.rol === 'demo' ? 'demo' : 
+    'dueño';
 
   const allPermissions = new Set<PermissionType>(Object.values(PermissionType));
+
   const reloadPermissions = () => {};
 
   const validatePermission = (permissions: PermissionType[]): boolean => {
     if (!permissions?.length) return true;
-
-    if (userRole === 'dueño') return true;
-
+    
+    // ✅ Dueño y Demo tienen acceso a todo (solo lectura para demo, manejado en backend)
+    if (userRole === 'dueño' || userRole === 'demo') return true;
+    
+    // Vendedor: validar permisos específicos
     return permissions.every((permission) => allPermissions.has(permission));
   };
 

@@ -20,8 +20,8 @@ export interface MenuGroup {
   items: IMenuItem[];
 }
 
-export const GetMenuItems = (userRole?: 'dueño' | 'vendedor'): MenuGroup => {
-  const isDueño = userRole === 'dueño' || !userRole; // Por defecto es dueño si no se especifica
+export const GetMenuItems = (userRole?: 'dueño' | 'vendedor' | 'demo'): MenuGroup => {
+  const isDueño = userRole === 'dueño' || userRole === 'demo' || !userRole; // Por defecto es dueño si no se especifica
 
   return {
     items: [
