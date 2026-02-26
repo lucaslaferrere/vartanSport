@@ -51,43 +51,42 @@ export default function EditarVentaModal({ open, onClose, onSuccess, venta }: Ed
 
 
   useEffect(() => {
-    if (open && venta && !initialized) {
-      loadProductos();
-      setPrecioVenta(venta.precio_venta?.toString() || venta.total.toString());
-      setSena(venta.sena.toString());
-      setUsaDescuentoFinanciera(venta.usa_financiera || false);
-      setObservaciones(venta.observaciones || '');
+  if (!open) {
+    setInitialized(false);
+    return;
+  }
 
-// Convertir los detalles de la venta a productos seleccionados
-      if (venta.detalles) {
-        const productosAgrupados: Record<          number,           { producto: IProducto; talles: { talle: string; cantidad: number }[] }        > = {};
+  if (!venta || initialized) return;
 
-        venta.detalles.forEach(detalle => {
-          if (detalle.producto) {
-            if (!productosAgrupados[detalle.producto_id]) {
-              productosAgrupados[detalle.producto_id] = {
-                producto: detalle.producto,
-                talles: []
-              };
-            }
-            productosAgrupados[detalle.producto_id].talles.push({
-              talle: detalle.talle,
-              cantidad: detalle.cantidad
-            });
-          }
+  loadProductos();
+  setPrecioVenta(venta.precio_venta?.toString() || venta.total.toString());
+  setSena(venta.sena != null ? venta.sena.toString() : '0');
+  setUsaDescuentoFinanciera(venta.usa_financiera || false);
+  setObservaciones(venta.observaciones || '');
+
+  if (venta.detalles) {
+    const productosAgrupados: Record<number, { producto: IProducto; talles: { talle: string; cantidad: number }[] }> = {};
+
+    venta.detalles.forEach(detalle => {
+      if (detalle.producto) {
+        if (!productosAgrupados[detalle.producto_id]) {
+          productosAgrupados[detalle.producto_id] = {
+            producto: detalle.producto,
+            talles: []
+          };
+        }
+        productosAgrupados[detalle.producto_id].talles.push({
+          talle: detalle.talle,
+          cantidad: detalle.cantidad
         });
-
-        setProductosSeleccionados(Object.values(productosAgrupados));
       }
+    });
 
-      setInitialized(true);
-    }
+    setProductosSeleccionados(Object.values(productosAgrupados));
+  }
 
-// Reset cuando se cierra el modal
-    if (!open) {
-      setInitialized(false);
-    }
-  }, [open, venta, initialized, loadProductos]);
+  setInitialized(true);
+}, [open, venta?.id, initialized]); // <-- ojo: venta?.id en vez de venta completo
 
   const handleProductoSelect = (productoId: number) => {
     if (!productoId) return;
