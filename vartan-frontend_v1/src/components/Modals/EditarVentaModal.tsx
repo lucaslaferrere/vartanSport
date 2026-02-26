@@ -371,7 +371,8 @@ const handleSubmit = async () => {
               </Typography>
             </Box>
 
-            {/* Checkbox Descuento Financiera - Solo si es Transferencia Financiera */}
+            
+            {/* Checkbox Descuento Financiera - Solo si es Transferencia Financiera 
             {venta?.forma_pago_id === 1 && (
               <FormControlLabel
                 control={
@@ -387,7 +388,7 @@ const handleSubmit = async () => {
                   </Typography>
                 }
               />
-            )}
+            )} */}
           </Box>
         </Grid>
 
