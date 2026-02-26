@@ -94,7 +94,7 @@ export default function EditarVentaModal({ open, onClose, onSuccess, venta }: Ed
   }
 
   setInitialized(true);
-}, [open, venta?.id, initialized]); // <-- ojo: venta?.id en vez de venta completo
+}, [open, venta?.id, initialized]); 
 
   const handleProductoSelect = (productoId: number) => {
     if (!productoId) return;
