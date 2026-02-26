@@ -123,6 +123,24 @@ export const ventaService = {
     const response = await api.get<IVenta[]>('/api/ventas-pendientes');
     return response.data;
 },
+
+updateDetalles: async (id: number, data: {
+  precio_venta: number;
+  transporte?: string;
+  sena?: number;
+  usa_descuento_financiera: boolean;
+  observaciones?: string;
+  detalles: Array<{
+    producto_id: number;
+    talle: string;
+    cantidad: number;
+    precio_unitario: number;
+  }>;
+}): Promise<IVenta> => {
+  const response = await api.put<IVenta>(`/api/ventas/${id}/detalles`, data);
+  return response.data;
+},
+
 };
 
 

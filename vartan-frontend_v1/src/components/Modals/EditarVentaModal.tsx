@@ -9,6 +9,7 @@ import { IProducto } from '@models/entities/productoEntity';
 import { productoService } from '@services/producto.service';
 import { useNotification } from '@components/Notifications';
 import { TalleEnum } from '@models/enums/TalleEnum';
+import { ventaService } from '@services/venta.service';
 
 interface ProductoConTalles {
   producto: IProducto;
@@ -33,7 +34,7 @@ export default function EditarVentaModal({ open, onClose, onSuccess, venta }: Ed
   const [usaDescuentoFinanciera, setUsaDescuentoFinanciera] = useState(false); // NUEVO
   const [observaciones, setObservaciones] = useState('');
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+    const [error, setError] = useState<string | null>(null);
   const [initialized, setInitialized] = useState(false);
 
   const tallesDisponibles = Object.values(TalleEnum);
@@ -49,7 +50,7 @@ export default function EditarVentaModal({ open, onClose, onSuccess, venta }: Ed
   }, [addNotification]);
 
 
-useEffect(() => {
+  useEffect(() => {
     if (open && venta && !initialized) {
       loadProductos();
       setPrecioVenta(venta.precio_venta?.toString() || venta.total.toString());
@@ -57,9 +58,9 @@ useEffect(() => {
       setUsaDescuentoFinanciera(venta.usa_financiera || false);
       setObservaciones(venta.observaciones || '');
 
-      // Convertir los detalles de la venta a productos seleccionados
+// Convertir los detalles de la venta a productos seleccionados
       if (venta.detalles) {
-        const productosAgrupados: Record<number, { producto: IProducto; talles: { talle: string; cantidad: number }[] }> = {};
+        const productosAgrupados: Record<          number,           { producto: IProducto; talles: { talle: string; cantidad: number }[] }        > = {};
 
         venta.detalles.forEach(detalle => {
           if (detalle.producto) {
@@ -78,11 +79,11 @@ useEffect(() => {
 
         setProductosSeleccionados(Object.values(productosAgrupados));
       }
-      
+
       setInitialized(true);
     }
-    
-    // Reset cuando se cierra el modal
+
+// Reset cuando se cierra el modal
     if (!open) {
       setInitialized(false);
     }
@@ -119,10 +120,10 @@ useEffect(() => {
       cantidad
     }));
 
-    setProductosSeleccionados(prev => [...prev, {
-      producto: productoActual,
-      talles
-    }]);
+    setProductosSeleccionados(prev => [      ...prev,       {
+        producto: productoActual,
+        talles
+      }    ]);
 
     setProductoActual(null);
     setTallesActuales({});
@@ -149,33 +150,54 @@ useEffect(() => {
     return precio - costo;
   };
 
-  const handleSubmit = async () => {
-    setError(null);
+const handleSubmit = async () => {
+  setError(null);
 
-    if (!venta) return;
+  if (productosSeleccionados.length === 0) {
+    setError('Debe agregar al menos un producto');
+    return;
+  }
 
-    if (productosSeleccionados.length === 0) {
-      setError('Debe tener al menos un producto');
-      return;
-    }
+  if (!precioVenta || parseFloat(precioVenta) <= 0) {
+    setError('Debe ingresar un precio de venta válido');
+    return;
+  }
 
-    setLoading(true);
+  if (!venta) return;
 
-    try {
-      // TODO: Implementar ventaService.update() cuando esté disponible en el backend
-      addNotification('Actualización en desarrollo. Backend necesita implementar endpoint de actualización', 'info');
-      handleClose();
-      onSuccess();
-    } catch (err: unknown) {
-      console.error('Error actualizando venta:', err);
-      const error = err as { response?: { data?: { error?: string } } };
-      const errorMessage = error.response?.data?.error || 'Error al actualizar la venta';
-      addNotification(errorMessage, 'error');
-      setError(errorMessage);
-    } finally {
-      setLoading(false);
-    }
-  };
+  setLoading(true);
+
+  try {
+    const detalles = productosSeleccionados.flatMap(item =>
+      item.talles.map(t => ({
+        producto_id: item.producto.id,
+        talle: t.talle,
+        cantidad: t.cantidad,
+        precio_unitario: item.producto.costo_unitario
+      }))
+    );
+
+    await ventaService.updateDetalles(venta.id, {
+      precio_venta: parseFloat(precioVenta),
+      sena: parseFloat(sena) || 0,
+      usa_descuento_financiera: usaDescuentoFinanciera,
+      observaciones: observaciones || '',
+      detalles
+    });
+
+    addNotification('Venta actualizada exitosamente', 'success');
+    handleClose();
+    onSuccess();
+  } catch (err: unknown) {
+    console.error('Error actualizando venta:', err);
+    const error = err as { response?: { data?: { error?: string } } };
+    const errorMessage = error.response?.data?.error || 'Error al actualizar la venta';
+    addNotification(errorMessage, 'error');
+    setError(errorMessage);
+  } finally {
+    setLoading(false);
+  }
+};
 
   const handleClose = () => {
     setProductosSeleccionados([]);
