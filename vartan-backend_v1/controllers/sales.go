@@ -200,7 +200,7 @@ func UpdateVentaDetalles(c *gin.Context) {
 	}
 
 	// PASO 2: Eliminar los detalles viejos
-	if err := tx.Where("venta_id = ?", ventaID).Delete(&models.VentaDetalle{}).Error; err != nil {
+	if err := tx.Where("venta_id = ?", venta.ID).Delete(&models.VentaDetalle{}).Error; err != nil {
 		tx.Rollback()
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error al eliminar detalles viejos"})
 		return
@@ -310,7 +310,9 @@ func UpdateVentaDetalles(c *gin.Context) {
 		venta.Observaciones = nil
 	}
 
-	if err := tx.Save(&venta).Error; err != nil {
+	// Evita que GORM intente re-guardar asociaciones precargadas (Detalles viejos).
+	venta.Detalles = nil
+	if err := tx.Omit("Detalles").Save(&venta).Error; err != nil {
 		tx.Rollback()
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error al actualizar venta"})
 		return
