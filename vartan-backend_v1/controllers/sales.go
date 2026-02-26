@@ -35,6 +35,308 @@ import (
 // @Failure 500 {object} map[string]string "Error interno"
 // @Router /api/ventas [post]
 
+// @Failure 404 {object} map[string]string "Venta no encontrada"
+// @Failure 500 {object} map[string]string "Error interno"
+// @Router /api/ventas/{id} [delete]
+func DeleteVenta(c *gin.Context) {
+	ventaID := c.Param("id")
+
+	var venta models.Venta
+	if err := config.DB.Preload("Detalles").First(&venta, ventaID).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Venta no encontrada"})
+		return
+	}
+
+	tx := config.DB.Begin()
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback()
+		}
+	}()
+
+	for _, detalle := range venta.Detalles {
+		var stock models.ProductoStock
+		if err := tx.Where("producto_id = ? AND talle = ?", detalle.ProductoID, detalle.Talle).First(&stock).Error; err == nil {
+			stock.Cantidad += detalle.Cantidad
+			if err := tx.Save(&stock).Error; err != nil {
+				tx.Rollback()
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Error al restaurar stock"})
+				return
+			}
+		}
+	}
+
+	if venta.ComprobanteURL != nil && *venta.ComprobanteURL != "" {
+		os.Remove(*venta.ComprobanteURL)
+	}
+
+	if err := tx.Where("venta_id = ?", venta.ID).Delete(&models.Pedido{}).Error; err != nil {
+		tx.Rollback()
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error al eliminar pedido"})
+		return
+	}
+
+	if err := tx.Where("venta_id = ?", venta.ID).Delete(&models.VentaDetalle{}).Error; err != nil {
+		tx.Rollback()
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error al eliminar detalles de venta"})
+		return
+	}
+
+	if err := tx.Delete(&venta).Error; err != nil {
+		tx.Rollback()
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error al eliminar venta"})
+		return
+	}
+
+	if err := tx.Commit().Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error al confirmar eliminación"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Venta eliminada exitosamente"})
+}
+
+// GetVenta godoc
+// @Summary Obtener una venta por ID
+// @Description Obtiene los detalles de una venta específica
+// @Tags Ventas
+// @Produce json
+// @Security BearerAuth
+// @Param id path int true "ID de la venta"
+// @Success 200 {object} models.Venta
+// @Failure 404 {object} map[string]string "Venta no encontrada"
+// @Router /api/ventas/{id} [get]
+func GetVenta(c *gin.Context) {
+	ventaID := c.Param("id")
+
+	var venta models.Venta
+	if err := config.DB.
+		Preload("Usuario").
+		Preload("Cliente").
+		Preload("FormaPago").
+		Preload("Detalles").
+		Preload("Detalles.Producto").
+		First(&venta, ventaID).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Venta no encontrada"})
+		return
+	}
+
+	c.JSON(http.StatusOK, venta)
+}
+
+// UpdateVentaDetalles godoc
+// @Summary Actualizar detalles de una venta
+// @Description Actualiza los productos de una venta existente, restaurando y actualizando stock
+// @Tags Ventas
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param id path int true "ID de la venta"
+// @Param request body models.VentaUpdateDetallesRequest true "Datos de los detalles"
+// @Success 200 {object} models.Venta
+// @Failure 400 {object} map[string]string "Datos inválidos"
+// @Failure 404 {object} map[string]string "Venta no encontrada"
+// @Failure 500 {object} map[string]string "Error del servidor"
+// GetFormasPago godoc
+// @Summary Listar formas de pago
+// @Description Obtiene todas las formas de pago disponibles
+// @Tags Ventas
+// @Produce json
+// @Security BearerAuth
+// @Success 200 {array} models.FormaPago
+// @Router /api/formas-pago [get]
+func GetFormasPago(c *gin.Context) {
+	var formasPago []models.FormaPago
+	if err := config.DB.Find(&formasPago).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error al obtener formas de pago"})
+		return
+	}
+
+	c.JSON(http.StatusOK, formasPago)
+}
+
+// @Router /api/ventas/{id}/detalles [put]
+func UpdateVentaDetalles(c *gin.Context) {
+	ventaID := c.Param("id")
+
+	var request models.VentaUpdateDetallesRequest
+	if err := c.ShouldBindJSON(&request); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Verificar que la venta existe
+	var venta models.Venta
+	if err := config.DB.Preload("Detalles").First(&venta, ventaID).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Venta no encontrada"})
+		return
+	}
+
+	// Comenzar transacción
+	tx := config.DB.Begin()
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback()
+		}
+	}()
+
+	// PASO 1: Restaurar el stock de los productos viejos
+	for _, detalleViejo := range venta.Detalles {
+		// Buscar el stock del producto viejo
+		var stockViejo models.ProductoStock
+		if err := tx.Where("producto_id = ? AND talle = ?", detalleViejo.ProductoID, detalleViejo.Talle).First(&stockViejo).Error; err != nil {
+			tx.Rollback()
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error al buscar stock viejo"})
+			return
+		}
+
+		// Restaurar la cantidad
+		stockViejo.Cantidad += detalleViejo.Cantidad
+		if err := tx.Save(&stockViejo).Error; err != nil {
+			tx.Rollback()
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error al restaurar stock"})
+			return
+		}
+	}
+
+	// PASO 2: Eliminar los detalles viejos
+	if err := tx.Where("venta_id = ?", ventaID).Delete(&models.VentaDetalle{}).Error; err != nil {
+		tx.Rollback()
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error al eliminar detalles viejos"})
+		return
+	}
+
+	// PASO 3: Calcular nuevos valores y crear nuevos detalles
+	var nuevosTotales struct {
+		costo       float64
+		precioVenta float64
+		ganancia    float64
+	}
+
+	nuevosDetalles := make([]models.VentaDetalle, 0)
+
+	for _, detalle := range request.Detalles {
+		// Verificar stock disponible
+		var stock models.ProductoStock
+		if err := tx.Where("producto_id = ? AND talle = ?", detalle.ProductoID, detalle.Talle).First(&stock).Error; err != nil {
+			tx.Rollback()
+			c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("Stock no encontrado para producto %d talle %s", detalle.ProductoID, detalle.Talle)})
+			return
+		}
+
+		if stock.Cantidad < detalle.Cantidad {
+			tx.Rollback()
+			c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("Stock insuficiente para producto %d talle %s. Disponible: %d, Solicitado: %d", detalle.ProductoID, detalle.Talle, stock.Cantidad, detalle.Cantidad)})
+			return
+		}
+
+		// Obtener el producto para calcular costo
+		var producto models.Producto
+		if err := tx.First(&producto, detalle.ProductoID).Error; err != nil {
+			tx.Rollback()
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error al obtener producto"})
+			return
+		}
+
+		// Calcular subtotal y costo
+		subtotal := detalle.PrecioUnitario * float64(detalle.Cantidad)
+		costoDetalle := producto.CostoUnitario * float64(detalle.Cantidad)
+
+		nuevosTotales.costo += costoDetalle
+		nuevosTotales.precioVenta += subtotal
+
+		// Crear nuevo detalle
+		nuevoDetalle := models.VentaDetalle{
+			VentaID:        venta.ID,
+			ProductoID:     detalle.ProductoID,
+			Talle:          detalle.Talle,
+			Cantidad:       detalle.Cantidad,
+			PrecioUnitario: detalle.PrecioUnitario,
+			Subtotal:       subtotal,
+		}
+
+		if err := tx.Create(&nuevoDetalle).Error; err != nil {
+			tx.Rollback()
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error al crear nuevo detalle"})
+			return
+		}
+
+		nuevosDetalles = append(nuevosDetalles, nuevoDetalle)
+
+		// Descontar el nuevo stock
+		stock.Cantidad -= detalle.Cantidad
+		if err := tx.Save(&stock).Error; err != nil {
+			tx.Rollback()
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error al actualizar stock"})
+			return
+		}
+	}
+
+	nuevosTotales.ganancia = request.PrecioVenta - nuevosTotales.costo
+
+	descuento := 0.0
+	if request.UsaDescuentoFinanciera {
+		descuento = request.PrecioVenta * 0.03 // además era 10% en vez de 3%
+	}
+
+	total := request.PrecioVenta - descuento
+	saldo := total
+
+	if request.Sena > 0 {
+		saldo = total - request.Sena
+	}
+
+	// PASO 5: Actualizar la venta
+	venta.Transporte = request.Transporte
+	venta.Costo = nuevosTotales.costo
+	venta.PrecioVenta = request.PrecioVenta
+	venta.Ganancia = nuevosTotales.ganancia
+	venta.Total = total
+
+	if request.Sena > 0 {
+		venta.Sena = &request.Sena
+	} else {
+		venta.Sena = nil
+	}
+
+	venta.Saldo = saldo
+	venta.Descuento = descuento
+	venta.TotalFinal = total
+	venta.UsaFinanciera = request.UsaDescuentoFinanciera
+
+	if request.Observaciones != "" {
+		venta.Observaciones = &request.Observaciones
+	} else {
+		venta.Observaciones = nil
+	}
+
+	if err := tx.Save(&venta).Error; err != nil {
+		tx.Rollback()
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error al actualizar venta"})
+		return
+	}
+
+	// Commit de la transacción
+	if err := tx.Commit().Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error al confirmar transacción"})
+		return
+	}
+
+	// Recargar la venta con todas las relaciones
+	if err := config.DB.
+		Preload("Usuario").
+		Preload("Cliente").
+		Preload("FormaPago").
+		Preload("Detalles").
+		Preload("Detalles.Producto").
+		First(&venta, ventaID).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error al recargar venta"})
+		return
+	}
+
+	c.JSON(http.StatusOK, venta)
+}
+
 func GetPagosPendientes(c *gin.Context) {
 	userID := c.GetInt("user_id")
 	userRol := c.GetString("rol")
@@ -644,6 +946,14 @@ func UpdateVenta(c *gin.Context) {
 	c.JSON(http.StatusOK, venta)
 }
 
+// DeleteVenta godoc
+// @Summary Eliminar venta
+// @Description Elimina una venta y restaura el stock de los productos
+// @Tags Ventas
+// @Produce json
+// @Security BearerAuth
+// @Param id path int true "ID de la venta"
+// @Success 200 {object} map[string]string "Venta eliminada"
 // UpdateVentaPago godoc
 // @Summary Actualizar pago de venta (seña y comprobante)
 // @Description Permite actualizar la seña y agregar/actualizar comprobante cuando el cliente hace un pago
@@ -766,314 +1076,4 @@ func UpdateVentaPago(c *gin.Context) {
 		"venta":        venta,
 		"saldo_actual": venta.Saldo,
 	})
-}
-
-// DeleteVenta godoc
-// @Summary Eliminar venta
-// @Description Elimina una venta y restaura el stock de los productos
-// @Tags Ventas
-// @Produce json
-// @Security BearerAuth
-// @Param id path int true "ID de la venta"
-// @Success 200 {object} map[string]string "Venta eliminada"
-// @Failure 404 {object} map[string]string "Venta no encontrada"
-// @Failure 500 {object} map[string]string "Error interno"
-// @Router /api/ventas/{id} [delete]
-func DeleteVenta(c *gin.Context) {
-	ventaID := c.Param("id")
-
-	var venta models.Venta
-	if err := config.DB.Preload("Detalles").First(&venta, ventaID).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Venta no encontrada"})
-		return
-	}
-
-	tx := config.DB.Begin()
-	defer func() {
-		if r := recover(); r != nil {
-			tx.Rollback()
-		}
-	}()
-
-	for _, detalle := range venta.Detalles {
-		var stock models.ProductoStock
-		if err := tx.Where("producto_id = ? AND talle = ?", detalle.ProductoID, detalle.Talle).First(&stock).Error; err == nil {
-			stock.Cantidad += detalle.Cantidad
-			if err := tx.Save(&stock).Error; err != nil {
-				tx.Rollback()
-				c.JSON(http.StatusInternalServerError, gin.H{"error": "Error al restaurar stock"})
-				return
-			}
-		}
-	}
-
-	if venta.ComprobanteURL != nil && *venta.ComprobanteURL != "" {
-		os.Remove(*venta.ComprobanteURL)
-	}
-
-	if err := tx.Where("venta_id = ?", venta.ID).Delete(&models.Pedido{}).Error; err != nil {
-		tx.Rollback()
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error al eliminar pedido"})
-		return
-	}
-
-	if err := tx.Where("venta_id = ?", venta.ID).Delete(&models.VentaDetalle{}).Error; err != nil {
-		tx.Rollback()
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error al eliminar detalles de venta"})
-		return
-	}
-
-	if err := tx.Delete(&venta).Error; err != nil {
-		tx.Rollback()
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error al eliminar venta"})
-		return
-	}
-
-	if err := tx.Commit().Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error al confirmar eliminación"})
-		return
-	}
-
-	c.JSON(http.StatusOK, gin.H{"message": "Venta eliminada exitosamente"})
-}
-
-// GetVenta godoc
-// @Summary Obtener una venta por ID
-// @Description Obtiene los detalles de una venta específica
-// @Tags Ventas
-// @Produce json
-// @Security BearerAuth
-// @Param id path int true "ID de la venta"
-// @Success 200 {object} models.Venta
-// @Failure 404 {object} map[string]string "Venta no encontrada"
-// @Router /api/ventas/{id} [get]
-func GetVenta(c *gin.Context) {
-	ventaID := c.Param("id")
-
-	var venta models.Venta
-	if err := config.DB.
-		Preload("Usuario").
-		Preload("Cliente").
-		Preload("FormaPago").
-		Preload("Detalles").
-		Preload("Detalles.Producto").
-		First(&venta, ventaID).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Venta no encontrada"})
-		return
-	}
-
-	c.JSON(http.StatusOK, venta)
-}
-
-// GetFormasPago godoc
-// @Summary Listar formas de pago
-// @Description Obtiene todas las formas de pago disponibles
-// @Tags Ventas
-// @Produce json
-// @Security BearerAuth
-// @Success 200 {array} models.FormaPago
-// @Router /api/formas-pago [get]
-func GetFormasPago(c *gin.Context) {
-	var formasPago []models.FormaPago
-	if err := config.DB.Find(&formasPago).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error al obtener formas de pago"})
-		return
-	}
-
-	c.JSON(http.StatusOK, formasPago)
-}
-
-// UpdateVentaDetalles godoc
-// @Summary Actualizar detalles de una venta
-// @Description Actualiza los productos de una venta existente, restaurando y actualizando stock
-// @Tags Ventas
-// @Accept json
-// @Produce json
-// @Security BearerAuth
-// @Param id path int true "ID de la venta"
-// @Param request body models.VentaUpdateDetallesRequest true "Datos de los detalles"
-// @Success 200 {object} models.Venta
-// @Failure 400 {object} map[string]string "Datos inválidos"
-// @Failure 404 {object} map[string]string "Venta no encontrada"
-// @Failure 500 {object} map[string]string "Error del servidor"
-// @Router /api/ventas/{id}/detalles [put]
-func UpdateVentaDetalles(c *gin.Context) {
-	ventaID := c.Param("id")
-
-	var request models.VentaUpdateDetallesRequest
-	if err := c.ShouldBindJSON(&request); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-
-	// Verificar que la venta existe
-	var venta models.Venta
-	if err := config.DB.Preload("Detalles").First(&venta, ventaID).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Venta no encontrada"})
-		return
-	}
-
-	// Comenzar transacción
-	tx := config.DB.Begin()
-	defer func() {
-		if r := recover(); r != nil {
-			tx.Rollback()
-		}
-	}()
-
-	// PASO 1: Restaurar el stock de los productos viejos
-	for _, detalleViejo := range venta.Detalles {
-		// Buscar el stock del producto viejo
-		var stockViejo models.ProductoStock
-		if err := tx.Where("producto_id = ? AND talle = ?", detalleViejo.ProductoID, detalleViejo.Talle).First(&stockViejo).Error; err != nil {
-			tx.Rollback()
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error al buscar stock viejo"})
-			return
-		}
-
-		// Restaurar la cantidad
-		stockViejo.Cantidad += detalleViejo.Cantidad
-		if err := tx.Save(&stockViejo).Error; err != nil {
-			tx.Rollback()
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error al restaurar stock"})
-			return
-		}
-	}
-
-	// PASO 2: Eliminar los detalles viejos
-	if err := tx.Where("venta_id = ?", ventaID).Delete(&models.VentaDetalle{}).Error; err != nil {
-		tx.Rollback()
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error al eliminar detalles viejos"})
-		return
-	}
-
-	// PASO 3: Calcular nuevos valores y crear nuevos detalles
-	var nuevosTotales struct {
-		costo       float64
-		precioVenta float64
-		ganancia    float64
-	}
-
-	nuevosDetalles := make([]models.VentaDetalle, 0)
-
-	for _, detalle := range request.Detalles {
-		// Verificar stock disponible
-		var stock models.ProductoStock
-		if err := tx.Where("producto_id = ? AND talle = ?", detalle.ProductoID, detalle.Talle).First(&stock).Error; err != nil {
-			tx.Rollback()
-			c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("Stock no encontrado para producto %d talle %s", detalle.ProductoID, detalle.Talle)})
-			return
-		}
-
-		if stock.Cantidad < detalle.Cantidad {
-			tx.Rollback()
-			c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("Stock insuficiente para producto %d talle %s. Disponible: %d, Solicitado: %d", detalle.ProductoID, detalle.Talle, stock.Cantidad, detalle.Cantidad)})
-			return
-		}
-
-		// Obtener el producto para calcular costo
-		var producto models.Producto
-		if err := tx.First(&producto, detalle.ProductoID).Error; err != nil {
-			tx.Rollback()
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error al obtener producto"})
-			return
-		}
-
-		// Calcular subtotal y costo
-		subtotal := detalle.PrecioUnitario * float64(detalle.Cantidad)
-		costoDetalle := producto.CostoUnitario * float64(detalle.Cantidad)
-
-		nuevosTotales.costo += costoDetalle
-		nuevosTotales.precioVenta += subtotal
-
-		// Crear nuevo detalle
-		nuevoDetalle := models.VentaDetalle{
-			VentaID:        venta.ID,
-			ProductoID:     detalle.ProductoID,
-			Talle:          detalle.Talle,
-			Cantidad:       detalle.Cantidad,
-			PrecioUnitario: detalle.PrecioUnitario,
-			Subtotal:       subtotal,
-		}
-
-		if err := tx.Create(&nuevoDetalle).Error; err != nil {
-			tx.Rollback()
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error al crear nuevo detalle"})
-			return
-		}
-
-		nuevosDetalles = append(nuevosDetalles, nuevoDetalle)
-
-		// Descontar el nuevo stock
-		stock.Cantidad -= detalle.Cantidad
-		if err := tx.Save(&stock).Error; err != nil {
-			tx.Rollback()
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error al actualizar stock"})
-			return
-		}
-	}
-
-	nuevosTotales.ganancia = request.PrecioVenta - nuevosTotales.costo
-
-	descuento := 0.0
-	if request.UsaDescuentoFinanciera {
-		descuento = request.PrecioVenta * 0.03 // además era 10% en vez de 3%
-	}
-
-	total := request.PrecioVenta - descuento
-	saldo := total
-
-	if request.Sena > 0 {
-		saldo = total - request.Sena
-	}
-
-	// PASO 5: Actualizar la venta
-	venta.Transporte = request.Transporte
-	venta.Costo = nuevosTotales.costo
-	venta.PrecioVenta = request.PrecioVenta
-	venta.Ganancia = nuevosTotales.ganancia
-	venta.Total = total
-
-	if request.Sena > 0 {
-		venta.Sena = &request.Sena
-	} else {
-		venta.Sena = nil
-	}
-
-	venta.Saldo = saldo
-	venta.Descuento = descuento
-	venta.TotalFinal = total
-	venta.UsaFinanciera = request.UsaDescuentoFinanciera
-
-	if request.Observaciones != "" {
-		venta.Observaciones = &request.Observaciones
-	} else {
-		venta.Observaciones = nil
-	}
-
-	if err := tx.Save(&venta).Error; err != nil {
-		tx.Rollback()
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error al actualizar venta"})
-		return
-	}
-
-	// Commit de la transacción
-	if err := tx.Commit().Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error al confirmar transacción"})
-		return
-	}
-
-	// Recargar la venta con todas las relaciones
-	if err := config.DB.
-		Preload("Usuario").
-		Preload("Cliente").
-		Preload("FormaPago").
-		Preload("Detalles").
-		Preload("Detalles.Producto").
-		First(&venta, ventaID).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error al recargar venta"})
-		return
-	}
-
-	c.JSON(http.StatusOK, venta)
 }
