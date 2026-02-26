@@ -34,6 +34,7 @@ export default function EditarVentaModal({ open, onClose, onSuccess, venta }: Ed
   const [observaciones, setObservaciones] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [initialized, setInitialized] = useState(false);
 
   const tallesDisponibles = Object.values(TalleEnum);
 
@@ -47,12 +48,13 @@ export default function EditarVentaModal({ open, onClose, onSuccess, venta }: Ed
     }
   }, [addNotification]);
 
-  useEffect(() => {
-    if (open && venta) {
+
+useEffect(() => {
+    if (open && venta && !initialized) {
       loadProductos();
-      setPrecioVenta(venta.precio_venta?.toString() || venta.total.toString()); // NUEVO
+      setPrecioVenta(venta.precio_venta?.toString() || venta.total.toString());
       setSena(venta.sena.toString());
-      setUsaDescuentoFinanciera(venta.usa_financiera || false); // NUEVO
+      setUsaDescuentoFinanciera(venta.usa_financiera || false);
       setObservaciones(venta.observaciones || '');
 
       // Convertir los detalles de la venta a productos seleccionados
@@ -76,8 +78,15 @@ export default function EditarVentaModal({ open, onClose, onSuccess, venta }: Ed
 
         setProductosSeleccionados(Object.values(productosAgrupados));
       }
+      
+      setInitialized(true);
     }
-  }, [open, venta, loadProductos, addNotification]);
+    
+    // Reset cuando se cierra el modal
+    if (!open) {
+      setInitialized(false);
+    }
+  }, [open, venta, initialized, loadProductos]);
 
   const handleProductoSelect = (productoId: number) => {
     if (!productoId) return;
@@ -177,6 +186,7 @@ export default function EditarVentaModal({ open, onClose, onSuccess, venta }: Ed
     setUsaDescuentoFinanciera(false);
     setObservaciones('');
     setError(null);
+    setInitialized(false);
     onClose();
   };
 
