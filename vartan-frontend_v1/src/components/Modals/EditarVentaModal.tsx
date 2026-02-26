@@ -52,6 +52,14 @@ export default function EditarVentaModal({ open, onClose, onSuccess, venta }: Ed
 
   useEffect(() => {
   if (!open) {
+    setProductosSeleccionados([]);
+    setProductoActual(null);
+    setTallesActuales({});
+    setPrecioVenta('');
+    setSena('');
+    setUsaDescuentoFinanciera(false);
+    setObservaciones('');
+    setError(null);
     setInitialized(false);
     return;
   }
