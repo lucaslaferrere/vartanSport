@@ -1013,16 +1013,14 @@ func UpdateVentaDetalles(c *gin.Context) {
 		}
 	}
 
-	// PASO 4: Calcular ganancia y totales
-	nuevosTotales.ganancia = nuevosTotales.precioVenta - nuevosTotales.costo
+	nuevosTotales.ganancia = request.PrecioVenta - nuevosTotales.costo
 
-	// Aplicar descuento de financiera si corresponde
 	descuento := 0.0
 	if request.UsaDescuentoFinanciera {
-		descuento = nuevosTotales.precioVenta * 0.10 // 10% de descuento
+		descuento = request.PrecioVenta * 0.03 // además era 10% en vez de 3%
 	}
 
-	total := nuevosTotales.precioVenta - descuento
+	total := request.PrecioVenta - descuento
 	saldo := total
 
 	if request.Sena > 0 {
@@ -1032,7 +1030,7 @@ func UpdateVentaDetalles(c *gin.Context) {
 	// PASO 5: Actualizar la venta
 	venta.Transporte = request.Transporte
 	venta.Costo = nuevosTotales.costo
-	venta.PrecioVenta = nuevosTotales.precioVenta
+	venta.PrecioVenta = request.PrecioVenta
 	venta.Ganancia = nuevosTotales.ganancia
 	venta.Total = total
 
