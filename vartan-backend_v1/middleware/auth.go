@@ -9,6 +9,30 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
+func normalizeRole(raw string) string {
+	role := strings.TrimSpace(strings.ToLower(raw))
+	// Normalizar acentos/mojibake comunes y aliases de rol.
+	replacer := strings.NewReplacer(
+		"á", "a",
+		"é", "e",
+		"í", "i",
+		"ó", "o",
+		"ú", "u",
+		"ñ", "n",
+		"ã±", "n",
+	)
+	role = replacer.Replace(role)
+
+	switch role {
+	case "dueno", "owner", "admin":
+		return "dueno"
+	case "empleado", "vendedor", "seller":
+		return "empleado"
+	default:
+		return role
+	}
+}
+
 // AuthMiddleware - Verifica que el token JWT sea válido
 func AuthMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
@@ -68,9 +92,9 @@ func AuthMiddleware() gin.HandlerFunc {
 // Se usa nombre ASCII para evitar problemas de encoding en identificadores.
 func RequireDueno() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		rol := c.GetString("rol")
+		rol := normalizeRole(c.GetString("rol"))
 
-		if rol != "dueño" && rol != "dueno" {
+		if rol != "dueno" {
 			c.JSON(http.StatusForbidden, gin.H{"error": "Acceso denegado. Solo dueños pueden realizar esta acción"})
 			c.Abort()
 			return
@@ -88,9 +112,9 @@ func RequireDueño() gin.HandlerFunc {
 // RequireWrite - Middleware para operaciones de escritura.
 func RequireWrite() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		rol := c.GetString("rol")
+		rol := normalizeRole(c.GetString("rol"))
 		switch rol {
-		case "dueño", "dueno", "empleado", "vendedor":
+		case "dueno", "empleado":
 			c.Next()
 			return
 		default:

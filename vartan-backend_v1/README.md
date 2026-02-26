@@ -39,6 +39,28 @@ go run main.go
 
 El servidor estará disponible en: `http://localhost:8080`
 
+## 🧪 Entorno Demo (Base Separada)
+
+Para mostrar el sistema sin tocar producción, usá una base demo independiente:
+
+```bash
+docker compose -f docker-compose.demo.yml up -d
+```
+
+Copiá `.env.demo.example` a `.env` y ejecutá:
+
+```bash
+go run main.go
+go run cmd/tools/create_owner.go
+```
+
+Credenciales demo owner:
+
+```text
+Email: admin@vartansport.com
+Password: admin123
+```
+
 ## 🔧 Comandos Útiles
 
 | Comando | Descripción |

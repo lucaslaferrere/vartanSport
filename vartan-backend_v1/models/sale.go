@@ -76,9 +76,22 @@ type VentaDetalleCreateRequest struct {
 }
 
 type VentaUpdateRequest struct {
-	UsuarioID     *int     `json:"usuario_id"`
-	ClienteID     *int     `json:"cliente_id"`
-	FormaPagoID   *int     `json:"forma_pago_id"`
-	Sena          *float64 `json:"sena"`
-	Observaciones *string  `json:"observaciones"`
+	UsuarioID              *int     `json:"usuario_id"`
+	ClienteID              *int     `json:"cliente_id"`
+	FormaPagoID            *int     `json:"forma_pago_id"`
+	Transporte             *string  `json:"transporte"`
+	PrecioVenta            *float64 `json:"precio_venta"`
+	Sena                   *float64 `json:"sena"`
+	UsaDescuentoFinanciera *bool    `json:"usa_descuento_financiera"`
+	UsaFinanciera          *bool    `json:"usa_financiera"`
+	Observaciones          *string  `json:"observaciones"`
+}
+
+type VentaUpdateDetallesRequest struct {
+	PrecioVenta            float64                     `json:"precio_venta"`
+	Transporte             string                      `json:"transporte"`
+	Sena                   float64                     `json:"sena"`
+	UsaDescuentoFinanciera bool                        `json:"usa_descuento_financiera"`
+	Observaciones          string                      `json:"observaciones"`
+	Detalles               []VentaDetalleCreateRequest `json:"detalles" binding:"required"`
 }
