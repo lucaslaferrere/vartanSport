@@ -223,7 +223,14 @@ func processVenta(c *gin.Context, usuarioID *int, clienteID int, formaPagoID int
 	}
 
 	// Calcular saldo sin descuento primero
-	saldoSinDescuento := total - senaValue
+	// Si seña = 0 → pago todo de contado → saldo = 0
+	// Si seña > 0 → pago parcial → saldo = total - seña
+	var saldoSinDescuento float64
+	if sena > 0 {
+		saldoSinDescuento = total - senaValue
+	} else {
+		saldoSinDescuento = 0
+	}
 
 	// Aplicar descuento sobre el saldo pendiente
 	if usaDescuentoFinanciera && formaPago.Nombre == "Transferencia Financiera" {
