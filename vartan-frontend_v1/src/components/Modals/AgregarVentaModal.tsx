@@ -32,7 +32,7 @@ export default function AgregarVentaModal({ open, onClose, onSuccess }: AgregarV
   const [formaPagoId, setFormaPagoId] = useState<number>(1);
   const [precioVenta, setPrecioVenta] = useState<string>(''); // NUEVO
   const [sena, setSena] = useState<string>('');
-  const [usaDescuentoFinanciera, setUsaDescuentoFinanciera] = useState(false); // NUEVO
+  const [usaDescuentoFinanciera, setUsaDescuentoFinanciera] = useState(true); // NUEVO
   const [observaciones, setObservaciones] = useState('');
   const [comprobante, setComprobante] = useState<File | null>(null);
   const [isDragging, setIsDragging] = useState(false);
