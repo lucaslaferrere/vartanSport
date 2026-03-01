@@ -272,25 +272,47 @@ func UpdateVentaDetalles(c *gin.Context) {
 		}
 	}
 
-	nuevosTotales.ganancia = request.PrecioVenta - nuevosTotales.costo
+	if request.Sena < 0 {
+		tx.Rollback()
+		c.JSON(http.StatusBadRequest, gin.H{"error": "sena no puede ser negativa"})
+		return
+	}
+	if request.Sena > request.PrecioVenta {
+		tx.Rollback()
+		c.JSON(http.StatusBadRequest, gin.H{"error": "La seña no puede superar el precio de venta"})
+		return
+	}
+
+	var formaPago models.FormaPago
+	if err := tx.First(&formaPago, venta.FormaPagoID).Error; err != nil {
+		tx.Rollback()
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Forma de pago no encontrada"})
+		return
+	}
+
+	// Misma regla de alta: si seña=0, se considera contado y el saldo queda en 0.
+	saldoSinDescuento := 0.0
+	if request.Sena > 0 {
+		saldoSinDescuento = request.PrecioVenta - request.Sena
+	}
 
 	descuento := 0.0
-	if request.UsaDescuentoFinanciera {
-		descuento = request.PrecioVenta * 0.03 // además era 10% en vez de 3%
+	usaFinanciera := false
+	if request.UsaDescuentoFinanciera && formaPago.Nombre == "Transferencia Financiera" {
+		descuento = saldoSinDescuento * 0.03
+		usaFinanciera = true
 	}
 
-	total := request.PrecioVenta - descuento
-	saldo := total
-
-	if request.Sena > 0 {
-		saldo = total - request.Sena
-	}
+	total := request.PrecioVenta
+	totalFinal := total - descuento
+	saldo := saldoSinDescuento - descuento
+	ganancia := totalFinal - nuevosTotales.costo
 
 	// PASO 5: Actualizar la venta
 	venta.Transporte = request.Transporte
 	venta.Costo = nuevosTotales.costo
 	venta.PrecioVenta = request.PrecioVenta
-	venta.Ganancia = nuevosTotales.ganancia
+	venta.Ganancia = ganancia
 	venta.Total = total
 
 	if request.Sena > 0 {
@@ -301,8 +323,8 @@ func UpdateVentaDetalles(c *gin.Context) {
 
 	venta.Saldo = saldo
 	venta.Descuento = descuento
-	venta.TotalFinal = total
-	venta.UsaFinanciera = request.UsaDescuentoFinanciera
+	venta.TotalFinal = totalFinal
+	venta.UsaFinanciera = usaFinanciera
 
 	if request.Observaciones != "" {
 		venta.Observaciones = &request.Observaciones

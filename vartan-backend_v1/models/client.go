@@ -4,6 +4,7 @@ import "time"
 
 type Cliente struct {
 	ID            int       `gorm:"primaryKey;autoIncrement" json:"id"`
+	UsuarioID     int       `gorm:"not null" json:"usuario_id"`
 	Nombre        string    `gorm:"type:varchar(100);not null" json:"nombre"`
 	DNI           string    `gorm:"type:varchar(20)" json:"dni"` // DNI agregado
 	Telefono      string    `gorm:"type:varchar(20)" json:"telefono"`
@@ -14,6 +15,8 @@ type Cliente struct {
 	CodigoPostal  string    `gorm:"type:varchar(20)" json:"codigo_postal"`
 	Pais          string    `gorm:"type:varchar(100)" json:"pais"`
 	FechaCreacion time.Time `gorm:"default:CURRENT_TIMESTAMP" json:"fecha_creacion"`
+
+	Usuario Usuario `gorm:"foreignKey:UsuarioID" json:"usuario,omitempty"`
 }
 
 // Para crear un cliente nuevo

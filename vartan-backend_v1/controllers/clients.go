@@ -19,9 +19,19 @@ import (
 // @Failure 500 {object} map[string]string "Error interno"
 // @Router /api/clientes [get]
 func GetClientes(c *gin.Context) {
+	userID := c.GetInt("user_id")
+	userRol := c.GetString("rol")
+
 	var clientes []models.Cliente
 
-	if err := config.DB.Order("nombre ASC").Find(&clientes).Error; err != nil {
+	query := config.DB.Order("nombre ASC")
+
+	// Si NO es dueño, solo ve sus propios clientes
+	if userRol != "dueño" {
+		query = query.Where("usuario_id = ?", userID)
+	}
+
+	if err := query.Find(&clientes).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error al obtener clientes"})
 		return
 	}
@@ -65,6 +75,8 @@ func GetCliente(c *gin.Context) {
 // @Failure 500 {object} map[string]string "Error interno"
 // @Router /api/clientes [post]
 func CreateCliente(c *gin.Context) {
+	userID := c.GetInt("user_id")
+
 	var req models.ClienteCreateRequest
 
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -73,14 +85,16 @@ func CreateCliente(c *gin.Context) {
 	}
 
 	cliente := models.Cliente{
-		Nombre:    req.Nombre,
-		DNI:       req.DNI,
-		Telefono:  req.Telefono,
-		Email:     req.Email,
-		Direccion: req.Direccion,
-		Ciudad:    req.Ciudad,
-		Provincia: req.Provincia,
-		Pais:      req.Pais,
+		UsuarioID:    userID, // NUEVO
+		Nombre:       req.Nombre,
+		DNI:          req.DNI,
+		Telefono:     req.Telefono,
+		Email:        req.Email,
+		Direccion:    req.Direccion,
+		Ciudad:       req.Ciudad,
+		Provincia:    req.Provincia,
+		CodigoPostal: req.CodigoPostal,
+		Pais:         req.Pais,
 	}
 
 	if err := config.DB.Create(&cliente).Error; err != nil {
