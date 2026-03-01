@@ -131,10 +131,12 @@ export default function AgregarVentaModal({ open, onClose, onSuccess }: AgregarV
 
   // Calcular ganancia
   const calcularGanancia = () => {
-    const costo = calcularCosto();
-    const precio = parseFloat(precioVenta) || 0;
-    return precio - costo;
-  };
+  const costo = calcularCosto();
+  const precio = parseFloat(precioVenta) || 0;
+  // Si es financiera (id=1), descontar el 3% de la ganancia
+  const descuentoFinanciera = (formaPagoId === 1) ? precio * 0.03 : 0;
+  return precio - costo - descuentoFinanciera;
+};
 
   const handleSubmit = async () => {
     setError(null);

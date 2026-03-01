@@ -151,11 +151,14 @@ export default function EditarVentaModal({ open, onClose, onSuccess, venta }: Ed
     return costo;
   };
 
+
   const calcularGanancia = () => {
-    const costo = calcularCosto();
-    const precio = parseFloat(precioVenta) || 0;
-    return precio - costo;
-  };
+  const costo = calcularCosto();
+  const precio = parseFloat(precioVenta) || 0;
+  // Si es financiera, descontar el 3% de la ganancia
+  const descuentoFinanciera = (venta?.forma_pago_id === 1) ? precio * 0.03 : 0;
+  return precio - costo - descuentoFinanciera;
+};
 
 const handleSubmit = async () => {
   setError(null);
@@ -372,23 +375,15 @@ const handleSubmit = async () => {
             </Box>
 
             
-            {/* Checkbox Descuento Financiera - Solo si es Transferencia Financiera 
+            {/* Mensaje informativo de financiera */}
             {venta?.forma_pago_id === 1 && (
-              <FormControlLabel
-                control={
-                  <Checkbox
-                    checked={usaDescuentoFinanciera}
-                    onChange={(e) => setUsaDescuentoFinanciera(e.target.checked)}
-                    size="small"
-                  />
-                }
-                label={
-                  <Typography sx={{ fontSize: '12px', color: '#6B7280' }}>
-                    Aplicar descuento financiera (3%)
-                  </Typography>
-                }
-              />
-            )} */}
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.5 }}>
+            <i className="fa-solid fa-circle-info" style={{ color: '#D97706', fontSize: '12px' }} />
+            <Typography sx={{ fontSize: '12px', color: '#D97706', fontWeight: 500 }}>
+            Comisión financiera (3%) aplicada automáticamente a la ganancia
+            </Typography>
+              </Box>
+)}
           </Box>
         </Grid>
 
