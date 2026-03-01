@@ -548,27 +548,27 @@ func processVenta(c *gin.Context, usuarioID *int, clienteID int, formaPagoID int
 		return
 	}
 
-	// Calcular saldo sin descuento primero
-	// Si seña = 0 → pago todo de contado → saldo = 0
-	// Si seña > 0 → pago parcial → saldo = total - seña
-	var saldoSinDescuento float64
+	// El cliente SIEMPRE paga el precio de venta completo
+	totalFinal := total
+
+	// Calcular saldo (lo que falta pagar)
+	// Si seña = 0 → pagó todo de contado → saldo = 0
+	// Si seña > 0 → pagó parcial → saldo = total - seña
+	var saldo float64
 	if sena > 0 {
-		saldoSinDescuento = total - senaValue
+		saldo = total - senaValue
 	} else {
-		saldoSinDescuento = 0
+		saldo = 0
 	}
 
-	// Aplicar descuento sobre el saldo pendiente
+	// El 3% de financiera afecta la GANANCIA, no lo que paga el cliente
 	if usaDescuentoFinanciera && formaPago.Nombre == "Transferencia Financiera" {
-		descuento = saldoSinDescuento * 0.03
+		descuento = total * 0.03 // 3% del precio de venta
 		usaFinanciera = true
 	}
 
-	// Total final y saldo final con descuento aplicado
-	totalFinal := total - descuento
-	saldo := saldoSinDescuento - descuento
-
-	ganancia := totalFinal - costo
+	// Ganancia = precio venta - costo - comisión financiera
+	ganancia := total - costo - descuento
 
 	var obs *string
 	if observaciones != "" {
