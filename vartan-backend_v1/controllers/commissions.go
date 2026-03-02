@@ -115,9 +115,16 @@ func CalcularComisionesMesActual(c *gin.Context) {
 			Select("COALESCE(SUM(total_final), 0)").
 			Scan(&totalVentas)
 
+		// Calcular base de comisión con la ganancia real (incluye descuento financiera).
+		var totalGanancia float64
+		config.DB.Model(&models.Venta{}).
+			Where("usuario_id = ? AND EXTRACT(MONTH FROM fecha_venta) = ? AND EXTRACT(YEAR FROM fecha_venta) = ?", usuario.ID, mes, anio).
+			Select("COALESCE(SUM(ganancia), 0)").
+			Scan(&totalGanancia)
+
 		// Calcular comisión usando el porcentaje configurado del usuario
 		porcentaje := usuario.PorcentajeComision / 100.0 // Convertir % a decimal
-		comisionBruta := totalVentas * porcentaje
+		comisionBruta := totalGanancia * porcentaje
 
 		// Restar gasto publicitario
 		comisionNeta := comisionBruta - usuario.GastoPublicitario
@@ -228,6 +235,14 @@ func GetMiResumenComision(c *gin.Context) {
 		Select("COALESCE(SUM(total_final), 0)").
 		Scan(&totalVentasMesActual)
 
+	// Calcular ganancia del mes actual para usarla como base de comisión.
+	var totalGananciaMesActual float64
+	config.DB.Model(&models.Venta{}).
+		Where("usuario_id = ? AND EXTRACT(MONTH FROM fecha_venta) = ? AND EXTRACT(YEAR FROM fecha_venta) = ?",
+			userID, mesActual, anioActual).
+		Select("COALESCE(SUM(ganancia), 0)").
+		Scan(&totalGananciaMesActual)
+
 	// Contar cantidad de ventas del mes
 	var cantidadVentasMes int64
 	config.DB.Model(&models.Venta{}).
@@ -237,7 +252,7 @@ func GetMiResumenComision(c *gin.Context) {
 
 	// Calcular comisión estimada del mes
 	porcentaje := usuario.PorcentajeComision / 100.0
-	comisionBruta := totalVentasMesActual * porcentaje
+	comisionBruta := totalGananciaMesActual * porcentaje
 	comisionNeta := comisionBruta - usuario.GastoPublicitario
 	if comisionNeta < 0 {
 		comisionNeta = 0
@@ -282,6 +297,7 @@ func GetMiResumenComision(c *gin.Context) {
 			"mes":                    mesActual,
 			"anio":                   anioActual,
 			"total_ventas":           totalVentasMesActual,
+			"total_ganancia":         totalGananciaMesActual,
 			"cantidad_ventas":        cantidadVentasMes,
 			"comision_bruta":         comisionBruta,
 			"gasto_publicitario":     usuario.GastoPublicitario,
