@@ -98,13 +98,25 @@ func GetAllComisiones(c *gin.Context) {
 // @Failure 500 {object} map[string]string "Error interno"
 // @Router /api/owner/comisiones/calcular [post]
 func CalcularComisionesMesActual(c *gin.Context) {
+	var body struct {
+		Mes  int `json:"mes"`
+		Anio int `json:"anio"`
+	}
+	_ = c.ShouldBindJSON(&body)
+
 	now := time.Now()
-	mes := int(now.Month())
-	anio := now.Year()
+	mes := body.Mes
+	anio := body.Anio
+	if mes == 0 {
+		mes = int(now.Month())
+	}
+	if anio == 0 {
+		anio = now.Year()
+	}
 
 	// Obtener todos los empleados
 	var usuarios []models.Usuario
-	if err := config.DB.Where("rol IN (?, ?) AND activo = ?", "empleado", "dueño", true).Find(&usuarios).Error; err != nil {
+	if err := config.DB.Where("rol IN (?, ?, ?) AND activo = ?", "empleado", "vendedor", "dueño", true).Find(&usuarios).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error al obtener empleados"})
 		return
 	}
