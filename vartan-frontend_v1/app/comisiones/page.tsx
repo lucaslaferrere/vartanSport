@@ -1,9 +1,10 @@
 'use client';
 
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
-import { Box, Typography, Grid, CircularProgress, Card, CardContent, Chip, Divider } from '@mui/material';
+import { Box, Typography, Grid, CircularProgress, Card, CardContent, Chip, Divider, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper } from '@mui/material';
 import { colors } from '@/src/theme/colors';
 import { comisionService, IMiResumenComision } from '@services/comision.service';
+import { IComision } from '@models/entities/comisionentity';
 import { usuarioService } from '@services/usuario.service';
 import ConfigurarComisionModal from '@components/Modals/ConfigurarComisionModal';
 import KPICard from '@components/Cards/KPICard';
@@ -14,6 +15,13 @@ import { IUser } from '@models/entities/userEntity';
 import { useAuthStore } from '@libraries/store';
 import { useMounted } from '@hooks/useMounted';
 import { useNotification } from '@components/Notifications';
+
+const meses = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+
+interface IHistorialRow extends IComision {
+    nombre: string;
+    rol: IUser['rol'];
+}
 
 interface IVendedorDisplay {
     id: number;
@@ -49,6 +57,7 @@ export default function ComisionesPage() {
     const [vendedorSeleccionado, setVendedorSeleccionado] = useState<IUser | null>(null);
     const [miConfiguracion, setMiConfiguracion] = useState<IUser | null>(null);
     const [miResumen, setMiResumen] = useState<IMiResumenComision | null>(null);
+    const [historialCompleto, setHistorialCompleto] = useState<IHistorialRow[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
@@ -118,6 +127,17 @@ export default function ComisionesPage() {
             ordenados.forEach((v, i) => { v.rank = i + 1; });
 
             setVendedores(ordenados);
+
+            // Construir historial completo: todas las comisiones de todos los usuarios
+            const usuariosMap = new Map(usuariosBase.map(u => [u.id, u]));
+            const historial: IHistorialRow[] = comisionesData
+                .map(c => {
+                    const u = usuariosMap.get(c.usuario_id);
+                    return u ? { ...c, nombre: u.nombre, rol: u.rol } : null;
+                })
+                .filter((c): c is IHistorialRow => c !== null)
+                .sort((a, b) => (b.anio * 12 + b.mes) - (a.anio * 12 + a.mes));
+            setHistorialCompleto(historial);
         } catch (err) {
             console.error('Error:', err);
             setError('Error al cargar datos. Verifica que el backend esté corriendo.');
@@ -458,6 +478,52 @@ export default function ComisionesPage() {
                                 </Grid>
                             ))}
                         </Grid>
+
+                        {/* Historial completo */}
+                        {historialCompleto.length > 0 && (
+                            <Box sx={{ mt: 5 }}>
+                                <Typography sx={{ fontSize: '16px', fontWeight: 600, color: '#1F2937', mb: 3 }}>
+                                    Historial de Comisiones
+                                </Typography>
+                                <TableContainer component={Paper} elevation={0} sx={{ border: '1px solid #E5E7EB', borderRadius: 2 }}>
+                                    <Table>
+                                        <TableHead>
+                                            <TableRow sx={{ bgcolor: '#F9FAFB' }}>
+                                                <TableCell sx={{ fontWeight: 600, fontSize: 13 }}>Mes</TableCell>
+                                                <TableCell sx={{ fontWeight: 600, fontSize: 13 }}>Vendedor</TableCell>
+                                                <TableCell align="right" sx={{ fontWeight: 600, fontSize: 13 }}>Ventas</TableCell>
+                                                <TableCell align="right" sx={{ fontWeight: 600, fontSize: 13 }}>Comisión</TableCell>
+                                                <TableCell align="right" sx={{ fontWeight: 600, fontSize: 13 }}>Sueldo</TableCell>
+                                                <TableCell align="right" sx={{ fontWeight: 600, fontSize: 13 }}>Total</TableCell>
+                                                <TableCell sx={{ fontWeight: 600, fontSize: 13 }}>Observaciones</TableCell>
+                                            </TableRow>
+                                        </TableHead>
+                                        <TableBody>
+                                            {historialCompleto.map((h) => (
+                                                <TableRow key={h.id} hover>
+                                                    <TableCell sx={{ fontSize: 13 }}>
+                                                        {meses[h.mes - 1]} {h.anio}
+                                                    </TableCell>
+                                                    <TableCell>
+                                                        <Box>
+                                                            <Typography sx={{ fontSize: 13, fontWeight: 500 }}>{h.nombre}</Typography>
+                                                            {h.rol === 'dueño' && (
+                                                                <Chip label="Dueño" size="small" sx={{ fontSize: 10, height: 18, bgcolor: 'rgba(139, 92, 246, 0.1)', color: '#6D28D9' }} />
+                                                            )}
+                                                        </Box>
+                                                    </TableCell>
+                                                    <TableCell align="right" sx={{ fontSize: 13 }}>{formatCurrency(h.total_ventas)}</TableCell>
+                                                    <TableCell align="right" sx={{ fontSize: 13, color: colors.success, fontWeight: 600 }}>{formatCurrency(h.total_comision)}</TableCell>
+                                                    <TableCell align="right" sx={{ fontSize: 13 }}>{formatCurrency(h.sueldo)}</TableCell>
+                                                    <TableCell align="right" sx={{ fontSize: 14, fontWeight: 700, color: colors.primary }}>{formatCurrency(h.sueldo + h.total_comision)}</TableCell>
+                                                    <TableCell sx={{ fontSize: 13, color: '#6B7280' }}>{h.observaciones || '-'}</TableCell>
+                                                </TableRow>
+                                            ))}
+                                        </TableBody>
+                                    </Table>
+                                </TableContainer>
+                            </Box>
+                        )}
                     </>
                 )}
             </Box>
