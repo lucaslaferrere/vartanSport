@@ -1,12 +1,14 @@
 package controllers
 
 import (
+	"errors"
 	"net/http"
 	"time"
 	"vartan-backend/config"
 	"vartan-backend/models"
 
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 )
 
 // GetMisComisiones godoc
@@ -136,7 +138,7 @@ func CalcularComisionesMesActual(c *gin.Context) {
 		var comisionExistente models.Comision
 		result := config.DB.Where("usuario_id = ? AND mes = ? AND anio = ?", usuario.ID, mes, anio).First(&comisionExistente)
 
-		if result.Error != nil {
+		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 			// No existe, crear nueva
 			nuevaComision := models.Comision{
 				UsuarioID:     usuario.ID,
@@ -147,6 +149,9 @@ func CalcularComisionesMesActual(c *gin.Context) {
 				Sueldo:        usuario.Sueldo,
 			}
 			config.DB.Create(&nuevaComision)
+		} else if result.Error != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error al verificar comisión existente"})
+			return
 		} else {
 			// Ya existe, actualizar
 			comisionExistente.TotalVentas = totalVentas
