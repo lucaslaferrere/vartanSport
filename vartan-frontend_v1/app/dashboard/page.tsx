@@ -12,10 +12,10 @@ export default function DashboardPage() {
 
   if (!mounted) return null;
 
-  if (user?.rol === 'vendedor') {
-    return <DashboardVendedor />;
+  if (user?.rol === 'dueño' || user?.rol === 'demo') {
+    return <DashboardDueno />;
   }
 
-  return <DashboardDueno />;
+  return <DashboardVendedor />;
 }
 

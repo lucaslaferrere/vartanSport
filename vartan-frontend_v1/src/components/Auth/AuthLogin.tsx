@@ -3,7 +3,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { Button, Grid, InputAdornment, Stack, TextField, Alert, Typography, Box } from '@mui/material';
 import IconButton from '@mui/material/IconButton';
-import { Visibility, VisibilityOff, Email, Lock } from '@mui/icons-material';
+import { Visibility, VisibilityOff, Lock, Person } from '@mui/icons-material';
 import { useRouter } from 'next/navigation';
 import { authService } from '@services/auth.service';
 import { useAuthStore } from '@libraries/store';
@@ -11,8 +11,8 @@ import { colors } from '@/src/theme/colors';
 
 export default function AuthLogin() {
   const router = useRouter();
+  const [usuario, setUsuario] = useState('');
   const [password, setPassword] = useState('');
-  const [email, setEmail] = useState('admin@vartansport.com');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -20,10 +20,11 @@ export default function AuthLogin() {
 
   const handleSubmit = useCallback(async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
-    if (!email || !password) {
-      setError('Por favor, ingrese un email y contraseña');
+    if (!usuario || !password) {
+      setError('Por favor, ingrese usuario y contraseña');
       return;
     }
+    const email = `${usuario.trim()}@vartan.com`;
     setLoading(true);
     setError(null);
     try {
@@ -38,7 +39,7 @@ export default function AuthLogin() {
     } finally {
       setLoading(false);
     }
-  }, [email, password, login, router]);
+  }, [usuario, password, login, router]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -49,7 +50,7 @@ export default function AuthLogin() {
   }, [handleSubmit, loading]);
 
   return (
-    <Box component="form" onSubmit={handleSubmit}>
+    <Box component="form" onSubmit={handleSubmit} autoComplete="off">
       <Grid container spacing={3}>
         <Grid size={{ xs: 12 }}>
           <Box sx={{ display: 'flex', justifyContent: 'center', mb: 2 }}>
@@ -73,18 +74,23 @@ export default function AuthLogin() {
         <Grid size={{ xs: 12 }}>
           <Stack spacing={1}>
             <TextField
-              id="email-login"
-              type="email"
-              value={email}
-              name="email"
-              label="Correo Electrónico"
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="tunombre@vartan.com"
+              id="usuario-login"
+              type="text"
+              value={usuario}
+              name="usuario"
+              label="Usuario"
+              onChange={(e) => setUsuario(e.target.value)}
+              placeholder="tunombre"
               fullWidth
               required
-              autoComplete="email"
+              autoComplete="off"
               disabled={loading}
-              slotProps={{ input: { startAdornment: <InputAdornment position="start"><Email sx={{ color: colors.textSecondary }} /></InputAdornment> } }}
+              slotProps={{
+                input: {
+                  startAdornment: <InputAdornment position="start"><Person sx={{ color: colors.textSecondary }} /></InputAdornment>,
+                  endAdornment: <InputAdornment position="end"><Typography sx={{ color: colors.textSecondary, fontSize: 14 }}>@vartan.com</Typography></InputAdornment>,
+                },
+              }}
             />
           </Stack>
         </Grid>
@@ -101,7 +107,7 @@ export default function AuthLogin() {
               onChange={(e) => setPassword(e.target.value)}
               placeholder="••••••••"
               required
-              autoComplete="current-password"
+              autoComplete="new-password"
               disabled={loading}
               slotProps={{
                 input: {
@@ -143,10 +149,7 @@ export default function AuthLogin() {
             {loading ? 'Iniciando sesión...' : 'Iniciar Sesión'}
           </Button>
         </Grid>
-
-
       </Grid>
     </Box>
   );
 }
-
