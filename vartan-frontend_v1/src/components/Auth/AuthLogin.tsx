@@ -24,7 +24,8 @@ export default function AuthLogin() {
       setError('Por favor, ingrese usuario y contraseña');
       return;
     }
-    const email = `${usuario.trim()}@vartan.com`;
+    const trimmed = usuario.trim();
+    const email = trimmed.includes('@') ? trimmed : `${trimmed}@vartan.com`;
     setLoading(true);
     setError(null);
     try {
@@ -88,7 +89,9 @@ export default function AuthLogin() {
               slotProps={{
                 input: {
                   startAdornment: <InputAdornment position="start"><Person sx={{ color: colors.textSecondary }} /></InputAdornment>,
-                  endAdornment: <InputAdornment position="end"><Typography sx={{ color: colors.textSecondary, fontSize: 14 }}>@vartan.com</Typography></InputAdornment>,
+                  endAdornment: !usuario.includes('@') && usuario.length > 0
+                    ? <InputAdornment position="end"><Typography sx={{ color: colors.textSecondary, fontSize: 14 }}>@vartan.com</Typography></InputAdornment>
+                    : null,
                 },
               }}
             />
