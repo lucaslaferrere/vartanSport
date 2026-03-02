@@ -167,12 +167,18 @@ export default function MiComisionPage() {
           />
         </Grid>
         <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-          <StatCard
-            title="Comisión Neta"
-            value={formatCurrency(resumen.mes_actual.comision_neta)}
-            icon="fa-solid fa-percent"
-            subtitle={`${resumen.configuracion.porcentaje_comision}% de comisión`}
-          />
+  <StatCard
+    title="Comisión Neta"
+    value={formatCurrency(resumen.mes_actual.comision_neta)}
+    icon="fa-solid fa-percent"
+    subtitle={`${resumen.configuracion.porcentaje_comision}% sobre ganancia`}
+  />
+        <Box sx={{ mt: 1, p: 1.5, bgcolor: '#F0FDF4', borderRadius: '8px', border: '1px solid #A7F3D0' }}>
+          <Typography sx={{ fontSize: '11px', color: '#6B7280' }}>Base comisión (ganancia):</Typography>
+          <Typography sx={{ fontSize: '13px', fontWeight: 700, color: '#059669' }}>
+              {formatCurrency(resumen.mes_actual.total_ganancia ?? 0)}
+          </Typography>
+          </Box>
         </Grid>
         <Grid size={{ xs: 12, sm: 6, md: 3 }}>
           <StatCard
@@ -313,7 +319,7 @@ export default function MiComisionPage() {
                 {resumen.mes_actual.comision_bruta !== undefined && (
                   <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
                     <Typography sx={{ color: colors.textSecondary, fontSize: 14 }}>
-                      Comisión bruta ({resumen.configuracion.porcentaje_comision}%):
+                      Comisión bruta ({resumen.configuracion.porcentaje_comision}% sobre {formatCurrency(resumen.mes_actual.total_ganancia ?? 0)}):
                     </Typography>
                     <Typography sx={{ fontWeight: 600, color: colors.success }}>
                       {formatCurrency(resumen.mes_actual.comision_bruta)}

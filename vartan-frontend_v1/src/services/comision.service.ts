@@ -18,6 +18,7 @@ export interface IMesActualComision {
     mes?: number;
     anio?: number;
     total_ventas: number;
+    total_ganancia?: number;
     cantidad_ventas: number;
     comision_bruta?: number;
     gasto_publicitario?: number;
