@@ -137,50 +137,57 @@ export function DistribucionChart({ data, total, formatCurrency }: DistribucionC
                         ) : (
                             <Box sx={{ position: 'relative', width: 200, height: 200 }}>
                                 <svg width="200" height="200" viewBox="0 0 200 200">
-                                    {data.map((item, index) => {
-                                        const percentage = total > 0 ? (item.value / total) * 100 : 0;
-                                        const angle = (percentage / 100) * 360;
+                                    {data.length === 1 ? (
+                                        // Un solo elemento: círculo completo
+                                        <>
+                                            <circle cx="100" cy="100" r="90" fill={CHART_COLORS[0]} />
+                                            <circle cx="100" cy="100" r="50" fill="white" />
+                                        </>
+                                    ) : (
+                                        data.map((item, index) => {
+                                            const percentage = total > 0 ? (item.value / total) * 100 : 0;
+                                            const angle = (percentage / 100) * 360;
 
-                                        // Calcular el inicio del arco (acumulado de los anteriores)
-                                        let startAngle = 0;
-                                        for (let i = 0; i < index; i++) {
-                                            const prevPercentage = total > 0 ? (data[i].value / total) * 100 : 0;
-                                            startAngle += (prevPercentage / 100) * 360;
-                                        }
+                                            let startAngle = 0;
+                                            for (let i = 0; i < index; i++) {
+                                                const prevPercentage = total > 0 ? (data[i].value / total) * 100 : 0;
+                                                startAngle += (prevPercentage / 100) * 360;
+                                            }
 
-                                        const startRad = (startAngle - 90) * (Math.PI / 180);
-                                        const endRad = (startAngle + angle - 90) * (Math.PI / 180);
+                                            const startRad = (startAngle - 90) * (Math.PI / 180);
+                                            const endRad = (startAngle + angle - 90) * (Math.PI / 180);
 
-                                        const outerRadius = 90;
-                                        const innerRadius = 50;
+                                            const outerRadius = 90;
+                                            const innerRadius = 50;
 
-                                        const x1 = 100 + outerRadius * Math.cos(startRad);
-                                        const y1 = 100 + outerRadius * Math.sin(startRad);
-                                        const x2 = 100 + outerRadius * Math.cos(endRad);
-                                        const y2 = 100 + outerRadius * Math.sin(endRad);
-                                        const x3 = 100 + innerRadius * Math.cos(endRad);
-                                        const y3 = 100 + innerRadius * Math.sin(endRad);
-                                        const x4 = 100 + innerRadius * Math.cos(startRad);
-                                        const y4 = 100 + innerRadius * Math.sin(startRad);
+                                            const x1 = 100 + outerRadius * Math.cos(startRad);
+                                            const y1 = 100 + outerRadius * Math.sin(startRad);
+                                            const x2 = 100 + outerRadius * Math.cos(endRad);
+                                            const y2 = 100 + outerRadius * Math.sin(endRad);
+                                            const x3 = 100 + innerRadius * Math.cos(endRad);
+                                            const y3 = 100 + innerRadius * Math.sin(endRad);
+                                            const x4 = 100 + innerRadius * Math.cos(startRad);
+                                            const y4 = 100 + innerRadius * Math.sin(startRad);
 
-                                        const largeArcFlag = angle > 180 ? 1 : 0;
+                                            const largeArcFlag = angle > 180 ? 1 : 0;
 
-                                        const pathData = [
-                                            `M ${x1} ${y1}`,
-                                            `A ${outerRadius} ${outerRadius} 0 ${largeArcFlag} 1 ${x2} ${y2}`,
-                                            `L ${x3} ${y3}`,
-                                            `A ${innerRadius} ${innerRadius} 0 ${largeArcFlag} 0 ${x4} ${y4}`,
-                                            'Z'
-                                        ].join(' ');
+                                            const pathData = [
+                                                `M ${x1} ${y1}`,
+                                                `A ${outerRadius} ${outerRadius} 0 ${largeArcFlag} 1 ${x2} ${y2}`,
+                                                `L ${x3} ${y3}`,
+                                                `A ${innerRadius} ${innerRadius} 0 ${largeArcFlag} 0 ${x4} ${y4}`,
+                                                'Z'
+                                            ].join(' ');
 
-                                        return (
-                                            <path
-                                                key={`slice-${index}`}
-                                                d={pathData}
-                                                fill={CHART_COLORS[index % CHART_COLORS.length]}
-                                            />
-                                        );
-                                    })}
+                                            return (
+                                                <path
+                                                    key={`slice-${index}`}
+                                                    d={pathData}
+                                                    fill={CHART_COLORS[index % CHART_COLORS.length]}
+                                                />
+                                            );
+                                        })
+                                    )}
                                 </svg>
                                 <Box sx={{
                                     position: 'absolute',
