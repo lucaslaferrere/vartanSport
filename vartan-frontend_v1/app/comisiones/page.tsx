@@ -72,12 +72,10 @@ export default function ComisionesPage() {
                 const comAnterior = comisionesData.find(c => c.usuario_id === v.id && c.mes === mesAnterior && c.anio === anioAnterior);
 
                 const ventas = comActual?.total_ventas || 0;
-                const gastoPublicitario = v.gasto_publicitario || 0;
-                const base = ventas - gastoPublicitario;
-                const porcentaje = v.porcentaje_comision || 0;
-                const comisionEst = base > 0 ? (base * porcentaje) / 100 : 0;
+                const comisionEst = comActual?.total_comision || 0;
                 const sueldoBase = v.sueldo || 0;
                 const sueldoTotal = sueldoBase + comisionEst;
+
 
                 const historial = comisionesData
                     .filter(c => c.usuario_id === v.id)
@@ -89,8 +87,8 @@ export default function ComisionesPage() {
                     id: v.id,
                     nombre: v.nombre,
                     email: v.email,
-                    porcentaje_comision: porcentaje,
-                    gasto_publicitario: gastoPublicitario,
+                    porcentaje_comision: v.porcentaje_comision,
+                    gasto_publicitario: v.gasto_publicitario,
                     sueldo: sueldoBase,
                     observaciones_config: v.observaciones_config,
                     ventas_mes_actual: ventas,
