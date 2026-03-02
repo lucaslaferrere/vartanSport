@@ -70,7 +70,7 @@ export default function ComisionesPage() {
         setError(null);
 
         try {
-            // Auto-calcular mes actual y mes anterior para tener datos frescos sin que el dueÃ±o tenga que hacer nada
+            // Auto-calcular mes actual y mes anterior para tener datos frescos sin que el dueño tenga que hacer nada
             const hoyAuto = new Date();
             const mesActualAuto = hoyAuto.getMonth() + 1;
             const anioActualAuto = hoyAuto.getFullYear();
@@ -90,7 +90,7 @@ export default function ComisionesPage() {
 
             setMiResumen(resumenDueno);
 
-            // Incluir al dueÃ±o autenticado para que su comisiÃ³n tambiÃ©n aparezca en el dashboard.
+            // Incluir al dueño autenticado para que su comisiÃ³n tambiÃ©n aparezca en el dashboard.
             const usuariosBase = [...vendedoresData];
             if (!usuariosBase.some((u) => u.id === miUsuario.id)) {
                 usuariosBase.push(miUsuario);
@@ -177,7 +177,7 @@ export default function ComisionesPage() {
 
     useEffect(() => {
         if (mounted) {
-            if (user?.rol === 'dueÃ±o') {
+            if (user?.rol === 'dueño') {
                 fetchDataDueno();
             } else {
                 fetchDataVendedor();
@@ -260,10 +260,10 @@ export default function ComisionesPage() {
                             Comisiones
                         </Typography>
                         <Typography variant="body2" sx={{ color: '#6B7280', fontSize: '14px' }}>
-                            {user?.rol === 'dueÃ±o' ? 'Dashboard de rendimiento - ' + meses[calcularMes - 1] + ' ' + calcularAnio : 'Mi configuraciÃ³n'}
+                            {user?.rol === 'dueño' ? 'Dashboard de rendimiento - ' + meses[calcularMes - 1] + ' ' + calcularAnio : 'Mi configuraciÃ³n'}
                         </Typography>
                     </Box>
-                    {user?.rol === 'dueÃ±o' && (
+                    {user?.rol === 'dueño' && (
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap' }}>
                             <FormControl size="small" sx={{ minWidth: 130 }}>
                                 <InputLabel>Mes</InputLabel>
@@ -332,9 +332,9 @@ export default function ComisionesPage() {
                 )}
 
                 {/* Vista DUEÃ‘O */}
-                {user?.rol === 'dueÃ±o' && (
+                {user?.rol === 'dueño' && (
                     <>
-                        {/* Resumen Personal del DueÃ±o */}
+                        {/* Resumen Personal del dueño */}
                         {miResumen && (
                             <Box sx={{ mb: 5 }}>
                                 <Typography sx={{ fontSize: '16px', fontWeight: 600, color: '#1F2937', mb: 3 }}>
@@ -562,8 +562,8 @@ export default function ComisionesPage() {
                                                     <TableCell>
                                                         <Box>
                                                             <Typography sx={{ fontSize: 13, fontWeight: 500 }}>{h.nombre}</Typography>
-                                                            {h.rol === 'dueÃ±o' && (
-                                                                <Chip label="DueÃ±o" size="small" sx={{ fontSize: 10, height: 18, bgcolor: 'rgba(139, 92, 246, 0.1)', color: '#6D28D9' }} />
+                                                            {h.rol === 'dueño' && (
+                                                                <Chip label="Dueño" size="small" sx={{ fontSize: 10, height: 18, bgcolor: 'rgba(139, 92, 246, 0.1)', color: '#6D28D9' }} />
                                                             )}
                                                         </Box>
                                                     </TableCell>
@@ -583,7 +583,7 @@ export default function ComisionesPage() {
                 )}
             </Box>
 
-            {user?.rol === 'dueÃ±o' && (
+            {user?.rol === 'dueño' && (
                 <ConfigurarComisionModal
                     open={configurarModalOpen}
                     onClose={() => { setConfigurarModalOpen(false); setVendedorSeleccionado(null); }}
@@ -594,5 +594,6 @@ export default function ComisionesPage() {
         </>
     );
 }
+
 
 
