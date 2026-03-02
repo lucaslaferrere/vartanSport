@@ -12,7 +12,7 @@ import { colors } from '@/src/theme/colors';
 export default function AuthLogin() {
   const router = useRouter();
   const [password, setPassword] = useState('');
-  const [email, setEmail] = useState('demo@vartan.com');
+  const [email, setEmail] = useState('admin@vartansport.com');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);

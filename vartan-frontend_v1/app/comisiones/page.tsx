@@ -1,12 +1,13 @@
 'use client';
 
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
-import { Box, Typography, Grid, CircularProgress } from '@mui/material';
+import { Box, Typography, Grid, CircularProgress, Card, CardContent, Chip, Divider } from '@mui/material';
 import { colors } from '@/src/theme/colors';
-import { comisionService } from '@services/comision.service';
+import { comisionService, IMiResumenComision } from '@services/comision.service';
 import { usuarioService } from '@services/usuario.service';
 import ConfigurarComisionModal from '@components/Modals/ConfigurarComisionModal';
 import KPICard from '@components/Cards/KPICard';
+import StatCard from '@components/Cards/StatCard';
 import VendedorCard from '@components/Cards/VendedorCard';
 import { DistribucionChart } from '@components/Charts/ComisionesCharts';
 import { IUser } from '@models/entities/userEntity';
@@ -18,6 +19,7 @@ interface IVendedorDisplay {
     id: number;
     nombre: string;
     email: string;
+    rol: IUser['rol'];
     porcentaje_comision: number;
     gasto_publicitario: number;
     sueldo: number;
@@ -46,6 +48,7 @@ export default function ComisionesPage() {
     const [configurarModalOpen, setConfigurarModalOpen] = useState(false);
     const [vendedorSeleccionado, setVendedorSeleccionado] = useState<IUser | null>(null);
     const [miConfiguracion, setMiConfiguracion] = useState<IUser | null>(null);
+    const [miResumen, setMiResumen] = useState<IMiResumenComision | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
@@ -55,11 +58,20 @@ export default function ComisionesPage() {
         setError(null);
 
         try {
-            const [vendedoresData, comisionesData] = await Promise.all([
+            const [vendedoresData, comisionesData, miUsuario, resumenDueno] = await Promise.all([
                 usuarioService.getVendedores(),
                 comisionService.getAll(),
+                usuarioService.getMe(),
+                comisionService.getMiResumen().catch(() => null),
             ]);
 
+            setMiResumen(resumenDueno);
+
+            // Incluir al dueño autenticado para que su comisión también aparezca en el dashboard.
+            const usuariosBase = [...vendedoresData];
+            if (!usuariosBase.some((u) => u.id === miUsuario.id)) {
+                usuariosBase.push(miUsuario);
+            }
 
             const hoy = new Date();
             const mesActual = hoy.getMonth() + 1;
@@ -67,7 +79,7 @@ export default function ComisionesPage() {
             const mesAnterior = mesActual === 1 ? 12 : mesActual - 1;
             const anioAnterior = mesActual === 1 ? anioActual - 1 : anioActual;
 
-            const vendedoresDisplay: IVendedorDisplay[] = vendedoresData.map(v => {
+            const vendedoresDisplay: IVendedorDisplay[] = usuariosBase.map(v => {
                 const comActual = comisionesData.find(c => c.usuario_id === v.id && c.mes === mesActual && c.anio === anioActual);
                 const comAnterior = comisionesData.find(c => c.usuario_id === v.id && c.mes === mesAnterior && c.anio === anioAnterior);
 
@@ -87,6 +99,7 @@ export default function ComisionesPage() {
                     id: v.id,
                     nombre: v.nombre,
                     email: v.email,
+                    rol: v.rol,
                     porcentaje_comision: v.porcentaje_comision,
                     gasto_publicitario: v.gasto_publicitario,
                     sueldo: sueldoBase,
@@ -144,7 +157,7 @@ export default function ComisionesPage() {
             id: v.id,
             nombre: v.nombre,
             email: v.email,
-            rol: 'vendedor',
+            rol: v.rol,
             activo: true,
             porcentaje_comision: v.porcentaje_comision,
             gasto_publicitario: v.gasto_publicitario,
@@ -246,6 +259,140 @@ export default function ComisionesPage() {
                 {/* Vista DUEÑO */}
                 {user?.rol === 'dueño' && (
                     <>
+                        {/* Resumen Personal del Dueño */}
+                        {miResumen && (
+                            <Box sx={{ mb: 5 }}>
+                                <Typography sx={{ fontSize: '16px', fontWeight: 600, color: '#1F2937', mb: 3 }}>
+                                    Mi Comisión Personal
+                                </Typography>
+
+                                {/* KPIs personales */}
+                                <Grid container spacing={3} sx={{ mb: 3 }}>
+                                    <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+                                        <StatCard
+                                            title="Total Vendido"
+                                            value={formatCurrency(miResumen.mes_actual.total_ventas)}
+                                            icon="fa-solid fa-dollar-sign"
+                                            subtitle={`${miResumen.mes_actual.cantidad_ventas} ventas`}
+                                        />
+                                    </Grid>
+                                    <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+                                        <StatCard
+                                            title="Comisión Neta"
+                                            value={formatCurrency(miResumen.mes_actual.comision_neta)}
+                                            icon="fa-solid fa-percent"
+                                            subtitle={`${miResumen.configuracion.porcentaje_comision}% sobre ganancia`}
+                                        />
+                                        <Box sx={{ mt: 1, p: 1.5, bgcolor: '#F0FDF4', borderRadius: '8px', border: '1px solid #A7F3D0' }}>
+                                            <Typography sx={{ fontSize: '11px', color: '#6B7280' }}>Base comisión (ganancia):</Typography>
+                                            <Typography sx={{ fontSize: '13px', fontWeight: 700, color: '#059669' }}>
+                                                {formatCurrency(miResumen.mes_actual.total_ganancia ?? 0)}
+                                            </Typography>
+                                        </Box>
+                                    </Grid>
+                                    <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+                                        <StatCard
+                                            title="Sueldo Base"
+                                            value={formatCurrency(miResumen.mes_actual.sueldo_base)}
+                                            icon="fa-solid fa-money-bill"
+                                        />
+                                    </Grid>
+                                    <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+                                        <StatCard
+                                            title="Total a Cobrar"
+                                            value={formatCurrency(miResumen.mes_actual.total_a_cobrar)}
+                                            icon="fa-solid fa-wallet"
+                                            subtitle={new Date().toLocaleString('es-AR', { month: 'long', year: 'numeric' })}
+                                        />
+                                    </Grid>
+                                </Grid>
+
+                                {/* Configuración + Detalle del mes */}
+                                <Grid container spacing={3}>
+                                    <Grid size={{ xs: 12, md: 6 }}>
+                                        <Card sx={{ boxShadow: '0 1px 3px rgba(0,0,0,0.12)', borderRadius: 2 }}>
+                                            <CardContent>
+                                                <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                                                    <Box sx={{ width: 40, height: 40, borderRadius: '8px', bgcolor: `${colors.primary}15`, display: 'flex', alignItems: 'center', justifyContent: 'center', mr: 2 }}>
+                                                        <i className="fa-solid fa-gear" style={{ color: colors.primary, fontSize: 20 }}></i>
+                                                    </Box>
+                                                    <Typography variant="h6" sx={{ fontWeight: 600, fontSize: 16 }}>Mi Configuración</Typography>
+                                                </Box>
+                                                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                                                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                        <Typography sx={{ color: colors.textSecondary, fontSize: 14 }}>Porcentaje de comisión:</Typography>
+                                                        <Chip label={`${miResumen.configuracion.porcentaje_comision}%`} size="small" sx={{ bgcolor: 'rgba(59, 130, 246, 0.1)', color: '#1D4ED8', fontWeight: 600 }} />
+                                                    </Box>
+                                                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                        <Typography sx={{ color: colors.textSecondary, fontSize: 14 }}>Sueldo base:</Typography>
+                                                        <Typography sx={{ fontWeight: 600, color: colors.textPrimary }}>{formatCurrency(miResumen.configuracion.sueldo_base)}</Typography>
+                                                    </Box>
+                                                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                        <Typography sx={{ color: colors.textSecondary, fontSize: 14 }}>Gasto publicitario:</Typography>
+                                                        <Typography sx={{ fontWeight: 600, color: colors.error }}>-{formatCurrency(miResumen.configuracion.gasto_publicitario)}</Typography>
+                                                    </Box>
+                                                </Box>
+                                            </CardContent>
+                                        </Card>
+                                    </Grid>
+                                    <Grid size={{ xs: 12, md: 6 }}>
+                                        <Card sx={{ boxShadow: '0 1px 3px rgba(0,0,0,0.12)', borderRadius: 2 }}>
+                                            <CardContent>
+                                                <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                                                    <Box sx={{ width: 40, height: 40, borderRadius: '8px', bgcolor: `${colors.success}15`, display: 'flex', alignItems: 'center', justifyContent: 'center', mr: 2 }}>
+                                                        <i className="fa-solid fa-calendar-check" style={{ color: colors.success, fontSize: 20 }}></i>
+                                                    </Box>
+                                                    <Typography variant="h6" sx={{ fontWeight: 600, fontSize: 16 }}>
+                                                        Mes Actual - {new Date().toLocaleString('es-AR', { month: 'long', year: 'numeric' })}
+                                                    </Typography>
+                                                </Box>
+                                                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+                                                    <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                                                        <Typography sx={{ color: colors.textSecondary, fontSize: 14 }}>Total vendido:</Typography>
+                                                        <Typography sx={{ fontWeight: 600 }}>{formatCurrency(miResumen.mes_actual.total_ventas)}</Typography>
+                                                    </Box>
+                                                    <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                                                        <Typography sx={{ color: colors.textSecondary, fontSize: 14 }}>Cantidad de ventas:</Typography>
+                                                        <Typography sx={{ fontWeight: 600 }}>{miResumen.mes_actual.cantidad_ventas}</Typography>
+                                                    </Box>
+                                                    <Divider />
+                                                    {miResumen.mes_actual.comision_bruta !== undefined && (
+                                                        <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                                                            <Typography sx={{ color: colors.textSecondary, fontSize: 14 }}>
+                                                                Comisión bruta ({miResumen.configuracion.porcentaje_comision}% sobre {formatCurrency(miResumen.mes_actual.total_ganancia ?? 0)}):
+                                                            </Typography>
+                                                            <Typography sx={{ fontWeight: 600, color: colors.success }}>{formatCurrency(miResumen.mes_actual.comision_bruta)}</Typography>
+                                                        </Box>
+                                                    )}
+                                                    {miResumen.mes_actual.gasto_publicitario !== undefined && (
+                                                        <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                                                            <Typography sx={{ color: colors.textSecondary, fontSize: 14 }}>Gasto publicitario:</Typography>
+                                                            <Typography sx={{ fontWeight: 600, color: colors.error }}>-{formatCurrency(miResumen.mes_actual.gasto_publicitario)}</Typography>
+                                                        </Box>
+                                                    )}
+                                                    <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                                                        <Typography sx={{ color: colors.textSecondary, fontSize: 14, fontWeight: 600 }}>Comisión neta:</Typography>
+                                                        <Typography sx={{ fontWeight: 700, color: colors.success, fontSize: 16 }}>{formatCurrency(miResumen.mes_actual.comision_neta)}</Typography>
+                                                    </Box>
+                                                    <Divider />
+                                                    <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                                                        <Typography sx={{ color: colors.textSecondary, fontSize: 14 }}>Sueldo base:</Typography>
+                                                        <Typography sx={{ fontWeight: 600 }}>{formatCurrency(miResumen.mes_actual.sueldo_base)}</Typography>
+                                                    </Box>
+                                                    <Box sx={{ display: 'flex', justifyContent: 'space-between', p: 2, bgcolor: `${colors.primary}10`, borderRadius: 1, mt: 1 }}>
+                                                        <Typography sx={{ fontSize: 15, fontWeight: 700 }}>TOTAL A COBRAR:</Typography>
+                                                        <Typography sx={{ fontSize: 18, fontWeight: 700, color: colors.primary }}>{formatCurrency(miResumen.mes_actual.total_a_cobrar)}</Typography>
+                                                    </Box>
+                                                </Box>
+                                            </CardContent>
+                                        </Card>
+                                    </Grid>
+                                </Grid>
+
+                                <Divider sx={{ mt: 4, mb: 4 }} />
+                            </Box>
+                        )}
+
                         {/* KPIs */}
                         <Grid container spacing={3} sx={{ mb: 4 }}>
                             <Grid size={{ xs: 12, sm: 6, lg: 3 }}>
