@@ -1,7 +1,7 @@
 ﻿'use client';
 
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
-import { Box, Typography, Grid, CircularProgress, Card, CardContent, Chip, Divider, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Button, Select, MenuItem, FormControl, InputLabel } from '@mui/material';
+import { Box, Typography, Grid, CircularProgress, Card, CardContent, Chip, Divider, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Select, MenuItem, FormControl, InputLabel } from '@mui/material';
 import { colors } from '@/src/theme/colors';
 import { comisionService, IMiResumenComision } from '@services/comision.service';
 import { IComision } from '@models/entities/comisionentity';
@@ -62,7 +62,6 @@ export default function ComisionesPage() {
     const [error, setError] = useState<string | null>(null);
     const [calcularMes, setCalcularMes] = useState(new Date().getMonth() + 1);
     const [calcularAnio, setCalcularAnio] = useState(new Date().getFullYear());
-    const [calculando, setCalculando] = useState(false);
 
     const fetchDataDueno = useCallback(async () => {
         if (!mounted) return;
@@ -70,10 +69,9 @@ export default function ComisionesPage() {
         setError(null);
 
         try {
-            // Auto-calcular mes actual y mes anterior para tener datos frescos sin que el dueño tenga que hacer nada
-            const hoyAuto = new Date();
-            const mesActualAuto = hoyAuto.getMonth() + 1;
-            const anioActualAuto = hoyAuto.getFullYear();
+            // Auto-calcular el período seleccionado y su mes anterior.
+            const mesActualAuto = calcularMes;
+            const anioActualAuto = calcularAnio;
             const mesAnteriorAuto = mesActualAuto === 1 ? 12 : mesActualAuto - 1;
             const anioAnteriorAuto = mesActualAuto === 1 ? anioActualAuto - 1 : anioActualAuto;
             await Promise.all([
@@ -90,7 +88,7 @@ export default function ComisionesPage() {
 
             setMiResumen(resumenDueno);
 
-            // Incluir al dueño autenticado para que su comisiÃ³n tambiÃ©n aparezca en el dashboard.
+            // Incluir al dueño autenticado para que su comisión también aparezca en el dashboard.
             const usuariosBase = [...vendedoresData];
             if (!usuariosBase.some((u) => u.id === miUsuario.id)) {
                 usuariosBase.push(miUsuario);
@@ -135,7 +133,7 @@ export default function ComisionesPage() {
                 };
             });
 
-            // Ordenar por sueldo total (sueldo base + comisiÃ³n) de mayor a menor
+            // Ordenar por sueldo total (sueldo base + comisión) de mayor a menor
             const ordenados = [...vendedoresDisplay].sort((a, b) => b.sueldo_total - a.sueldo_total);
             ordenados.forEach((v, i) => { v.rank = i + 1; });
 
@@ -153,7 +151,7 @@ export default function ComisionesPage() {
             setHistorialCompleto(historial);
         } catch (err) {
             console.error('Error:', err);
-            setError('Error al cargar datos. Verifica que el backend estÃ© corriendo.');
+            setError('Error al cargar datos. Verifica que el backend esté corriendo.');
         } finally {
             setLoading(false);
         }
@@ -184,19 +182,6 @@ export default function ComisionesPage() {
             }
         }
     }, [mounted, user?.rol, fetchDataDueno, fetchDataVendedor]);
-
-    const handleCalcular = useCallback(async () => {
-        setCalculando(true);
-        try {
-            await comisionService.calcularComisiones(calcularMes, calcularAnio);
-            await fetchDataDueno();
-            addNotification(`Comisiones de ${meses[calcularMes - 1]} ${calcularAnio} calculadas`, 'success');
-        } catch {
-            addNotification('Error al calcular comisiones', 'error');
-        } finally {
-            setCalculando(false);
-        }
-    }, [calcularMes, calcularAnio, fetchDataDueno, addNotification]);
 
     const handleConfigurar = (v: IVendedorDisplay) => {
         setVendedorSeleccionado({
@@ -260,7 +245,7 @@ export default function ComisionesPage() {
                             Comisiones
                         </Typography>
                         <Typography variant="body2" sx={{ color: '#6B7280', fontSize: '14px' }}>
-                            {user?.rol === 'dueño' ? 'Dashboard de rendimiento - ' + meses[calcularMes - 1] + ' ' + calcularAnio : 'Mi configuraciÃ³n'}
+                            {user?.rol === 'dueño' ? 'Dashboard de rendimiento - ' + meses[calcularMes - 1] + ' ' + calcularAnio : 'Mi configuración'}
                         </Typography>
                     </Box>
                     {user?.rol === 'dueño' && (
@@ -274,22 +259,13 @@ export default function ComisionesPage() {
                                 </Select>
                             </FormControl>
                             <FormControl size="small" sx={{ minWidth: 90 }}>
-                                <InputLabel>AÃ±o</InputLabel>
-                                <Select value={calcularAnio} label="AÃ±o" onChange={(e) => setCalcularAnio(Number(e.target.value))}>
+                                <InputLabel>Año</InputLabel>
+                                <Select value={calcularAnio} label="Año" onChange={(e) => setCalcularAnio(Number(e.target.value))}>
                                     {[2024, 2025, 2026].map(a => (
                                         <MenuItem key={a} value={a}>{a}</MenuItem>
                                     ))}
                                 </Select>
                             </FormControl>
-                            <Button
-                                variant="contained"
-                                disableElevation
-                                disabled={calculando}
-                                onClick={handleCalcular}
-                                sx={{ bgcolor: colors.primary, '&:hover': { bgcolor: colors.primaryDark }, textTransform: 'none', fontWeight: 600 }}
-                            >
-                                {calculando ? 'Calculando...' : 'Calcular Comisiones'}
-                            </Button>
                         </Box>
                     )}
                 </Box>
@@ -298,7 +274,7 @@ export default function ComisionesPage() {
                 {user?.rol === 'vendedor' && miConfiguracion && (
                     <Box sx={{ bgcolor: 'white', border: '1px solid #E5E7EB', borderRadius: '12px', p: 4 }}>
                         <Typography sx={{ fontSize: '18px', fontWeight: 600, color: '#1F2937', mb: 3 }}>
-                            Mi ConfiguraciÃ³n
+                            Mi Configuración
                         </Typography>
                         <Grid container spacing={3}>
                             <Grid size={{ xs: 12, md: 4 }}>
@@ -315,7 +291,7 @@ export default function ComisionesPage() {
                             </Grid>
                             <Grid size={{ xs: 12, md: 4 }}>
                                 <Box sx={{ bgcolor: 'rgba(16, 185, 129, 0.05)', border: '1px solid rgba(16, 185, 129, 0.2)', borderRadius: '8px', p: 3 }}>
-                                    <Typography sx={{ fontSize: '12px', color: '#6B7280', mb: 1, textTransform: 'uppercase', fontWeight: 600 }}>CÃ¡lculo</Typography>
+                                    <Typography sx={{ fontSize: '12px', color: '#6B7280', mb: 1, textTransform: 'uppercase', fontWeight: 600 }}>Cálculo</Typography>
                                     <Typography sx={{ fontSize: '13px', color: '#059669', fontWeight: 500 }}>(Ventas - Gasto) x {miConfiguracion.porcentaje_comision}%</Typography>
                                 </Box>
                             </Grid>
@@ -338,7 +314,7 @@ export default function ComisionesPage() {
                         {miResumen && (
                             <Box sx={{ mb: 5 }}>
                                 <Typography sx={{ fontSize: '16px', fontWeight: 600, color: '#1F2937', mb: 3 }}>
-                                    Mi ComisiÃ³n Personal
+                                    Mi Comisión Personal
                                 </Typography>
 
                                 {/* KPIs personales */}
@@ -353,13 +329,13 @@ export default function ComisionesPage() {
                                     </Grid>
                                     <Grid size={{ xs: 12, sm: 6, md: 3 }}>
                                         <StatCard
-                                            title="ComisiÃ³n Neta"
+                                            title="Comisión Neta"
                                             value={formatCurrency(miResumen.mes_actual.comision_neta)}
                                             icon="fa-solid fa-percent"
                                             subtitle={`${miResumen.configuracion.porcentaje_comision}% sobre ganancia`}
                                         />
                                         <Box sx={{ mt: 1, p: 1.5, bgcolor: '#F0FDF4', borderRadius: '8px', border: '1px solid #A7F3D0' }}>
-                                            <Typography sx={{ fontSize: '11px', color: '#6B7280' }}>Base comisiÃ³n (ganancia):</Typography>
+                                            <Typography sx={{ fontSize: '11px', color: '#6B7280' }}>Base comisión (ganancia):</Typography>
                                             <Typography sx={{ fontSize: '13px', fontWeight: 700, color: '#059669' }}>
                                                 {formatCurrency(miResumen.mes_actual.total_ganancia ?? 0)}
                                             </Typography>
@@ -382,7 +358,7 @@ export default function ComisionesPage() {
                                     </Grid>
                                 </Grid>
 
-                                {/* ConfiguraciÃ³n + Detalle del mes */}
+                                {/* Configuración + Detalle del mes */}
                                 <Grid container spacing={3}>
                                     <Grid size={{ xs: 12, md: 6 }}>
                                         <Card sx={{ boxShadow: '0 1px 3px rgba(0,0,0,0.12)', borderRadius: 2 }}>
@@ -391,11 +367,11 @@ export default function ComisionesPage() {
                                                     <Box sx={{ width: 40, height: 40, borderRadius: '8px', bgcolor: `${colors.primary}15`, display: 'flex', alignItems: 'center', justifyContent: 'center', mr: 2 }}>
                                                         <i className="fa-solid fa-gear" style={{ color: colors.primary, fontSize: 20 }}></i>
                                                     </Box>
-                                                    <Typography variant="h6" sx={{ fontWeight: 600, fontSize: 16 }}>Mi ConfiguraciÃ³n</Typography>
+                                                    <Typography variant="h6" sx={{ fontWeight: 600, fontSize: 16 }}>Mi Configuración</Typography>
                                                 </Box>
                                                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                                                     <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                                        <Typography sx={{ color: colors.textSecondary, fontSize: 14 }}>Porcentaje de comisiÃ³n:</Typography>
+                                                        <Typography sx={{ color: colors.textSecondary, fontSize: 14 }}>Porcentaje de comisión:</Typography>
                                                         <Chip label={`${miResumen.configuracion.porcentaje_comision}%`} size="small" sx={{ bgcolor: 'rgba(59, 130, 246, 0.1)', color: '#1D4ED8', fontWeight: 600 }} />
                                                     </Box>
                                                     <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -434,7 +410,7 @@ export default function ComisionesPage() {
                                                     {miResumen.mes_actual.comision_bruta !== undefined && (
                                                         <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
                                                             <Typography sx={{ color: colors.textSecondary, fontSize: 14 }}>
-                                                                ComisiÃ³n bruta ({miResumen.configuracion.porcentaje_comision}% sobre {formatCurrency(miResumen.mes_actual.total_ganancia ?? 0)}):
+                                                                Comisión bruta ({miResumen.configuracion.porcentaje_comision}% sobre {formatCurrency(miResumen.mes_actual.total_ganancia ?? 0)}):
                                                             </Typography>
                                                             <Typography sx={{ fontWeight: 600, color: colors.success }}>{formatCurrency(miResumen.mes_actual.comision_bruta)}</Typography>
                                                         </Box>
@@ -446,7 +422,7 @@ export default function ComisionesPage() {
                                                         </Box>
                                                     )}
                                                     <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                                                        <Typography sx={{ color: colors.textSecondary, fontSize: 14, fontWeight: 600 }}>ComisiÃ³n neta:</Typography>
+                                                        <Typography sx={{ color: colors.textSecondary, fontSize: 14, fontWeight: 600 }}>Comisión neta:</Typography>
                                                         <Typography sx={{ fontWeight: 700, color: colors.success, fontSize: 16 }}>{formatCurrency(miResumen.mes_actual.comision_neta)}</Typography>
                                                     </Box>
                                                     <Divider />
@@ -547,7 +523,7 @@ export default function ComisionesPage() {
                                                 <TableCell sx={{ fontWeight: 600, fontSize: 13 }}>Mes</TableCell>
                                                 <TableCell sx={{ fontWeight: 600, fontSize: 13 }}>Vendedor</TableCell>
                                                 <TableCell align="right" sx={{ fontWeight: 600, fontSize: 13 }}>Ventas</TableCell>
-                                                <TableCell align="right" sx={{ fontWeight: 600, fontSize: 13 }}>ComisiÃ³n</TableCell>
+                                                <TableCell align="right" sx={{ fontWeight: 600, fontSize: 13 }}>Comisión</TableCell>
                                                 <TableCell align="right" sx={{ fontWeight: 600, fontSize: 13 }}>Sueldo</TableCell>
                                                 <TableCell align="right" sx={{ fontWeight: 600, fontSize: 13 }}>Total</TableCell>
                                                 <TableCell sx={{ fontWeight: 600, fontSize: 13 }}>Observaciones</TableCell>
@@ -587,7 +563,7 @@ export default function ComisionesPage() {
                 <ConfigurarComisionModal
                     open={configurarModalOpen}
                     onClose={() => { setConfigurarModalOpen(false); setVendedorSeleccionado(null); }}
-                    onSuccess={() => { fetchDataDueno(); addNotification('ConfiguraciÃ³n actualizada', 'success'); }}
+                    onSuccess={() => { fetchDataDueno(); addNotification('Configuración actualizada', 'success'); }}
                     vendedor={vendedorSeleccionado}
                 />
             )}
