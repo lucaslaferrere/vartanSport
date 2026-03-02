@@ -291,22 +291,21 @@ func UpdateVentaDetalles(c *gin.Context) {
 	}
 
 	// Misma regla de alta: si seña=0, se considera contado y el saldo queda en 0.
-	saldoSinDescuento := 0.0
+	saldo := 0.0
 	if request.Sena > 0 {
-		saldoSinDescuento = request.PrecioVenta - request.Sena
+		saldo = request.PrecioVenta - request.Sena
 	}
 
 	descuento := 0.0
 	usaFinanciera := false
 	if request.UsaDescuentoFinanciera && formaPago.Nombre == "Transferencia Financiera" {
-		descuento = saldoSinDescuento * 0.03
+		descuento = request.PrecioVenta * 0.03
 		usaFinanciera = true
 	}
 
 	total := request.PrecioVenta
-	totalFinal := total - descuento
-	saldo := saldoSinDescuento - descuento
-	ganancia := totalFinal - nuevosTotales.costo
+	totalFinal := total
+	ganancia := total - nuevosTotales.costo - descuento
 
 	// PASO 5: Actualizar la venta
 	venta.Transporte = request.Transporte
@@ -937,22 +936,22 @@ func UpdateVenta(c *gin.Context) {
 		return
 	}
 
-	saldoSinDescuento := float64(0)
+	saldo := float64(0)
 	if senaValue > 0 {
-		saldoSinDescuento = venta.PrecioVenta - senaValue
+		saldo = venta.PrecioVenta - senaValue
 	}
 
 	if venta.UsaFinanciera && formaPago.Nombre == "Transferencia Financiera" {
-		venta.Descuento = saldoSinDescuento * 0.03
+		venta.Descuento = venta.PrecioVenta * 0.03
 		venta.UsaFinanciera = true
 	} else {
 		venta.Descuento = 0
 		venta.UsaFinanciera = false
 	}
 	venta.Total = venta.PrecioVenta
-	venta.TotalFinal = venta.PrecioVenta - venta.Descuento
-	venta.Saldo = saldoSinDescuento - venta.Descuento
-	venta.Ganancia = venta.TotalFinal - venta.Costo
+	venta.TotalFinal = venta.PrecioVenta
+	venta.Saldo = saldo
+	venta.Ganancia = venta.PrecioVenta - venta.Costo - venta.Descuento
 
 	if err := config.DB.Save(&venta).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error al actualizar venta"})
@@ -1026,17 +1025,19 @@ func UpdateVentaPago(c *gin.Context) {
 	// Actualizar seña
 	venta.Sena = &nuevaSena
 
-	// Calcular saldo sin descuento primero
-	saldoSinDescuento := venta.PrecioVenta - nuevaSena
+	// El saldo depende solo de precio_venta - seña.
+	saldo := venta.PrecioVenta - nuevaSena
 
-	// Aplicar descuento sobre el saldo pendiente
+	// La financiera impacta solo en la ganancia.
 	if venta.UsaFinanciera {
-		venta.Descuento = saldoSinDescuento * 0.03
+		venta.Descuento = venta.PrecioVenta * 0.03
+	} else {
+		venta.Descuento = 0
 	}
 
-	// Total final y saldo con descuento aplicado
-	venta.TotalFinal = venta.PrecioVenta - venta.Descuento
-	venta.Saldo = saldoSinDescuento - venta.Descuento
+	venta.TotalFinal = venta.PrecioVenta
+	venta.Saldo = saldo
+	venta.Ganancia = venta.PrecioVenta - venta.Costo - venta.Descuento
 
 	file, err := c.FormFile("comprobante")
 	if err == nil && file != nil {

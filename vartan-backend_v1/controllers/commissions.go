@@ -102,7 +102,7 @@ func CalcularComisionesMesActual(c *gin.Context) {
 
 	// Obtener todos los empleados
 	var usuarios []models.Usuario
-	if err := config.DB.Where("rol = ? AND activo = ?", "empleado", true).Find(&usuarios).Error; err != nil {
+	if err := config.DB.Where("rol IN (?, ?) AND activo = ?", "empleado", "dueño", true).Find(&usuarios).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error al obtener empleados"})
 		return
 	}
