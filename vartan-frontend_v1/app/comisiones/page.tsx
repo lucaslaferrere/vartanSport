@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
-import { Box, Typography, Grid, CircularProgress, Card, CardContent, Chip, Divider, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper } from '@mui/material';
+import { Box, Typography, Grid, CircularProgress, Card, CardContent, Chip, Divider, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Button, Select, MenuItem, FormControl, InputLabel } from '@mui/material';
 import { colors } from '@/src/theme/colors';
 import { comisionService, IMiResumenComision } from '@services/comision.service';
 import { IComision } from '@models/entities/comisionentity';
@@ -60,6 +60,9 @@ export default function ComisionesPage() {
     const [historialCompleto, setHistorialCompleto] = useState<IHistorialRow[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [calcularMes, setCalcularMes] = useState(new Date().getMonth() + 1);
+    const [calcularAnio, setCalcularAnio] = useState(new Date().getFullYear());
+    const [calculando, setCalculando] = useState(false);
 
     const fetchDataDueno = useCallback(async () => {
         if (!mounted) return;
@@ -67,6 +70,17 @@ export default function ComisionesPage() {
         setError(null);
 
         try {
+            // Auto-calcular mes actual y mes anterior para tener datos frescos sin que el dueño tenga que hacer nada
+            const hoyAuto = new Date();
+            const mesActualAuto = hoyAuto.getMonth() + 1;
+            const anioActualAuto = hoyAuto.getFullYear();
+            const mesAnteriorAuto = mesActualAuto === 1 ? 12 : mesActualAuto - 1;
+            const anioAnteriorAuto = mesActualAuto === 1 ? anioActualAuto - 1 : anioActualAuto;
+            await Promise.all([
+                comisionService.calcularComisiones(mesActualAuto, anioActualAuto).catch(() => null),
+                comisionService.calcularComisiones(mesAnteriorAuto, anioAnteriorAuto).catch(() => null),
+            ]);
+
             const [vendedoresData, comisionesData, miUsuario, resumenDueno] = await Promise.all([
                 usuarioService.getVendedores(),
                 comisionService.getAll(),
@@ -172,6 +186,19 @@ export default function ComisionesPage() {
         }
     }, [mounted, user?.rol, fetchDataDueno, fetchDataVendedor]);
 
+    const handleCalcular = useCallback(async () => {
+        setCalculando(true);
+        try {
+            await comisionService.calcularComisiones(calcularMes, calcularAnio);
+            await fetchDataDueno();
+            addNotification(`Comisiones de ${meses[calcularMes - 1]} ${calcularAnio} calculadas`, 'success');
+        } catch {
+            addNotification('Error al calcular comisiones', 'error');
+        } finally {
+            setCalculando(false);
+        }
+    }, [calcularMes, calcularAnio, fetchDataDueno, addNotification]);
+
     const handleConfigurar = (v: IVendedorDisplay) => {
         setVendedorSeleccionado({
             id: v.id,
@@ -237,6 +264,35 @@ export default function ComisionesPage() {
                             {user?.rol === 'dueño' ? 'Dashboard de rendimiento' : 'Mi configuración'}
                         </Typography>
                     </Box>
+                    {user?.rol === 'dueño' && (
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap' }}>
+                            <FormControl size="small" sx={{ minWidth: 130 }}>
+                                <InputLabel>Mes</InputLabel>
+                                <Select value={calcularMes} label="Mes" onChange={(e) => setCalcularMes(Number(e.target.value))}>
+                                    {meses.map((m, i) => (
+                                        <MenuItem key={i + 1} value={i + 1}>{m}</MenuItem>
+                                    ))}
+                                </Select>
+                            </FormControl>
+                            <FormControl size="small" sx={{ minWidth: 90 }}>
+                                <InputLabel>Año</InputLabel>
+                                <Select value={calcularAnio} label="Año" onChange={(e) => setCalcularAnio(Number(e.target.value))}>
+                                    {[2024, 2025, 2026].map(a => (
+                                        <MenuItem key={a} value={a}>{a}</MenuItem>
+                                    ))}
+                                </Select>
+                            </FormControl>
+                            <Button
+                                variant="contained"
+                                disableElevation
+                                disabled={calculando}
+                                onClick={handleCalcular}
+                                sx={{ bgcolor: colors.primary, '&:hover': { bgcolor: colors.primaryDark }, textTransform: 'none', fontWeight: 600 }}
+                            >
+                                {calculando ? 'Calculando...' : 'Calcular Comisiones'}
+                            </Button>
+                        </Box>
+                    )}
                 </Box>
 
                 {/* Vista VENDEDOR */}

@@ -80,9 +80,10 @@ export const comisionService = {
         return response.data;
     },
 
-    // Solo dueño: calcular comisiones del mes
-    calcularComisiones: async (): Promise<ICalcularComisionesResponse> => {
-        const response = await api.post<ICalcularComisionesResponse>('/api/owner/comisiones/calcular');
+    // Solo dueño: calcular comisiones del mes (mes y anio opcionales, por defecto mes actual)
+    calcularComisiones: async (mes?: number, anio?: number): Promise<ICalcularComisionesResponse> => {
+        const body = mes && anio ? { mes, anio } : {};
+        const response = await api.post<ICalcularComisionesResponse>('/api/owner/comisiones/calcular', body);
         return response.data;
     },
 
