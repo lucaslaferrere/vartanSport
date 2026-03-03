@@ -11,6 +11,12 @@ import (
 	"gorm.io/gorm"
 )
 
+func periodIsFuture(mes int, anio int, now time.Time) bool {
+	currentYear := now.Year()
+	currentMonth := int(now.Month())
+	return anio > currentYear || (anio == currentYear && mes > currentMonth)
+}
+
 // GetMisComisiones godoc
 // @Summary Obtener mis comisiones
 // @Description Obtiene las comisiones del usuario autenticado
@@ -23,10 +29,14 @@ import (
 // @Router /api/mis-comisiones [get]
 func GetMisComisiones(c *gin.Context) {
 	userID := c.GetInt("user_id")
+	now := time.Now()
+	currentMonth := int(now.Month())
+	currentYear := now.Year()
 
 	var comisiones []models.Comision
 	if err := config.DB.
 		Where("usuario_id = ?", userID).
+		Where("(anio < ?) OR (anio = ? AND mes <= ?)", currentYear, currentYear, currentMonth).
 		Order("anio DESC, mes DESC").
 		Find(&comisiones).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error al obtener comisiones"})
@@ -49,10 +59,14 @@ func GetMisComisiones(c *gin.Context) {
 // @Router /api/owner/comisiones/usuario/{id} [get]
 func GetComisionesByUsuario(c *gin.Context) {
 	usuarioID := c.Param("id")
+	now := time.Now()
+	currentMonth := int(now.Month())
+	currentYear := now.Year()
 
 	var comisiones []models.Comision
 	if err := config.DB.
 		Where("usuario_id = ?", usuarioID).
+		Where("(anio < ?) OR (anio = ? AND mes <= ?)", currentYear, currentYear, currentMonth).
 		Preload("Usuario").
 		Order("anio DESC, mes DESC").
 		Find(&comisiones).Error; err != nil {
@@ -74,9 +88,14 @@ func GetComisionesByUsuario(c *gin.Context) {
 // @Failure 500 {object} map[string]string "Error interno"
 // @Router /api/owner/comisiones [get]
 func GetAllComisiones(c *gin.Context) {
+	now := time.Now()
+	currentMonth := int(now.Month())
+	currentYear := now.Year()
+
 	var comisiones []models.Comision
 
 	if err := config.DB.
+		Where("(anio < ?) OR (anio = ? AND mes <= ?)", currentYear, currentYear, currentMonth).
 		Preload("Usuario").
 		Order("anio DESC, mes DESC").
 		Find(&comisiones).Error; err != nil {
@@ -112,6 +131,14 @@ func CalcularComisionesMesActual(c *gin.Context) {
 	}
 	if anio == 0 {
 		anio = now.Year()
+	}
+	if mes < 1 || mes > 12 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Mes inválido. Debe estar entre 1 y 12"})
+		return
+	}
+	if periodIsFuture(mes, anio, now) {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "No se pueden calcular comisiones para meses futuros"})
+		return
 	}
 
 	// Obtener todos los empleados
@@ -287,8 +314,12 @@ func GetMiResumenComision(c *gin.Context) {
 	}
 
 	// Obtener historial de comisiones (últimos 6 meses)
+	nowFilter := time.Now()
+	currentMonth := int(nowFilter.Month())
+	currentYear := nowFilter.Year()
 	var historialComisiones []models.Comision
 	config.DB.Where("usuario_id = ?", userID).
+		Where("(anio < ?) OR (anio = ? AND mes <= ?)", currentYear, currentYear, currentMonth).
 		Order("anio DESC, mes DESC").
 		Limit(6).
 		Find(&historialComisiones)
