@@ -1,8 +1,9 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Dialog, DialogTitle, DialogContent, DialogActions, Box, Typography, Grid, Divider } from '@mui/material';
 import { IVenta } from '@models/entities/ventaEntity';
+import { ventaService } from '@services/venta.service';
 
 interface DetalleVentaModalProps {
   open: boolean;
@@ -10,10 +11,32 @@ interface DetalleVentaModalProps {
   venta: IVenta | null;
 }
 
+const TRANSPORTES = ['', 'Correo Argentino', 'Viacargo', 'Moto', 'Retira'];
+
 export default function DetalleVentaModal({ open, onClose, venta }: DetalleVentaModalProps) {
   const [previsualizando, setPrevisualizando] = useState(false);
+  const [transporteEdit, setTransporteEdit] = useState(venta?.transporte || '');
+  const [transporteActual, setTransporteActual] = useState(venta?.transporte || '');
+  const [guardandoTransporte, setGuardandoTransporte] = useState(false);
+
+  useEffect(() => {
+    setTransporteEdit(venta?.transporte || '');
+    setTransporteActual(venta?.transporte || '');
+  }, [venta]);
 
   if (!venta) return null;
+
+  const handleGuardarTransporte = async () => {
+    setGuardandoTransporte(true);
+    try {
+      await ventaService.updateTransporte(venta.id, transporteEdit);
+      setTransporteActual(transporteEdit);
+    } catch (err) {
+      console.error('Error actualizando transporte:', err);
+    } finally {
+      setGuardandoTransporte(false);
+    }
+  };
 
   const handleDescargarComprobante = () => {
     if (venta.comprobante_url) {
@@ -125,7 +148,7 @@ export default function DetalleVentaModal({ open, onClose, venta }: DetalleVenta
             </div>
 
             <div class="transporte">
-              🚚 ${venta.transporte || 'Sin transporte especificado'}
+              🚚 ${transporteActual || 'Sin transporte especificado'}
             </div>
 
             <div class="pedido">Pedido #${venta.id}</div>
@@ -230,6 +253,32 @@ export default function DetalleVentaModal({ open, onClose, venta }: DetalleVenta
                   <Typography sx={{ fontSize: '15px', fontWeight: 700 }}>Total Final:</Typography>
                   <Typography sx={{ fontSize: '16px', fontWeight: 700, color: '#059669' }}>${(venta.total_final || 0).toLocaleString('es-AR', { minimumFractionDigits: 2 })}</Typography>
                 </Box>
+              </Box>
+            </Grid>
+
+            {/* Transporte */}
+            <Grid size={{ xs: 12 }}>
+              <Divider sx={{ my: 1 }} />
+              <Typography sx={{ fontSize: '13px', fontWeight: 600, mb: 1 }}>
+                <i className="fa-solid fa-truck" style={{ marginRight: '6px' }} />Transporte
+              </Typography>
+              <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+                <select
+                  value={transporteEdit}
+                  onChange={(e) => setTransporteEdit(e.target.value)}
+                  style={{ flex: 1, padding: '8px 10px', fontSize: '13px', border: '1px solid #D1D5DB', borderRadius: '6px', backgroundColor: 'white', outline: 'none' }}
+                >
+                  {TRANSPORTES.map((t) => (
+                    <option key={t} value={t}>{t || 'Sin especificar'}</option>
+                  ))}
+                </select>
+                <button
+                  onClick={handleGuardarTransporte}
+                  disabled={guardandoTransporte || transporteEdit.trim() === transporteActual.trim()}
+                  style={{ padding: '8px 14px', fontSize: '12px', fontWeight: 500, color: '#fff', backgroundColor: transporteEdit.trim() === transporteActual.trim() ? '#9CA3AF' : '#2563EB', border: 'none', borderRadius: '6px', cursor: transporteEdit.trim() === transporteActual.trim() ? 'default' : 'pointer', whiteSpace: 'nowrap' }}
+                >
+                  {guardandoTransporte ? 'Guardando...' : 'Guardar'}
+                </button>
               </Box>
             </Grid>
 
@@ -349,7 +398,7 @@ export default function DetalleVentaModal({ open, onClose, venta }: DetalleVenta
             </Box>
 
             <Box sx={{ mt: 1, border: '1px solid #000', borderRadius: '4px', p: 0.75, textAlign: 'center', fontWeight: 700, fontSize: '14px' }}>
-              🚚 {venta.transporte || 'Sin transporte especificado'}
+              🚚 {transporteActual || 'Sin transporte especificado'}
             </Box>
 
             <Typography sx={{ fontSize: '9px', color: '#888', textAlign: 'right', mt: 0.75 }}>

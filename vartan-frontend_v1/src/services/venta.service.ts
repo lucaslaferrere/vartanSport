@@ -35,6 +35,9 @@ export const ventaService = {
             if (data.observaciones) {
                 formData.append('observaciones', data.observaciones);
             }
+            if (data.transporte) {
+                formData.append('transporte', data.transporte);
+            }
             formData.append('detalles', JSON.stringify(data.detalles));
             formData.append('comprobante', data.comprobante as File);
 
@@ -55,6 +58,7 @@ export const ventaService = {
                 sena: isNaN(senaValue) ? 0 : senaValue,
                 usa_descuento_financiera: data.usa_descuento_financiera || false,
                 observaciones: data.observaciones || '',
+                transporte: data.transporte || '',
                 detalles: data.detalles
             };
 
@@ -122,6 +126,10 @@ export const ventaService = {
         getPendientes: async (): Promise<IVenta[]> => {
     const response = await api.get<IVenta[]>('/api/ventas-pendientes');
     return response.data;
+},
+
+updateTransporte: async (ventaId: number, transporte: string): Promise<void> => {
+    await api.put(`/api/ventas/${ventaId}`, { transporte });
 },
 
 updateDetalles: async (id: number, data: {

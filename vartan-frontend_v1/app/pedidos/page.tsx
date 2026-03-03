@@ -34,6 +34,7 @@ function PedidosPage() {
   const { addNotification } = useNotification();
   const [pedidos, setPedidos] = useState<IPedidoDisplay[]>([]);
   const [allPedidos, setAllPedidos] = useState<IPedidoDisplay[]>([]);
+  const [rawPedidos, setRawPedidos] = useState<Map<number, IPedido>>(new Map());
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState('todos');
@@ -77,6 +78,7 @@ function PedidosPage() {
       const transformed = pedidosData.map(transformPedido);
       setAllPedidos(transformed);
       setPedidos(transformed);
+      setRawPedidos(new Map(pedidosData.map(p => [p.id, p])));
       // console.log('✅ Pedidos cargados:', transformed.length); // Debug
     } catch (err: unknown) {
       console.error('❌ Error fetching pedidos:', err);
@@ -115,6 +117,57 @@ function PedidosPage() {
 
   const handleTabChange = (tabId: string) => {
     setActiveTab(tabId);
+  };
+
+  const handleImprimirEtiqueta = (row: IPedidoDisplay) => {
+    const pedido = rawPedidos.get(row.id);
+    const cliente = pedido?.venta?.cliente;
+    const transporte = pedido?.venta?.transporte;
+    const transporteTexto = (typeof transporte === 'string' && transporte.trim().length > 0)
+      ? transporte
+      : 'Sin transporte especificado';
+
+    const contenido = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="UTF-8" />
+          <title>Etiqueta de Envío</title>
+          <style>
+            * { margin: 0; padding: 0; box-sizing: border-box; }
+            body { font-family: Arial, sans-serif; width: 15cm; height: 10cm; padding: 0.5cm; }
+            .etiqueta { border: 2px solid #000; padding: 10px; height: 100%; display: flex; flex-direction: column; justify-content: space-between; }
+            .header { font-size: 18px; font-weight: bold; border-bottom: 1px solid #000; padding-bottom: 5px; margin-bottom: 8px; }
+            .campo { margin-bottom: 4px; }
+            .label { font-size: 9px; text-transform: uppercase; color: #555; font-weight: bold; }
+            .valor { font-size: 13px; font-weight: bold; }
+            .divider { border-top: 1px dashed #000; margin: 6px 0; }
+            .transporte { font-size: 14px; font-weight: bold; text-align: center; border: 1px solid #000; border-radius: 4px; padding: 4px; margin-top: 6px; }
+            .pedido { font-size: 11px; color: #888; text-align: right; margin-top: 4px; }
+            @media print { body { margin: 0; } }
+          </style>
+        </head>
+        <body>
+          <div class="etiqueta">
+            <div class="header">📦 VARTAN SPORT - Etiqueta de Envío</div>
+            <div class="campo"><span class="label">DESTINATARIO</span><span class="valor">${cliente?.nombre || '-'}</span></div>
+            <div class="campo"><span class="label">TELÉFONO</span><span class="valor">${cliente?.telefono || '-'}</span></div>
+            <div class="divider"></div>
+            <div class="campo"><span class="label">DIRECCIÓN</span><span class="valor">${cliente?.direccion || '-'}</span></div>
+            <div class="campo"><span class="label">LOCALIDAD</span><span class="valor">${cliente?.ciudad || '-'}</span></div>
+            <div class="campo"><span class="label">PROVINCIA</span><span class="valor">${cliente?.provincia || '-'}</span></div>
+            <div class="campo"><span class="label">CÓDIGO POSTAL</span><span class="valor">${cliente?.codigo_postal || '-'}</span></div>
+            <div class="transporte">🚚 ${transporteTexto}</div>
+            <div class="pedido">Pedido #${row.id}</div>
+          </div>
+          <script>window.onload = () => { window.print(); window.onafterprint = () => window.close(); }</script>
+        </body>
+      </html>
+    `;
+
+    const ventana = window.open('', '_blank', 'width=600,height=420');
+    ventana?.document.write(contenido);
+    ventana?.document.close();
   };
 
   const handleDespachar = (row: IPedidoDisplay) => {
@@ -209,6 +262,12 @@ function PedidosPage() {
 
   const getActions = () => {
     return [
+      {
+        icon: 'fa-solid fa-tag',
+        color: '#6B7280',
+        onClick: handleImprimirEtiqueta,
+        tooltip: 'Imprimir etiqueta',
+      },
       {
         icon: 'fa-solid fa-truck',
         color: '#059669',
