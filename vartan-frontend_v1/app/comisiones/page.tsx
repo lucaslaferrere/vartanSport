@@ -423,7 +423,7 @@ export default function ComisionesPage() {
                                                     {miResumen.mes_actual.comision_bruta !== undefined && (
                                                         <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
                                                             <Typography sx={{ color: colors.textSecondary, fontSize: 14 }}>
-                                                                Comisión bruta ({miResumen.configuracion.porcentaje_comision}% sobre {formatCurrency(miResumen.mes_actual.total_ganancia ?? 0)}):
+                                                                Comisión Vendedor ({miResumen.configuracion.porcentaje_comision}% sobre {formatCurrency(miResumen.mes_actual.total_ganancia ?? 0)}):
                                                             </Typography>
                                                             <Typography sx={{ fontWeight: 600, color: colors.success }}>{formatCurrency(miResumen.mes_actual.comision_bruta)}</Typography>
                                                         </Box>
