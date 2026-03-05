@@ -163,15 +163,13 @@ func CalcularComisionesMesActual(c *gin.Context) {
 			Select("COALESCE(SUM(ganancia), 0)").
 			Scan(&totalGanancia)
 
-		// Calcular comisión usando el porcentaje configurado del usuario
+		// Calcular comisión con gasto descontado antes de aplicar porcentaje.
 		porcentaje := usuario.PorcentajeComision / 100.0 // Convertir % a decimal
-		comisionBruta := totalGanancia * porcentaje
-
-		// Restar gasto publicitario
-		comisionNeta := comisionBruta - usuario.GastoPublicitario
-		if comisionNeta < 0 {
-			comisionNeta = 0 // No puede ser negativa
+		gananciaNeta := totalGanancia - usuario.GastoPublicitario
+		if gananciaNeta < 0 {
+			gananciaNeta = 0
 		}
+		comisionNeta := gananciaNeta * porcentaje
 
 		// Buscar si ya existe comisión para este mes
 		var comisionExistente models.Comision
@@ -294,13 +292,13 @@ func GetMiResumenComision(c *gin.Context) {
 			userID, mesActual, anioActual).
 		Count(&cantidadVentasMes)
 
-	// Calcular comisión estimada del mes
+	// Calcular comisión estimada del mes con gasto descontado antes del porcentaje.
 	porcentaje := usuario.PorcentajeComision / 100.0
-	comisionBruta := totalGananciaMesActual * porcentaje
-	comisionNeta := comisionBruta - usuario.GastoPublicitario
-	if comisionNeta < 0 {
-		comisionNeta = 0
+	gananciaNeta := totalGananciaMesActual - usuario.GastoPublicitario
+	if gananciaNeta < 0 {
+		gananciaNeta = 0
 	}
+	comisionNeta := gananciaNeta * porcentaje
 
 	// Total a cobrar (sueldo + comisión)
 	totalACobrar := usuario.Sueldo + comisionNeta
@@ -347,7 +345,7 @@ func GetMiResumenComision(c *gin.Context) {
 			"total_ventas":           totalVentasMesActual,
 			"total_ganancia":         totalGananciaMesActual,
 			"cantidad_ventas":        cantidadVentasMes,
-			"comision_bruta":         comisionBruta,
+			"comision_bruta":         gananciaNeta,
 			"gasto_publicitario":     usuario.GastoPublicitario,
 			"comision_neta":          comisionNeta,
 			"sueldo_base":            usuario.Sueldo,
