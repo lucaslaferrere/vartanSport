@@ -14,6 +14,7 @@ interface VendedorCardProps {
         sueldo: number;
         observaciones_config?: string;
         ventas_mes_actual: number;
+        cantidad_ventas_mes_actual: number;
         comision_estimada: number;
         sueldo_total: number;
         ventas_mes_anterior: number;
@@ -113,6 +114,12 @@ export default function VendedorCard({ vendedor, formatCurrency, onConfigurar }:
                 <Typography sx={{ fontSize: '11px', color: '#6B7280', mb: 1 }}>Mes Actual</Typography>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
                     <Typography sx={{ fontSize: '12px', color: '#6B7280' }}>Ventas:</Typography>
+                    <Typography sx={{ fontSize: '12px', fontWeight: 600, color: '#1F2937' }}>
+                        {vendedor.cantidad_ventas_mes_actual}
+                    </Typography>
+                </Box>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                    <Typography sx={{ fontSize: '12px', color: '#6B7280' }}>Facturado:</Typography>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                         <Typography sx={{ fontSize: '12px', fontWeight: 600, color: '#1F2937' }}>
                             {formatCurrency(vendedor.ventas_mes_actual)}
@@ -126,7 +133,7 @@ export default function VendedorCard({ vendedor, formatCurrency, onConfigurar }:
                     </Box>
                 </Box>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                    <Typography sx={{ fontSize: '12px', color: '#6B7280' }}>Comisión estimada:</Typography>
+                    <Typography sx={{ fontSize: '12px', color: '#6B7280' }}>Comisión Vendedor:</Typography>
                     <Typography sx={{ fontSize: '13px', fontWeight: 600, color: colors.primary }}>
                         {formatCurrency(vendedor.comision_estimada)}
                     </Typography>

@@ -160,7 +160,7 @@ export default function MiComisionPage() {
       <Grid container spacing={3} sx={{ mb: 4 }}>
         <Grid size={{ xs: 12, sm: 6, md: 3 }}>
           <StatCard
-            title="Total Vendido"
+            title="Facturado"
             value={formatCurrency(resumen.mes_actual.total_ventas)}
             icon="fa-solid fa-dollar-sign"
             subtitle={`${resumen.mes_actual.cantidad_ventas} ventas`}
@@ -182,9 +182,10 @@ export default function MiComisionPage() {
         </Grid>
         <Grid size={{ xs: 12, sm: 6, md: 3 }}>
           <StatCard
-            title="Sueldo Base"
-            value={formatCurrency(resumen.mes_actual.sueldo_base)}
+            title="Ganancias"
+            value={formatCurrency(resumen.mes_actual.total_ganancia ?? 0)}
             icon="fa-solid fa-money-bill"
+            subtitle="Precio venta - costo"
           />
         </Grid>
         <Grid size={{ xs: 12, sm: 6, md: 3 }}>
@@ -298,7 +299,7 @@ export default function MiComisionPage() {
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
                   <Typography sx={{ color: colors.textSecondary, fontSize: 14 }}>
-                    Total vendido:
+                    Facturado:
                   </Typography>
                   <Typography sx={{ fontWeight: 600, color: colors.textPrimary }}>
                     {formatCurrency(resumen.mes_actual.total_ventas)}
@@ -319,7 +320,7 @@ export default function MiComisionPage() {
                 {resumen.mes_actual.comision_bruta !== undefined && (
                   <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
                     <Typography sx={{ color: colors.textSecondary, fontSize: 14 }}>
-                      Comisión bruta ({resumen.configuracion.porcentaje_comision}% sobre {formatCurrency(resumen.mes_actual.total_ganancia ?? 0)}):
+                      Comisión Vendedor ({resumen.configuracion.porcentaje_comision}% sobre {formatCurrency(resumen.mes_actual.total_ganancia ?? 0)}):
                     </Typography>
                     <Typography sx={{ fontWeight: 600, color: colors.success }}>
                       {formatCurrency(resumen.mes_actual.comision_bruta)}

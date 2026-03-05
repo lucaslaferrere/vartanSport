@@ -6,6 +6,7 @@ import { colors } from '@/src/theme/colors';
 import { comisionService, IMiResumenComision } from '@services/comision.service';
 import { IComision } from '@models/entities/comisionentity';
 import { usuarioService } from '@services/usuario.service';
+import { ventaService } from '@services/venta.service';
 import ConfigurarComisionModal from '@components/Modals/ConfigurarComisionModal';
 import KPICard from '@components/Cards/KPICard';
 import StatCard from '@components/Cards/StatCard';
@@ -33,6 +34,7 @@ interface IVendedorDisplay {
     sueldo: number;
     observaciones_config?: string;
     ventas_mes_actual: number;
+    cantidad_ventas_mes_actual: number;
     comision_estimada: number;
     sueldo_total: number;
     ventas_mes_anterior: number;
@@ -79,12 +81,21 @@ export default function ComisionesPage() {
                 comisionService.calcularComisiones(mesAnteriorAuto, anioAnteriorAuto).catch(() => null),
             ]);
 
-            const [vendedoresData, comisionesData, miUsuario, resumenDueno] = await Promise.all([
+            const [vendedoresData, comisionesData, miUsuario, resumenDueno, todasVentas] = await Promise.all([
                 usuarioService.getVendedores(),
                 comisionService.getAll(),
                 usuarioService.getMe(),
                 comisionService.getMiResumen().catch(() => null),
+                ventaService.getAll(),
             ]);
+
+            const ventasPorUsuario = new Map<number, number>();
+            todasVentas.forEach(v => {
+                const fecha = new Date(v.fecha_venta);
+                if (fecha.getMonth() + 1 === mesActualAuto && fecha.getFullYear() === anioActualAuto) {
+                    ventasPorUsuario.set(v.usuario_id, (ventasPorUsuario.get(v.usuario_id) || 0) + 1);
+                }
+            });
 
             setMiResumen(resumenDueno);
 
@@ -125,6 +136,7 @@ export default function ComisionesPage() {
                     sueldo: sueldoBase,
                     observaciones_config: v.observaciones_config,
                     ventas_mes_actual: ventas,
+                    cantidad_ventas_mes_actual: ventasPorUsuario.get(v.id) || 0,
                     comision_estimada: comisionEst,
                     sueldo_total: sueldoTotal,
                     ventas_mes_anterior: comAnterior?.total_ventas || 0,
@@ -321,7 +333,7 @@ export default function ComisionesPage() {
                                 <Grid container spacing={3} sx={{ mb: 3 }}>
                                     <Grid size={{ xs: 12, sm: 6, md: 3 }}>
                                         <StatCard
-                                            title="Total Vendido"
+                                            title="Facturado"
                                             value={formatCurrency(miResumen.mes_actual.total_ventas)}
                                             icon="fa-solid fa-dollar-sign"
                                             subtitle={`${miResumen.mes_actual.cantidad_ventas} ventas`}
@@ -335,17 +347,18 @@ export default function ComisionesPage() {
                                             subtitle={`${miResumen.configuracion.porcentaje_comision}% sobre ganancia`}
                                         />
                                         <Box sx={{ mt: 1, p: 1.5, bgcolor: '#F0FDF4', borderRadius: '8px', border: '1px solid #A7F3D0' }}>
-                                            <Typography sx={{ fontSize: '11px', color: '#6B7280' }}>Base comisión (ganancia):</Typography>
+                                            <Typography sx={{ fontSize: '11px', color: '#6B7280' }}>Sueldo base:</Typography>
                                             <Typography sx={{ fontSize: '13px', fontWeight: 700, color: '#059669' }}>
-                                                {formatCurrency(miResumen.mes_actual.total_ganancia ?? 0)}
+                                                {formatCurrency(miResumen.mes_actual.sueldo_base)}
                                             </Typography>
                                         </Box>
                                     </Grid>
                                     <Grid size={{ xs: 12, sm: 6, md: 3 }}>
                                         <StatCard
-                                            title="Sueldo Base"
-                                            value={formatCurrency(miResumen.mes_actual.sueldo_base)}
+                                            title="Ganancias"
+                                            value={formatCurrency(miResumen.mes_actual.total_ganancia ?? 0)}
                                             icon="fa-solid fa-money-bill"
+                                            subtitle="Precio venta - costo"
                                         />
                                     </Grid>
                                     <Grid size={{ xs: 12, sm: 6, md: 3 }}>
@@ -448,7 +461,7 @@ export default function ComisionesPage() {
                         <Grid container spacing={3} sx={{ mb: 4 }}>
                             <Grid size={{ xs: 12, sm: 6, lg: 3 }}>
                                 <KPICard
-                                    title="Comisiones del Mes"
+                                    title="Comisiones Vendedores"
                                     value={formatCurrency(metricas.totalCom)}
                                     icon="fa-solid fa-coins"
                                     iconColor={colors.primary}
@@ -466,7 +479,7 @@ export default function ComisionesPage() {
                             </Grid>
                             <Grid size={{ xs: 12, sm: 6, lg: 3 }}>
                                 <KPICard
-                                    title="Total Ventas"
+                                    title="Total Facturado"
                                     value={formatCurrency(metricas.totalVentas)}
                                     icon="fa-solid fa-dollar-sign"
                                     iconColor="#F59E0B"

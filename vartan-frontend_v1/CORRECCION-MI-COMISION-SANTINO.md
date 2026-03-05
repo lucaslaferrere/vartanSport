@@ -95,7 +95,7 @@ Mes Actual - {meses[(resumen.mes_actual.mes || getCurrentMonth()) - 1]} {resumen
 ```typescript
 {resumen.mes_actual.comision_bruta !== undefined && (
   <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-    <Typography>Comisión bruta ({resumen.configuracion.porcentaje_comision}%):</Typography>
+    <Typography>Comisión Vendedor ({resumen.configuracion.porcentaje_comision}%):</Typography>
     <Typography>{formatCurrency(resumen.mes_actual.comision_bruta)}</Typography>
   </Box>
 )}
