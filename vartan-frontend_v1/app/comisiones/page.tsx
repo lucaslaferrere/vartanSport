@@ -420,29 +420,24 @@ export default function ComisionesPage() {
                                                         <Typography sx={{ fontWeight: 600 }}>{miResumen.mes_actual.cantidad_ventas}</Typography>
                                                     </Box>
                                                     <Divider />
-                                                    {miResumen.mes_actual.comision_bruta !== undefined && (
-                                                        <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                                                            <Typography sx={{ color: colors.textSecondary, fontSize: 14 }}>
-                                                                Comisión Vendedor ({miResumen.configuracion.porcentaje_comision}% sobre {formatCurrency(miResumen.mes_actual.total_ganancia ?? 0)}):
-                                                            </Typography>
-                                                            <Typography sx={{ fontWeight: 600, color: colors.success }}>{formatCurrency(miResumen.mes_actual.comision_bruta)}</Typography>
-                                                        </Box>
-                                                    )}
-                                                    {miResumen.mes_actual.gasto_publicitario !== undefined && (
-                                                        <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                                                            <Typography sx={{ color: colors.textSecondary, fontSize: 14 }}>Gasto publicitario:</Typography>
-                                                            <Typography sx={{ fontWeight: 600, color: colors.error }}>-{formatCurrency(miResumen.mes_actual.gasto_publicitario)}</Typography>
-                                                        </Box>
-                                                    )}
                                                     <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                                                        <Typography sx={{ color: colors.textSecondary, fontSize: 14, fontWeight: 600 }}>Comisión neta:</Typography>
-                                                        <Typography sx={{ fontWeight: 700, color: colors.success, fontSize: 16 }}>{formatCurrency(miResumen.mes_actual.comision_neta)}</Typography>
+                                                        <Typography sx={{ color: colors.textSecondary, fontSize: 14 }}>Ganancias:</Typography>
+                                                        <Typography sx={{ fontWeight: 600 }}>{formatCurrency(miResumen.mes_actual.total_ganancia ?? 0)}</Typography>
+                                                    </Box>
+                                                    <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                                                        <Typography sx={{ color: colors.textSecondary, fontSize: 14 }}>Gasto publicitario:</Typography>
+                                                        <Typography sx={{ fontWeight: 600, color: colors.error }}>-{formatCurrency(miResumen.mes_actual.gasto_publicitario ?? 0)}</Typography>
+                                                    </Box>
+                                                    <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                                                        <Typography sx={{ color: colors.textSecondary, fontSize: 14, fontWeight: 600 }}>Ganancia Neta:</Typography>
+                                                        <Typography sx={{ fontWeight: 700 }}>{formatCurrency((miResumen.mes_actual.total_ganancia ?? 0) - (miResumen.mes_actual.gasto_publicitario ?? 0))}</Typography>
                                                     </Box>
                                                     <Divider />
                                                     <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                                                        <Typography sx={{ color: colors.textSecondary, fontSize: 14 }}>Sueldo base:</Typography>
-                                                        <Typography sx={{ fontWeight: 600 }}>{formatCurrency(miResumen.mes_actual.sueldo_base)}</Typography>
+                                                        <Typography sx={{ color: colors.textSecondary, fontSize: 14 }}>Comisión Vendedor ({miResumen.configuracion.porcentaje_comision}%):</Typography>
+                                                        <Typography sx={{ fontWeight: 700, color: colors.success, fontSize: 16 }}>{formatCurrency(miResumen.mes_actual.comision_neta)}</Typography>
                                                     </Box>
+                                                    <Divider />
                                                     <Box sx={{ display: 'flex', justifyContent: 'space-between', p: 2, bgcolor: `${colors.primary}10`, borderRadius: 1, mt: 1 }}>
                                                         <Typography sx={{ fontSize: 15, fontWeight: 700 }}>TOTAL A COBRAR:</Typography>
                                                         <Typography sx={{ fontSize: 18, fontWeight: 700, color: colors.primary }}>{formatCurrency(miResumen.mes_actual.total_a_cobrar)}</Typography>
