@@ -15,6 +15,7 @@ interface VendedorCardProps {
         observaciones_config?: string;
         ventas_mes_actual: number;
         cantidad_ventas_mes_actual: number;
+        ganancia_mes_actual: number;
         comision_estimada: number;
         sueldo_total: number;
         ventas_mes_anterior: number;
@@ -131,6 +132,12 @@ export default function VendedorCard({ vendedor, formatCurrency, onConfigurar }:
                             />
                         )}
                     </Box>
+                </Box>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                    <Typography sx={{ fontSize: '12px', color: '#6B7280' }}>Ganancia:</Typography>
+                    <Typography sx={{ fontSize: '12px', fontWeight: 600, color: '#1F2937' }}>
+                        {formatCurrency(vendedor.ganancia_mes_actual)}
+                    </Typography>
                 </Box>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
                     <Typography sx={{ fontSize: '12px', color: '#6B7280' }}>Comisión Vendedor:</Typography>

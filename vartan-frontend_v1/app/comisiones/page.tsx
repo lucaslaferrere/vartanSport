@@ -35,6 +35,7 @@ interface IVendedorDisplay {
     observaciones_config?: string;
     ventas_mes_actual: number;
     cantidad_ventas_mes_actual: number;
+    ganancia_mes_actual: number;
     comision_estimada: number;
     sueldo_total: number;
     ventas_mes_anterior: number;
@@ -90,10 +91,12 @@ export default function ComisionesPage() {
             ]);
 
             const ventasPorUsuario = new Map<number, number>();
+            const gananciaPorUsuario = new Map<number, number>();
             todasVentas.forEach(v => {
                 const fecha = new Date(v.fecha_venta);
                 if (fecha.getMonth() + 1 === mesActualAuto && fecha.getFullYear() === anioActualAuto) {
                     ventasPorUsuario.set(v.usuario_id, (ventasPorUsuario.get(v.usuario_id) || 0) + 1);
+                    gananciaPorUsuario.set(v.usuario_id, (gananciaPorUsuario.get(v.usuario_id) || 0) + (v.ganancia || 0));
                 }
             });
 
@@ -137,6 +140,7 @@ export default function ComisionesPage() {
                     observaciones_config: v.observaciones_config,
                     ventas_mes_actual: ventas,
                     cantidad_ventas_mes_actual: ventasPorUsuario.get(v.id) || 0,
+                    ganancia_mes_actual: gananciaPorUsuario.get(v.id) || 0,
                     comision_estimada: comisionEst,
                     sueldo_total: sueldoTotal,
                     ventas_mes_anterior: comAnterior?.total_ventas || 0,
@@ -341,6 +345,14 @@ export default function ComisionesPage() {
                                     </Grid>
                                     <Grid size={{ xs: 12, sm: 6, md: 3 }}>
                                         <StatCard
+                                            title="Ganancias"
+                                            value={formatCurrency(miResumen.mes_actual.total_ganancia ?? 0)}
+                                            icon="fa-solid fa-money-bill"
+                                            subtitle="Precio venta - costo"
+                                        />
+                                    </Grid>
+                                    <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+                                        <StatCard
                                             title="Comisión Neta"
                                             value={formatCurrency(miResumen.mes_actual.comision_neta)}
                                             icon="fa-solid fa-percent"
@@ -352,14 +364,6 @@ export default function ComisionesPage() {
                                                 {formatCurrency(miResumen.mes_actual.sueldo_base)}
                                             </Typography>
                                         </Box>
-                                    </Grid>
-                                    <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-                                        <StatCard
-                                            title="Ganancias"
-                                            value={formatCurrency(miResumen.mes_actual.total_ganancia ?? 0)}
-                                            icon="fa-solid fa-money-bill"
-                                            subtitle="Precio venta - costo"
-                                        />
                                     </Grid>
                                     <Grid size={{ xs: 12, sm: 6, md: 3 }}>
                                         <StatCard
