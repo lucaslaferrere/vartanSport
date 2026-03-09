@@ -3,6 +3,8 @@ package controllers
 import (
 	"fmt"
 	"net/http"
+	"strings"
+	"time"
 	"vartan-backend/config"
 	"vartan-backend/models"
 
@@ -11,7 +13,7 @@ import (
 
 // GetPedidos godoc
 // @Summary Listar todos los pedidos
-// @Description Obtiene todos los pedidos (solo dueño)
+// @Description Obtiene todos los pedidos (solo duenio)
 // @Tags Pedidos
 // @Accept json
 // @Produce json
@@ -20,15 +22,12 @@ import (
 // @Failure 500 {object} map[string]string "Error interno"
 // @Router /api/owner/pedidos [get]
 func GetPedidos(c *gin.Context) {
-	userID := c.GetInt("user_id")
-
 	var pedidos []models.Pedido
 
 	if err := config.DB.
-		Joins("JOIN venta ON venta.id = pedidos.venta_id").
-		Where("venta.usuario_id = ?", userID).
 		Preload("Venta").
 		Preload("Venta.Cliente").
+		Preload("Venta.Usuario").
 		Preload("Venta.Detalles").
 		Preload("Venta.Detalles.Producto").
 		Order("pedidos.fecha_creacion DESC").
@@ -42,34 +41,33 @@ func GetPedidos(c *gin.Context) {
 
 // GetPedidosByEstado godoc
 // @Summary Obtener pedidos por estado
-// @Description Obtiene pedidos filtrados por estado (solo dueño)
+// @Description Obtiene pedidos filtrados por estado (solo duenio)
 // @Tags Pedidos
 // @Accept json
 // @Produce json
 // @Security BearerAuth
 // @Param estado path string true "Estado del pedido" Enums(pendiente, despachado, cancelado)
 // @Success 200 {array} models.Pedido
-// @Failure 400 {object} map[string]string "Estado inválido"
+// @Failure 400 {object} map[string]string "Estado invalido"
 // @Failure 500 {object} map[string]string "Error interno"
 // @Router /api/owner/pedidos/estado/{estado} [get]
 func GetPedidosByEstado(c *gin.Context) {
 	estado := c.Param("estado")
 
-	// Validar que el estado sea válido
 	if estado != "pendiente" && estado != "despachado" && estado != "cancelado" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Estado inválido"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Estado invalido"})
 		return
 	}
 
 	var pedidos []models.Pedido
 	if err := config.DB.
-		Where("estado = ?", estado).
+		Where("pedidos.estado = ?", estado).
 		Preload("Venta").
 		Preload("Venta.Cliente").
 		Preload("Venta.Usuario").
-		Preload("Venta.Detalles").          // ✅ AGREGAR ESTO
-		Preload("Venta.Detalles.Producto"). // ✅ AGREGAR ESTO (opcional pero útil)
-		Order("fecha_creacion DESC").
+		Preload("Venta.Detalles").
+		Preload("Venta.Detalles.Producto").
+		Order("pedidos.fecha_creacion DESC").
 		Find(&pedidos).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error al obtener pedidos"})
 		return
@@ -90,13 +88,29 @@ func GetPedidosByEstado(c *gin.Context) {
 // @Router /api/mis-pedidos [get]
 func GetMisPedidos(c *gin.Context) {
 	userID := c.GetInt("user_id")
+	userRol := strings.TrimSpace(strings.ToLower(c.GetString("rol")))
+	userRol = strings.NewReplacer(
+		"Ã¡", "a",
+		"Ã©", "e",
+		"Ã­", "i",
+		"Ã³", "o",
+		"Ãº", "u",
+		"Ã±", "n",
+		"Ã£Â±", "n",
+	).Replace(userRol)
 
 	var pedidos []models.Pedido
-	if err := config.DB.
-		Joins("JOIN venta ON venta.id = pedidos.venta_id").
-		Where("venta.usuario_id = ?", userID).
+	query := config.DB
+	if userRol != "dueno" && userRol != "owner" && userRol != "admin" {
+		query = query.
+			Joins("JOIN ventas ON ventas.id = pedidos.venta_id").
+			Where("ventas.usuario_id = ?", userID)
+	}
+
+	if err := query.
 		Preload("Venta").
 		Preload("Venta.Cliente").
+		Preload("Venta.Usuario").
 		Preload("Venta.Detalles").
 		Preload("Venta.Detalles.Producto").
 		Order("pedidos.fecha_creacion DESC").
@@ -120,7 +134,7 @@ func GetMisPedidos(c *gin.Context) {
 // @Param id path int true "ID del pedido"
 // @Param request body models.PedidoUpdateRequest true "Nuevo estado"
 // @Success 200 {object} models.Pedido
-// @Failure 400 {object} map[string]string "Estado inválido"
+// @Failure 400 {object} map[string]string "Estado invalido"
 // @Failure 404 {object} map[string]string "Pedido no encontrado"
 // @Failure 500 {object} map[string]string "Error interno"
 // @Router /api/pedidos/{id} [put]
@@ -135,17 +149,17 @@ func UpdatePedidoEstado(c *gin.Context) {
 
 	var req models.PedidoUpdateRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Datos inválidos"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Datos invalidos"})
 		return
 	}
 
-	// Validar estado
 	if req.Estado != "pendiente" && req.Estado != "despachado" && req.Estado != "cancelado" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Estado inválido"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Estado invalido"})
 		return
 	}
 
 	pedido.Estado = req.Estado
+	pedido.FechaActualizacion = time.Now()
 
 	if err := config.DB.Save(&pedido).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error al actualizar pedido"})
