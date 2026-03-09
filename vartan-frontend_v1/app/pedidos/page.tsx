@@ -135,7 +135,7 @@ function PedidosPage() {
           <title>Etiqueta de Envío</title>
           <style>
             * { margin: 0; padding: 0; box-sizing: border-box; }
-            body { font-family: Arial, sans-serif; width: 15cm; height: 10cm; padding: 0.5cm; }
+            body { font-family: Arial, sans-serif; width: 10cm; height: 15cm; padding: 0.5cm; }
             .etiqueta { border: 2px solid #000; padding: 10px; height: 100%; display: flex; flex-direction: column; justify-content: space-between; }
             .header { font-size: 18px; font-weight: bold; border-bottom: 1px solid #000; padding-bottom: 5px; margin-bottom: 8px; }
             .campo { margin-bottom: 4px; }
@@ -144,7 +144,7 @@ function PedidosPage() {
             .divider { border-top: 1px dashed #000; margin: 6px 0; }
             .transporte { font-size: 14px; font-weight: bold; text-align: center; border: 1px solid #000; border-radius: 4px; padding: 4px; margin-top: 6px; }
             .pedido { font-size: 11px; color: #888; text-align: right; margin-top: 4px; }
-            @media print { body { margin: 0; } }
+            @media print { body { margin: 0; } @page { margin: 0; size: 100mm 150mm; } }
           </style>
         </head>
         <body>

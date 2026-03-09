@@ -64,8 +64,8 @@ export default function DetalleVentaModal({ open, onClose, venta }: DetalleVenta
             * { margin: 0; padding: 0; box-sizing: border-box; }
             body {
               font-family: Arial, sans-serif;
-              width: 15cm;
-              height: 10cm;
+              width: 10cm;
+              height: 15cm;
               padding: 0.5cm;
             }
             .etiqueta {
@@ -103,7 +103,7 @@ export default function DetalleVentaModal({ open, onClose, venta }: DetalleVenta
             }
             @media print {
               body { margin: 0; }
-              @page { margin: 0; size: 150mm 100mm; }
+              @page { margin: 0; size: 100mm 150mm; }
             }
           </style>
         </head>
