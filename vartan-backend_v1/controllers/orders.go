@@ -100,20 +100,20 @@ func GetMisPedidos(c *gin.Context) {
 	).Replace(userRol)
 
 	var pedidos []models.Pedido
-	query := config.DB
-	if userRol != "dueno" && userRol != "owner" && userRol != "admin" {
-		query = query.
-			Select("pedidos.*").
-			Joins("JOIN ventas ON ventas.id = pedidos.venta_id").
-			Where("ventas.usuario_id = ?", userID)
-	}
 
-	if err := query.
+	baseQuery := config.DB.
 		Preload("Venta").
 		Preload("Venta.Cliente").
 		Preload("Venta.Usuario").
 		Preload("Venta.Detalles").
-		Preload("Venta.Detalles.Producto").
+		Preload("Venta.Detalles.Producto")
+
+	// Filtrar por usuario si no es dueño
+	if userRol != "dueno" && userRol != "owner" && userRol != "admin" {
+		baseQuery = baseQuery.Where("venta_id IN (SELECT id FROM ventas WHERE usuario_id = ?)", userID)
+	}
+
+	if err := baseQuery.
 		Order("pedidos.fecha_creacion DESC").
 		Find(&pedidos).Error; err != nil {
 
