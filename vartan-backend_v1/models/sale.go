@@ -32,6 +32,10 @@ type Venta struct {
 	Detalles  []VentaDetalle `gorm:"foreignKey:VentaID" json:"detalles,omitempty"`
 }
 
+func (Venta) TableName() string {
+	return "venta"
+}
+
 type VentaDetalle struct {
 	ID             int     `gorm:"primaryKey;autoIncrement" json:"id"`
 	VentaID        int     `gorm:"not null" json:"venta_id"`

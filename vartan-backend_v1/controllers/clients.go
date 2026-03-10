@@ -194,8 +194,8 @@ func DeleteCliente(c *gin.Context) {
 
 	var pedidosCount int64
 	config.DB.Model(&models.Pedido{}).
-		Joins("JOIN ventas ON pedidos.venta_id = ventas.id").
-		Where("ventas.cliente_id = ?", id).
+		Joins("JOIN venta ON pedidos.venta_id = venta.id").
+		Where("venta.cliente_id = ?", id).
 		Count(&pedidosCount)
 
 	if pedidosCount > 0 {

@@ -110,7 +110,7 @@ func GetMisPedidos(c *gin.Context) {
 
 	// Filtrar por usuario si no es dueño
 	if userRol != "dueno" && userRol != "owner" && userRol != "admin" {
-		baseQuery = baseQuery.Where("venta_id IN (SELECT id FROM ventas WHERE usuario_id = ?)", userID)
+		baseQuery = baseQuery.Where("venta_id IN (SELECT id FROM venta WHERE usuario_id = ?)", userID)
 	}
 
 	if err := baseQuery.
