@@ -103,6 +103,7 @@ func GetMisPedidos(c *gin.Context) {
 	query := config.DB
 	if userRol != "dueno" && userRol != "owner" && userRol != "admin" {
 		query = query.
+			Select("pedidos.*").
 			Joins("JOIN ventas ON ventas.id = pedidos.venta_id").
 			Where("ventas.usuario_id = ?", userID)
 	}
