@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { Grid, Box, Typography, Checkbox, FormControlLabel, Divider, IconButton } from '@mui/material';
+import { Grid, Box, Typography, Checkbox, FormControlLabel, Divider, IconButton, Autocomplete, TextField } from '@mui/material';
 import BaseModal from './BaseModal';
 import { IVentaCreateRequest, IVentaDetalleCreateRequest } from '@models/request/IVentaRequest';
 import { ventaService } from '@services/venta.service';
@@ -41,6 +41,20 @@ export default function AgregarVentaModal({ open, onClose, onSuccess }: AgregarV
   const [tallesActuales, setTallesActuales] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [clienteInput, setClienteInput] = useState('');
+  const [clienteInputDebounced, setClienteInputDebounced] = useState('');
+  const [productoInput, setProductoInput] = useState('');
+  const [productoInputDebounced, setProductoInputDebounced] = useState('');
+
+  useEffect(() => {
+    const t = setTimeout(() => setClienteInputDebounced(clienteInput), 300);
+    return () => clearTimeout(t);
+  }, [clienteInput]);
+
+  useEffect(() => {
+    const t = setTimeout(() => setProductoInputDebounced(productoInput), 300);
+    return () => clearTimeout(t);
+  }, [productoInput]);
 
   const formasPago = [
     { id: 1, nombre: 'Financiera' },
@@ -211,6 +225,8 @@ export default function AgregarVentaModal({ open, onClose, onSuccess }: AgregarV
 
   const handleClose = () => {
     setClienteId(null);
+    setClienteInput('');
+    setClienteInputDebounced('');
     setFormaPagoId(1);
     setPrecioVenta('');
     setTransporte('');
@@ -220,6 +236,8 @@ export default function AgregarVentaModal({ open, onClose, onSuccess }: AgregarV
     setComprobante(null);
     setProductosSeleccionados([]);
     setProductoActual(null);
+    setProductoInput('');
+    setProductoInputDebounced('');
     setTallesActuales({});
     setError(null);
     onClose();
@@ -304,24 +322,41 @@ export default function AgregarVentaModal({ open, onClose, onSuccess }: AgregarV
               <Typography sx={{ fontSize: { xs: '12px', sm: '13px' }, fontWeight: 600, color: '#374151', mb: 0.5 }}>
                 Cliente
               </Typography>
-              <select
-                  value={clienteId || ''}
-                  onChange={(e) => setClienteId(Number(e.target.value))}
-                  style={{
-                    width: '100%',
-                    padding: '8px 10px',
-                    fontSize: '13px',
-                    border: '1px solid #D1D5DB',
-                    borderRadius: '8px',
-                    outline: 'none',
-                    backgroundColor: 'white',
-                    color: '#111827',
-                    cursor: 'pointer'
-                  }}
-              >
-                <option value="">Seleccione un cliente...</option>
-                {clientes.map(c => <option key={c.id} value={c.id}>{c.nombre}</option>)}
-              </select>
+              <Autocomplete
+                options={clientes}
+                getOptionLabel={(c) => c.nombre}
+                filterOptions={(options) => {
+                  const search = clienteInputDebounced.toLowerCase();
+                  if (!search) return options;
+                  return options.filter(c =>
+                    c.nombre.toLowerCase().includes(search) ||
+                    (c.dni && c.dni.toLowerCase().includes(search)) ||
+                    (c.email && c.email.toLowerCase().includes(search))
+                  );
+                }}
+                value={clientes.find(c => c.id === clienteId) ?? null}
+                onChange={(_, val) => setClienteId(val?.id ?? null)}
+                inputValue={clienteInput}
+                onInputChange={(_, val) => setClienteInput(val)}
+                noOptionsText="Sin resultados"
+                size="small"
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    placeholder="Seleccione un cliente..."
+                    sx={{
+                      '& .MuiOutlinedInput-root': {
+                        fontSize: '13px',
+                        borderRadius: '8px',
+                        backgroundColor: 'white',
+                        '& fieldset': { borderColor: '#D1D5DB' },
+                        '&:hover fieldset': { borderColor: '#9CA3AF' },
+                        '&.Mui-focused fieldset': { borderColor: '#588a9e' },
+                      }
+                    }}
+                  />
+                )}
+              />
             </Box>
           </Grid>
 
@@ -344,27 +379,43 @@ export default function AgregarVentaModal({ open, onClose, onSuccess }: AgregarV
               {/* Selector de Producto */}
               <Box sx={{ display: 'flex', gap: 2, mb: 1.5, flexDirection: { xs: 'column', sm: 'row' } }}>
                 <Box sx={{ flex: 1 }}>
-                  <select
-                      value=""
-                      onChange={(e) => handleProductoSelect(Number(e.target.value))}
-                      style={{
-                        width: '100%',
-                        padding: '8px 10px',
-                        fontSize: '12px',
-                        border: '1px solid #D1D5DB',
-                        borderRadius: '6px',
-                        outline: 'none',
-                        backgroundColor: 'white',
-                        color: '#111827'
-                      }}
-                  >
-                    <option value="">+ Buscar Producto</option>
-                    {productos.map(p => (
-                        <option key={p.id} value={p.id}>
-                          {p.nombre} - ${p.costo_unitario.toLocaleString('es-AR')}
-                        </option>
-                    ))}
-                  </select>
+                  <Autocomplete
+                    options={productos}
+                    getOptionLabel={(p) => `${p.nombre} - $${p.costo_unitario.toLocaleString('es-AR')}`}
+                    filterOptions={(options) => {
+                      const search = productoInputDebounced.toLowerCase();
+                      if (!search) return options;
+                      return options.filter(p =>
+                        p.nombre.toLowerCase().includes(search) ||
+                        (p.equipo?.nombre && p.equipo.nombre.toLowerCase().includes(search))
+                      );
+                    }}
+                    value={productoActual}
+                    onChange={(_, val) => {
+                      if (val) handleProductoSelect(val.id);
+                      else { setProductoActual(null); setTallesActuales({}); }
+                    }}
+                    inputValue={productoInput}
+                    onInputChange={(_, val) => setProductoInput(val)}
+                    noOptionsText="Sin resultados"
+                    size="small"
+                    renderInput={(params) => (
+                      <TextField
+                        {...params}
+                        placeholder="+ Buscar Producto"
+                        sx={{
+                          '& .MuiOutlinedInput-root': {
+                            fontSize: '12px',
+                            borderRadius: '6px',
+                            backgroundColor: 'white',
+                            '& fieldset': { borderColor: '#D1D5DB' },
+                            '&:hover fieldset': { borderColor: '#9CA3AF' },
+                            '&.Mui-focused fieldset': { borderColor: '#588a9e' },
+                          }
+                        }}
+                      />
+                    )}
+                  />
                 </Box>
               </Box>
 
