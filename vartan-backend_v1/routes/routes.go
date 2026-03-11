@@ -8,6 +8,10 @@ import (
 )
 
 func SetupRoutes(router *gin.Engine) {
+	router.GET("/", func(c *gin.Context) {
+		c.JSON(200, gin.H{"status": "ok"})
+	})
+
 	router.GET("/health", func(c *gin.Context) {
 		c.JSON(200, gin.H{"status": "ok", "message": "Servidor funcionando correctamente"})
 	})
