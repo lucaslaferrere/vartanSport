@@ -137,8 +137,8 @@ export default function AgregarClienteModal({ open, onClose, onSuccess }: Agrega
       <Grid container spacing={2}>
   <Grid size={{ xs: 12, sm: 3 }}>
     <FormField
-      label="Ciudad"
-      placeholder="Ciudad"
+      label="Localidad"   //Ex "Ciudad"
+      placeholder="Localidad"
       value={formData.ciudad}
       onChange={(value) => setFormData(prev => ({ ...prev, ciudad: capitalizeWords(value) }))}
     />
