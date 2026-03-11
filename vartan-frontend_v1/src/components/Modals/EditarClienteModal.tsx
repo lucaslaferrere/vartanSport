@@ -161,8 +161,8 @@ export default function EditarClienteModal({ open, onClose, onSuccess, cliente }
 <Grid container spacing={2}>
   <Grid size={{ xs: 12, sm: 3 }}>
     <FormField
-      label="Ciudad"
-      placeholder="Ciudad"
+      label="Localidad"
+      placeholder="Localidad"
       value={formData.ciudad}
       onChange={(value) => setFormData(prev => ({ ...prev, ciudad: capitalizeWords(value) }))}
     />

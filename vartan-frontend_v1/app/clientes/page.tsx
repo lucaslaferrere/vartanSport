@@ -174,7 +174,7 @@ function ClientesPage() {
       }
     },
     { accessorKey: 'direccion', header: 'Dirección' },
-    { accessorKey: 'ciudad', header: 'Ciudad' },
+    { accessorKey: 'ciudad', header: 'Localidad' },
     { accessorKey: 'provincia', header: 'Provincia' },
     { accessorKey: 'pais', header: 'País' },
     { accessorKey: 'fechaCreacion', header: 'Fecha Registro' },
