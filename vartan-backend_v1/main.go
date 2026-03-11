@@ -72,6 +72,7 @@ func main() {
 			"http://45.55.194.246:3001",               // Frontend en producción
 			"http://45.55.194.246:8001",               // Backend en producción
 			"https://vartansports.lrsolutions.com.ar", // Cualquier dominio HTTPS (Coolify)
+			"https://demo.lrsolutions.com.ar",
 		},
 		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"},
 		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization", "Accept"},
