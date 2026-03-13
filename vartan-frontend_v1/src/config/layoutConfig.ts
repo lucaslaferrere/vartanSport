@@ -38,13 +38,16 @@ export const layoutConfig = {
       ? [{ label: 'Comisiones', icon: 'fa-solid fa-dollar-sign', path: '/comisiones' }]
       : [{ label: 'Mi Comisión', icon: 'fa-solid fa-wallet', path: '/mi-comision' }];
 
-    // Gastos solo para dueños
-    const gastosItem = isOwner
-      ? [{ label: 'Gastos', icon: 'fa-solid fa-receipt', path: '/gastos' }]
+    // Gastos y Comprobantes solo para dueños
+    const ownerItems = isOwner
+      ? [
+          { label: 'Gastos', icon: 'fa-solid fa-receipt', path: '/gastos' },
+          { label: 'Comprobantes', icon: 'fa-solid fa-file-invoice', path: '/comprobantes' },
+        ]
       : [];
 
     const endItems = [
-      ...gastosItem,
+      ...ownerItems,
       { label: 'Tareas', icon: 'fa-solid fa-list-check', path: '/tareas' },
     ];
 
