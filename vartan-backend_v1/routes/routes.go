@@ -119,5 +119,11 @@ func SetupRoutes(router *gin.Engine) {
 		owner.GET("/comisiones/usuario/:id", controllers.GetComisionesByUsuario)
 		owner.POST("/comisiones/calcular", controllers.CalcularComisionesMesActual)
 		owner.PUT("/comisiones/:id/observaciones", controllers.UpdateObservaciones)
+
+		// Comprobantes
+		owner.GET("/comprobantes", controllers.GetComprobantes)
+		owner.PUT("/comprobantes/:venta_id/revisar", controllers.PutComprobanteRevisado)
+		owner.PUT("/comprobantes/revisar-todos", controllers.PutComprobantesRevisarTodos)
+		owner.GET("/comprobantes/descargar", controllers.GetComprobantesZip)
 	}
 }

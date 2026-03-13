@@ -23,6 +23,8 @@ type Venta struct {
 	TotalFinal     float64   `gorm:"type:decimal(10,2);not null" json:"total_final"`
 	UsaFinanciera  bool      `gorm:"default:false" json:"usa_financiera"`
 	ComprobanteURL *string   `gorm:"type:varchar(255)" json:"comprobante_url,omitempty"`
+	ComprobanteRevisado   bool       `gorm:"default:false" json:"comprobante_revisado"`
+	ComprobanteRevisadoAt *time.Time `json:"comprobante_revisado_at,omitempty"`
 	Observaciones  *string   `gorm:"type:text" json:"observaciones"`
 	FechaVenta     time.Time `gorm:"default:CURRENT_TIMESTAMP" json:"fecha_venta"`
 
