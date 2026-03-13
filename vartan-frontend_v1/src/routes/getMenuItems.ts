@@ -20,14 +20,15 @@ export interface MenuGroup {
   items: IMenuItem[];
 }
 
-export const GetMenuItems = (userRole?: 'dueño' | 'vendedor' | 'demo'): MenuGroup => {
-  const isDueño = userRole === 'dueño' || userRole === 'demo' || !userRole; // Por defecto es dueño si no se especifica
+export const GetMenuItems = (userRole?: string): MenuGroup => {
+  // Usar unicode escape para evitar problemas de encoding con 'due\u00f1o'
+  const isOwner = !userRole || userRole === 'due\u00f1o' || userRole === 'demo';
 
   return {
     items: [
       {
         id: 'navigation',
-        title: 'Navegación',
+        title: 'Navegaci\u00f3n',
         type: 'group',
         children: [
           {
@@ -70,8 +71,7 @@ export const GetMenuItems = (userRole?: 'dueño' | 'vendedor' | 'demo'): MenuGro
             icon: 'fa-solid fa-clipboard-list',
             breadcrumbs: true
           },
-          // Mostrar "Comisiones" solo para dueños
-          ...(isDueño ? [{
+          ...(isOwner ? [{
             id: 'comisiones',
             title: 'Comisiones',
             type: 'item' as const,
@@ -79,16 +79,15 @@ export const GetMenuItems = (userRole?: 'dueño' | 'vendedor' | 'demo'): MenuGro
             icon: 'fa-solid fa-dollar-sign',
             breadcrumbs: true
           }] : []),
-          // Mostrar "Mi Comisión" solo para vendedores
-          ...(!isDueño ? [{
+          ...(!isOwner ? [{
             id: 'mi-comision',
-            title: 'Mi Comisión',
+            title: 'Mi Comisi\u00f3n',
             type: 'item' as const,
             url: '/mi-comision',
             icon: 'fa-solid fa-wallet',
             breadcrumbs: true
           }] : []),
-          ...(isDueño ? [{
+          ...(isOwner ? [{
             id: 'gastos',
             title: 'Gastos',
             type: 'item' as const,
@@ -96,7 +95,7 @@ export const GetMenuItems = (userRole?: 'dueño' | 'vendedor' | 'demo'): MenuGro
             icon: 'fa-solid fa-receipt',
             breadcrumbs: true
           }] : []),
-          ...(isDueño ? [{
+          ...(isOwner ? [{
             id: 'comprobantes',
             title: 'Comprobantes',
             type: 'item' as const,
