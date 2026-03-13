@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Box, Grid, Typography, CircularProgress, Alert, Chip, Button, FormControlLabel, Checkbox, MenuItem, Select } from '@mui/material';
 import { useRouter } from 'next/navigation';
-import { useAuthStore } from '@libraries/store';
+import { useUserPermissions } from '@components/Validators/UserPermissionsContext';
 import { comprobanteService, IComprobante, IFiltrosComprobantes } from '@services/comprobante.service';
 import { usuarioService } from '@services/usuario.service';
 import { useNotification } from '@components/Notifications';
@@ -19,7 +19,7 @@ type Periodo = 'hoy' | '7dias' | 'todo';
 
 export default function ComprobantesPage() {
   const router = useRouter();
-  const { user } = useAuthStore();
+  const { userRole } = useUserPermissions();
   const { addNotification } = useNotification();
 
   const [comprobantes, setComprobantes] = useState<IComprobante[]>([]);
@@ -37,12 +37,12 @@ export default function ComprobantesPage() {
   const [descargandoZip, setDescargandoZip] = useState(false);
   const [marcandoTodos, setMarcandoTodos] = useState(false);
 
-  // Redirigir si no es dueño
+  // Redirigir si es vendedor
   useEffect(() => {
-    if (user && user.rol !== 'dueño' && user.rol !== 'demo') {
+    if (userRole === 'vendedor') {
       router.replace('/dashboard');
     }
-  }, [user, router]);
+  }, [userRole, router]);
 
   const fetchVendedores = useCallback(async () => {
     try {

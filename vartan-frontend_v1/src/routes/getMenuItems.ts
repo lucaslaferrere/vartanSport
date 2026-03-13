@@ -21,8 +21,8 @@ export interface MenuGroup {
 }
 
 export const GetMenuItems = (userRole?: string): MenuGroup => {
-  // Usar unicode escape para evitar problemas de encoding con 'due\u00f1o'
-  const isOwner = !userRole || userRole === 'due\u00f1o' || userRole === 'demo';
+  // Dueño y demo ven todo. Solo vendedor ve menos.
+  const isOwner = userRole !== 'vendedor';
 
   return {
     items: [
