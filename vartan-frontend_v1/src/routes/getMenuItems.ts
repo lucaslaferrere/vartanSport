@@ -96,6 +96,14 @@ export const GetMenuItems = (userRole?: 'dueño' | 'vendedor' | 'demo'): MenuGro
             icon: 'fa-solid fa-receipt',
             breadcrumbs: true
           }] : []),
+          ...(isDueño ? [{
+            id: 'comprobantes',
+            title: 'Comprobantes',
+            type: 'item' as const,
+            url: '/comprobantes',
+            icon: 'fa-solid fa-file-invoice',
+            breadcrumbs: true
+          }] : []),
           {
             id: 'tareas',
             title: 'Tareas',

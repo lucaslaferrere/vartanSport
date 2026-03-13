@@ -1,0 +1,294 @@
+'use client';
+
+import React, { useState, useEffect, useCallback } from 'react';
+import { Box, Grid, Typography, CircularProgress, Alert, Chip, Button, FormControlLabel, Checkbox, MenuItem, Select } from '@mui/material';
+import { useRouter } from 'next/navigation';
+import { useAuthStore } from '@libraries/store';
+import { comprobanteService, IComprobante, IFiltrosComprobantes } from '@services/comprobante.service';
+import { usuarioService } from '@services/usuario.service';
+import { useNotification } from '@components/Notifications';
+import ComprobanteCard from '@components/Cards/ComprobanteCard';
+import ComprobantePreviewModal from '@components/Modals/ComprobantePreviewModal';
+
+interface IVendedor {
+  id: number;
+  nombre: string;
+}
+
+type Periodo = 'hoy' | '7dias' | 'todo';
+
+export default function ComprobantesPage() {
+  const router = useRouter();
+  const { user } = useAuthStore();
+  const { addNotification } = useNotification();
+
+  const [comprobantes, setComprobantes] = useState<IComprobante[]>([]);
+  const [total, setTotal] = useState(0);
+  const [pendientes, setPendientes] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [vendedores, setVendedores] = useState<IVendedor[]>([]);
+
+  const [periodo, setPeriodo] = useState<Periodo>('hoy');
+  const [vendedorId, setVendedorId] = useState<number | ''>('');
+  const [soloPendientes, setSoloPendientes] = useState(false);
+
+  const [previewItem, setPreviewItem] = useState<IComprobante | null>(null);
+  const [descargandoZip, setDescargandoZip] = useState(false);
+  const [marcandoTodos, setMarcandoTodos] = useState(false);
+
+  // Redirigir si no es dueño
+  useEffect(() => {
+    if (user && user.rol !== 'dueño' && user.rol !== 'demo') {
+      router.replace('/dashboard');
+    }
+  }, [user, router]);
+
+  const fetchVendedores = useCallback(async () => {
+    try {
+      const data = await usuarioService.getVendedores();
+      setVendedores(data);
+    } catch {
+      // No crítico
+    }
+  }, []);
+
+  const fetchComprobantes = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const filtros: IFiltrosComprobantes = {
+        periodo,
+        vendedor_id: vendedorId || undefined,
+        solo_pendientes: soloPendientes || undefined,
+      };
+      const data = await comprobanteService.getAll(filtros);
+      setComprobantes(data.comprobantes);
+      setTotal(data.total);
+      setPendientes(data.pendientes);
+    } catch {
+      setError('No se pudieron cargar los comprobantes.');
+    } finally {
+      setLoading(false);
+    }
+  }, [periodo, vendedorId, soloPendientes]);
+
+  useEffect(() => {
+    fetchVendedores();
+  }, [fetchVendedores]);
+
+  useEffect(() => {
+    fetchComprobantes();
+  }, [fetchComprobantes]);
+
+  const handleRevisar = async (comp: IComprobante) => {
+    const nuevoEstado = !comp.revisado;
+    // Optimistic update
+    setComprobantes(prev =>
+      prev.map(c => c.venta_id === comp.venta_id ? { ...c, revisado: nuevoEstado } : c)
+    );
+    setPendientes(prev => nuevoEstado ? prev - 1 : prev + 1);
+    try {
+      await comprobanteService.marcarRevisado(comp.venta_id, nuevoEstado);
+      addNotification(nuevoEstado ? 'Comprobante marcado como revisado' : 'Comprobante marcado como pendiente', 'success');
+    } catch {
+      // Revertir
+      setComprobantes(prev =>
+        prev.map(c => c.venta_id === comp.venta_id ? { ...c, revisado: comp.revisado } : c)
+      );
+      setPendientes(prev => nuevoEstado ? prev + 1 : prev - 1);
+      addNotification('Error al actualizar el comprobante', 'error');
+    }
+  };
+
+  const handleDescargar = async (comp: IComprobante) => {
+    const ext = comp.comprobante_url.split('.').pop()?.toLowerCase() ?? 'pdf';
+    const nombre = `comprobante_venta_${comp.venta_id}.${ext}`;
+    try {
+      await comprobanteService.descargar(comp.venta_id, nombre);
+    } catch {
+      addNotification('Error al descargar el comprobante', 'error');
+    }
+  };
+
+  const handleDescargarZip = async () => {
+    setDescargandoZip(true);
+    try {
+      await comprobanteService.descargarZip({
+        periodo,
+        vendedor_id: vendedorId || undefined,
+        solo_pendientes: soloPendientes || undefined,
+      });
+    } catch {
+      addNotification('Error al descargar el ZIP', 'error');
+    } finally {
+      setDescargandoZip(false);
+    }
+  };
+
+  const handleMarcarFiltradosRevisados = async () => {
+    const pendientesVisibles = comprobantes.filter(c => !c.revisado);
+    if (pendientesVisibles.length === 0) {
+      addNotification('No hay comprobantes pendientes en la vista actual', 'info');
+      return;
+    }
+    setMarcandoTodos(true);
+    try {
+      const ids = pendientesVisibles.map(c => c.venta_id);
+      await comprobanteService.marcarTodosRevisados(ids, true);
+      setComprobantes(prev => prev.map(c => ({ ...c, revisado: true })));
+      setPendientes(0);
+      addNotification(`${ids.length} comprobantes marcados como revisados`, 'success');
+    } catch {
+      addNotification('Error al marcar los comprobantes', 'error');
+    } finally {
+      setMarcandoTodos(false);
+    }
+  };
+
+  return (
+    <Box sx={{ p: { xs: 2, sm: 3 } }}>
+      {/* Header */}
+      <Box sx={{ mb: 3 }}>
+        <Typography sx={{ fontSize: { xs: '20px', sm: '24px' }, fontWeight: 700, color: '#111827' }}>
+          <i className="fa-solid fa-file-invoice" style={{ marginRight: 10, color: '#588a9e' }} />
+          Comprobantes
+        </Typography>
+      </Box>
+
+      {/* Filtros */}
+      <Box sx={{
+        p: 2, mb: 3, bgcolor: 'white', borderRadius: '10px',
+        border: '1px solid #E5E7EB',
+        display: 'flex', flexWrap: 'wrap', gap: 2, alignItems: 'center'
+      }}>
+        {/* Período */}
+        <Box sx={{ display: 'flex', gap: 1 }}>
+          {(['hoy', '7dias', 'todo'] as Periodo[]).map(p => (
+            <Chip
+              key={p}
+              label={p === 'hoy' ? 'Hoy' : p === '7dias' ? 'Últimos 7 días' : 'Todo'}
+              onClick={() => setPeriodo(p)}
+              variant={periodo === p ? 'filled' : 'outlined'}
+              color={periodo === p ? 'primary' : 'default'}
+              size="small"
+              sx={{ cursor: 'pointer', fontSize: '12px' }}
+            />
+          ))}
+        </Box>
+
+        {/* Vendedor */}
+        <Select
+          value={vendedorId}
+          onChange={(e) => setVendedorId(e.target.value as number | '')}
+          size="small"
+          displayEmpty
+          sx={{ fontSize: '13px', minWidth: 180, bgcolor: 'white' }}
+        >
+          <MenuItem value=""><em>Todos los vendedores</em></MenuItem>
+          {vendedores.map(v => (
+            <MenuItem key={v.id} value={v.id}>{v.nombre}</MenuItem>
+          ))}
+        </Select>
+
+        {/* Solo pendientes */}
+        <FormControlLabel
+          control={
+            <Checkbox
+              checked={soloPendientes}
+              onChange={(e) => setSoloPendientes(e.target.checked)}
+              size="small"
+            />
+          }
+          label={<Typography sx={{ fontSize: '13px' }}>Solo pendientes</Typography>}
+        />
+      </Box>
+
+      {/* Resumen + Acciones */}
+      <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', mb: 2, gap: 2 }}>
+        <Typography sx={{ fontSize: '13px', color: '#6B7280' }}>
+          {total} comprobante{total !== 1 ? 's' : ''}
+          {pendientes > 0 && (
+            <Box component="span" sx={{ ml: 1, color: '#D97706', fontWeight: 600 }}>
+              ({pendientes} pendiente{pendientes !== 1 ? 's' : ''} de revisión)
+            </Box>
+          )}
+        </Typography>
+
+        <Box sx={{ display: 'flex', gap: 1 }}>
+          <Button
+            size="small"
+            variant="outlined"
+            onClick={handleDescargarZip}
+            disabled={descargandoZip || comprobantes.length === 0}
+            startIcon={<i className="fa-solid fa-file-zipper" style={{ fontSize: '12px' }} />}
+            sx={{ fontSize: '12px', textTransform: 'none' }}
+          >
+            {descargandoZip ? 'Descargando...' : 'Descargar todos'}
+          </Button>
+          <Button
+            size="small"
+            variant="contained"
+            onClick={handleMarcarFiltradosRevisados}
+            disabled={marcandoTodos || pendientes === 0}
+            startIcon={<i className="fa-solid fa-check-double" style={{ fontSize: '12px' }} />}
+            sx={{ fontSize: '12px', textTransform: 'none' }}
+          >
+            {marcandoTodos ? 'Marcando...' : 'Marcar filtrados como revisados'}
+          </Button>
+        </Box>
+      </Box>
+
+      {/* Estados */}
+      {loading && (
+        <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
+          <CircularProgress />
+        </Box>
+      )}
+
+      {error && !loading && (
+        <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>
+      )}
+
+      {!loading && !error && comprobantes.length === 0 && (
+        <Box sx={{ textAlign: 'center', py: 8 }}>
+          <i className="fa-solid fa-file-slash" style={{ fontSize: '40px', color: '#D1D5DB' }} />
+          <Typography sx={{ mt: 2, color: '#9CA3AF', fontSize: '14px' }}>
+            No hay comprobantes para los filtros seleccionados
+          </Typography>
+        </Box>
+      )}
+
+      {/* Grid de cards */}
+      {!loading && !error && comprobantes.length > 0 && (
+        <Grid container spacing={2}>
+          {comprobantes.map(comp => (
+            <Grid key={comp.venta_id} size={{ xs: 6, sm: 4, md: 3 }}>
+              <ComprobanteCard
+                comprobante={comp}
+                onVer={() => setPreviewItem(comp)}
+                onDescargar={() => handleDescargar(comp)}
+                onRevisar={() => handleRevisar(comp)}
+              />
+            </Grid>
+          ))}
+        </Grid>
+      )}
+
+      {/* Preview Modal */}
+      {previewItem && (
+        <ComprobantePreviewModal
+          open={!!previewItem}
+          onClose={() => setPreviewItem(null)}
+          ventaId={previewItem.venta_id}
+          comprobanteUrl={previewItem.comprobante_url}
+          revisado={previewItem.revisado}
+          onRevisar={() => {
+            handleRevisar(previewItem);
+            setPreviewItem(prev => prev ? { ...prev, revisado: !prev.revisado } : null);
+          }}
+        />
+      )}
+    </Box>
+  );
+}
