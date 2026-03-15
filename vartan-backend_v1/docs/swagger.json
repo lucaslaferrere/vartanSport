@@ -104,6 +104,108 @@
                 }
             }
         },
+        "/api/clientes/invitacion": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Genera un token UUID único con 24hs de vigencia. El empleado comparte el link resultante con el cliente para que complete su propio registro sin intervención manual.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Clientes"
+                ],
+                "summary": "Generar link de invitación para registro de cliente",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/models.InvitacionResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Error interno al generar la invitación",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/public/clientes/registro": {
+            "post": {
+                "description": "Endpoint público. Recibe el token de invitación por query param y los datos del cliente en el body. Crea el cliente y marca el token como usado de forma atómica. El token solo puede utilizarse una vez y expira a las 24hs.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Público"
+                ],
+                "summary": "Registro de cliente mediante invitación",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Token de invitación generado por el empleado",
+                        "name": "token",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "description": "Datos del cliente",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.ClienteCreateRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/models.Cliente"
+                        }
+                    },
+                    "400": {
+                        "description": "Token faltante o datos de entrada inválidos",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Token inválido, expirado o ya utilizado",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Error interno al crear el cliente",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/api/clientes/{id}": {
             "get": {
                 "security": [
@@ -2085,6 +2187,15 @@
                 },
                 "telefono": {
                     "type": "string"
+                }
+            }
+        },
+        "models.InvitacionResponse": {
+            "type": "object",
+            "properties": {
+                "url": {
+                    "type": "string",
+                    "example": "/api/public/clientes/registro?token=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
                 }
             }
         },

@@ -26,4 +26,9 @@ export const clienteService = {
     delete: async (id: number): Promise<void> => {
         await api.delete(`/api/clientes/${id}`);
     },
+
+    generarInvitacion: async (): Promise<{ url: string }> => {
+        const response = await api.post<{ url: string }>('/api/clientes/invitacion');
+        return response.data;
+    },
 };

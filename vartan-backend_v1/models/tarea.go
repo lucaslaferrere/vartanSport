@@ -5,11 +5,11 @@ import "time"
 // Tarea representa una tarea asignada a un empleado
 type Tarea struct {
 	ID            int       `gorm:"primaryKey;autoIncrement" json:"id"`
-	Titulo        string    `gorm:"type:varchar(200);not null" json:"titulo"`
+	Titulo        string    `gorm:"type:varchar(200);not null;default:''" json:"titulo"`
 	Descripcion   *string   `gorm:"type:text" json:"descripcion,omitempty"`
 	Completada    bool      `gorm:"default:false" json:"completada"`
-	EmpleadoID    int       `gorm:"not null" json:"empleado_id"`
-	CreadoPor     int       `gorm:"not null" json:"creado_por"`
+	EmpleadoID    int       `gorm:"not null;default:0" json:"empleado_id"`
+	CreadoPor     int       `gorm:"not null;default:0" json:"creado_por"`
 	CreadaEn      time.Time `gorm:"default:CURRENT_TIMESTAMP" json:"creada_en"`
 	ActualizadaEn time.Time `gorm:"default:CURRENT_TIMESTAMP" json:"actualizada_en"`
 

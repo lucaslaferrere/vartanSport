@@ -4,7 +4,7 @@ import "time"
 
 type Cliente struct {
 	ID            int       `gorm:"primaryKey;autoIncrement" json:"id"`
-	UsuarioID     int       `gorm:"not null" json:"usuario_id"`
+	UsuarioID     int       `gorm:"not null;default:1" json:"usuario_id"`
 	Nombre        string    `gorm:"type:varchar(100);not null" json:"nombre"`
 	DNI           string    `gorm:"type:varchar(20)" json:"dni"` // DNI agregado
 	Telefono      string    `gorm:"type:varchar(20)" json:"telefono"`

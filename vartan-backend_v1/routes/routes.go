@@ -44,6 +44,7 @@ func SetupRoutes(router *gin.Engine) {
 		api.GET("/clientes", controllers.GetClientes)
 		api.GET("/clientes/:id", controllers.GetCliente)
 		api.POST("/clientes", middleware.RequireWrite(), controllers.CreateCliente)
+		api.POST("/clientes/invitacion", middleware.RequireWrite(), controllers.GenerarInvitacionCliente)
 		api.PUT("/clientes/:id", middleware.RequireWrite(), controllers.UpdateCliente)
 		api.DELETE("/clientes/:id", middleware.RequireWrite(), controllers.DeleteCliente)
 
@@ -76,6 +77,12 @@ func SetupRoutes(router *gin.Engine) {
 
 	// Rutas modulares de gastos
 	GastoRoutes(api)
+
+	// Rutas públicas (sin autenticación)
+	public := router.Group("/api/public")
+	{
+		public.POST("/clientes/registro", controllers.RegistroClientePublico)
+	}
 
 	owner := router.Group("/api/owner")
 	owner.Use(middleware.AuthMiddleware(), middleware.RequireDueno())

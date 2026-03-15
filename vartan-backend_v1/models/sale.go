@@ -13,14 +13,14 @@ type Venta struct {
 	ClienteID      int       `gorm:"not null" json:"cliente_id"`
 	FormaPagoID    int       `gorm:"not null" json:"forma_pago_id"`
 	Transporte     string    `gorm:"type:varchar(50)" json:"transporte"`
-	Costo          float64   `gorm:"type:decimal(10,2);not null" json:"costo"`
-	PrecioVenta    float64   `gorm:"type:decimal(10,2);not null" json:"precio_venta"`
-	Ganancia       float64   `gorm:"type:decimal(10,2);not null" json:"ganancia"`
-	Total          float64   `gorm:"type:decimal(10,2);not null" json:"total"`
+	Costo          float64   `gorm:"type:decimal(10,2);not null;default:0" json:"costo"`
+	PrecioVenta    float64   `gorm:"type:decimal(10,2);not null;default:0" json:"precio_venta"`
+	Ganancia       float64   `gorm:"type:decimal(10,2);not null;default:0" json:"ganancia"`
+	Total          float64   `gorm:"type:decimal(10,2);not null;default:0" json:"total"`
 	Sena           *float64  `gorm:"type:decimal(10,2);" json:"sena,omitempty"`
-	Saldo          float64   `gorm:"type:decimal(10,2);not null" json:"saldo"`
+	Saldo          float64   `gorm:"type:decimal(10,2);not null;default:0" json:"saldo"`
 	Descuento      float64   `gorm:"type:decimal(10,2);default:0" json:"descuento"`
-	TotalFinal     float64   `gorm:"type:decimal(10,2);not null" json:"total_final"`
+	TotalFinal     float64   `gorm:"type:decimal(10,2);not null;default:0" json:"total_final"`
 	UsaFinanciera  bool      `gorm:"default:false" json:"usa_financiera"`
 	ComprobanteURL *string   `gorm:"type:varchar(255)" json:"comprobante_url,omitempty"`
 	ComprobanteRevisado   bool       `gorm:"default:false" json:"comprobante_revisado"`
@@ -44,8 +44,8 @@ type VentaDetalle struct {
 	ProductoID     int     `gorm:"not null" json:"producto_id"`
 	Talle          string  `gorm:"type:varchar(10);not null" json:"talle"`
 	Cantidad       int     `gorm:"not null" json:"cantidad"`
-	PrecioUnitario float64 `gorm:"type:decimal(10,2);not null" json:"precio_unitario"`
-	Subtotal       float64 `gorm:"type:decimal(10,2);not null" json:"subtotal"`
+	PrecioUnitario float64 `gorm:"type:decimal(10,2);not null;default:0" json:"precio_unitario"`
+	Subtotal       float64 `gorm:"type:decimal(10,2);not null;default:0" json:"subtotal"`
 
 	Producto Producto `gorm:"foreignKey:ProductoID" json:"producto,omitempty"`
 }

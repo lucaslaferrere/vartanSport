@@ -1,7 +1,8 @@
 {
   "permissions": {
     "allow": [
-      "Bash(xargs grep -n \"password\\\\|Password\\\\|usuario\\\\|user\")"
+      "Bash(xargs grep -n \"password\\\\|Password\\\\|usuario\\\\|user\")",
+      "Bash(find:*)"
     ]
   }
 }

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState, useCallback } from 'react';
-import { Box, CircularProgress, Typography, Grid } from '@mui/material';
+import { Box, CircularProgress, Typography, Grid, Tooltip } from '@mui/material';
 import { ColumnDef } from '@tanstack/react-table';
 import TableClientSide from '@components/Tables/TableClientSide';
 import StatCard from '@components/Cards/StatCard';
@@ -51,6 +51,7 @@ function ClientesPage() {
   const [clienteSeleccionado, setClienteSeleccionado] = useState<ICliente | null>(null);
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
   const [clienteToDelete, setClienteToDelete] = useState<IClienteDisplay | null>(null);
+  const [generatingLink, setGeneratingLink] = useState(false);
 
   const transformCliente = (cliente: ICliente): IClienteDisplay => ({
     id: cliente.id,
@@ -152,6 +153,29 @@ function ClientesPage() {
     setAgregarClienteModalOpen(true);
   };
 
+  const handleGenerarLink = async () => {
+    setGeneratingLink(true);
+    try {
+      const data = await clienteService.generarInvitacion();
+      const token = data.url.split('?token=')[1];
+      if (!token) {
+        addNotification('Error: el servidor no devolvió un token válido', 'error');
+        return;
+      }
+      const fullUrl = `${window.location.origin}/registro-cliente/${token}`;
+      try {
+        await navigator.clipboard.writeText(fullUrl);
+        addNotification('Enlace copiado al portapapeles', 'success');
+      } catch {
+        addNotification(`Enlace generado (copielo manualmente): ${fullUrl}`, 'warning', 8000);
+      }
+    } catch {
+      addNotification('Error al generar el enlace de registro', 'error');
+    } finally {
+      setGeneratingLink(false);
+    }
+  };
+
   const columns: ColumnDef<IClienteDisplay>[] = [
     {
       accessorKey: 'nombre',
@@ -181,9 +205,25 @@ function ClientesPage() {
   ];
 
   const headerActions = (
-    <PrimaryButton icon="fa-solid fa-user-plus" onClick={handleOpenAgregarCliente}>
-      Cliente
-    </PrimaryButton>
+    <Box sx={{ display: 'flex', gap: 1 }}>
+      <Tooltip title="Genera un enlace de un solo uso (válido 24hs) para que el cliente complete su propio registro">
+        <span>
+          <PrimaryButton
+            icon={generatingLink ? undefined : 'fa-solid fa-share-nodes'}
+            onClick={handleGenerarLink}
+            disabled={generatingLink}
+            sx={{ bgcolor: '#5a8a72', '&:hover': { bgcolor: '#3d6b55' } }}
+          >
+            {generatingLink
+              ? <><CircularProgress size={14} sx={{ color: '#fff', mr: 1 }} />Generando...</>
+              : 'Compartir formulario'}
+          </PrimaryButton>
+        </span>
+      </Tooltip>
+      <PrimaryButton icon="fa-solid fa-user-plus" onClick={handleOpenAgregarCliente}>
+        Cliente
+      </PrimaryButton>
+    </Box>
   );
 
   if (loading) {

@@ -5,17 +5,17 @@ import "time"
 // Gasto representa un gasto del negocio
 type Gasto struct {
 	ID          int       `json:"id" gorm:"primaryKey"`
-	Descripcion string    `json:"descripcion" gorm:"not null" binding:"required"`
-	Monto       float64   `json:"monto" gorm:"not null" binding:"required,gt=0"`
-	Fecha       time.Time `json:"fecha" gorm:"not null" binding:"required"`
-	Categoria   string    `json:"categoria" gorm:"not null" binding:"required"` // Proveedor, Alquiler, Mercadería, Servicios, Otros
+	Descripcion string    `json:"descripcion" gorm:"not null;default:''" binding:"required"`
+	Monto       float64   `json:"monto" gorm:"not null;default:0" binding:"required,gt=0"`
+	Fecha       time.Time `json:"fecha" gorm:"not null;default:CURRENT_TIMESTAMP" binding:"required"`
+	Categoria   string    `json:"categoria" gorm:"not null;default:''" binding:"required"` // Proveedor, Alquiler, Mercadería, Servicios, Otros
 	Proveedor   string    `json:"proveedor" gorm:"type:varchar(200)"`           // Nombre del proveedor (opcional)
 	MetodoPago  string    `json:"metodo_pago" gorm:"type:varchar(50)"`          // Efectivo, Transferencia, Tarjeta
 	Comprobante string    `json:"comprobante" gorm:"type:varchar(100)"`         // Número de factura/recibo
 	Notas       string    `json:"notas" gorm:"type:text"`                       // Notas adicionales
 
 	// Usuario que registró el gasto
-	UsuarioID uint      `json:"usuario_id" gorm:"not null;index"` // Usuario que registró el gasto
+	UsuarioID uint      `json:"usuario_id" gorm:"not null;default:0;index"` // Usuario que registró el gasto
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
 }
