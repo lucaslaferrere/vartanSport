@@ -38,7 +38,7 @@ interface IClientesStats {
 function ClientesPage() {
   const mounted = useMounted();
   const { addNotification } = useNotification();
-  const { user } = useAuthStore();
+  const { user, token } = useAuthStore();
   const [clientes, setClientes] = useState<IClienteDisplay[]>([]);
   const [stats, setStats] = useState<IClientesStats>({
     totalClientes: 0,
@@ -117,6 +117,49 @@ function ClientesPage() {
       fetchClientes();
     }
   }, [mounted, fetchClientes]);
+
+  useEffect(() => {
+    // Read from localStorage as the authoritative source — same strategy as the axios interceptor.
+    // The Zustand `token` is used as the effect trigger; if it is somehow null on first run
+    // (store not yet hydrated), the localStorage fallback guarantees a connection anyway.
+    const activeToken = token ?? localStorage.getItem('token');
+    if (!activeToken) return;
+
+    const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+    const eventSource = new EventSource(`${baseUrl}/api/clientes/stream?token=${activeToken}`);
+
+    eventSource.addEventListener('new_client', (event: MessageEvent) => {
+      try {
+        const nuevoCliente: ICliente = JSON.parse(event.data);
+        const display = transformCliente(nuevoCliente);
+
+        setClientes(prev => [display, ...prev]);
+
+        const fechaCliente = new Date(nuevoCliente.fecha_creacion);
+        const ahora = new Date();
+        const esEsteMes =
+          fechaCliente.getMonth() === ahora.getMonth() &&
+          fechaCliente.getFullYear() === ahora.getFullYear();
+
+        setStats(prev => ({
+          totalClientes: prev.totalClientes + 1,
+          clientesNuevos: prev.clientesNuevos + (esEsteMes ? 1 : 0),
+        }));
+
+        addNotification(`Nuevo cliente registrado: ${nuevoCliente.nombre}`, 'success');
+      } catch (err) {
+        console.error('SSE parse error:', err);
+      }
+    });
+
+    eventSource.onerror = () => {
+      console.warn('SSE connection error – EventSource will retry automatically');
+    };
+
+    return () => {
+      eventSource.close();
+    };
+  }, [token]); // re-runs only if the auth token changes (e.g. after login/logout)
 
   if (!mounted) return null;
 

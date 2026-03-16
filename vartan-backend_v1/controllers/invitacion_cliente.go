@@ -6,6 +6,7 @@ import (
 	"os"
 	"vartan-backend/models"
 	"vartan-backend/services"
+	"vartan-backend/sse"
 
 	"github.com/gin-gonic/gin"
 )
@@ -78,6 +79,9 @@ func RegistroClientePublico(c *gin.Context) {
 		}
 		return
 	}
+
+	// Notify all connected employees in real-time via SSE.
+	sse.ClientesBroker.Broadcast("new_client", cliente)
 
 	c.JSON(http.StatusCreated, cliente)
 }

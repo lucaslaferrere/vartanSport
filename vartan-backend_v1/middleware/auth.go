@@ -109,6 +109,46 @@ func RequireDueño() gin.HandlerFunc {
 	return RequireDueno()
 }
 
+// QueryTokenAuthMiddleware validates a JWT passed as ?token=XYZ query parameter.
+// Used exclusively on the SSE endpoint because the browser's EventSource API
+// does not support custom Authorization headers.
+func QueryTokenAuthMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		tokenString := c.Query("token")
+		if tokenString == "" {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Token no proporcionado"})
+			c.Abort()
+			return
+		}
+
+		token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+				return nil, jwt.ErrSignatureInvalid
+			}
+			return []byte(os.Getenv("JWT_SECRET")), nil
+		})
+
+		if err != nil || !token.Valid {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Token inválido o expirado"})
+			c.Abort()
+			return
+		}
+
+		claims, ok := token.Claims.(jwt.MapClaims)
+		if !ok {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Claims inválidos"})
+			c.Abort()
+			return
+		}
+
+		c.Set("user_id", int(claims["user_id"].(float64)))
+		c.Set("email", claims["email"].(string))
+		c.Set("rol", claims["rol"].(string))
+
+		c.Next()
+	}
+}
+
 // RequireWrite - Middleware para operaciones de escritura.
 func RequireWrite() gin.HandlerFunc {
 	return func(c *gin.Context) {

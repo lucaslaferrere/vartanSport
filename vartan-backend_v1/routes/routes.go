@@ -78,6 +78,9 @@ func SetupRoutes(router *gin.Engine) {
 	// Rutas modulares de gastos
 	GastoRoutes(api)
 
+	// SSE — usa QueryTokenAuthMiddleware porque EventSource no admite headers.
+	router.GET("/api/clientes/stream", middleware.QueryTokenAuthMiddleware(), controllers.StreamClientes)
+
 	// Rutas públicas (sin autenticación)
 	public := router.Group("/api/public")
 	{
