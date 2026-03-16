@@ -21,6 +21,7 @@ export interface IFiltrosComprobantes {
   periodo?: 'hoy' | '7dias' | 'todo';
   vendedor_id?: number;
   solo_pendientes?: boolean;
+  forma_pago_id?: number;
 }
 
 const buildParams = (filtros: IFiltrosComprobantes): string => {
@@ -28,6 +29,7 @@ const buildParams = (filtros: IFiltrosComprobantes): string => {
   if (filtros.periodo) params.append('periodo', filtros.periodo);
   if (filtros.vendedor_id) params.append('vendedor_id', filtros.vendedor_id.toString());
   if (filtros.solo_pendientes) params.append('solo_pendientes', 'true');
+  if (filtros.forma_pago_id) params.append('forma_pago_id', filtros.forma_pago_id.toString());
   return params.toString();
 };
 

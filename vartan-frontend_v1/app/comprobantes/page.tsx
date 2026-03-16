@@ -32,6 +32,7 @@ export default function ComprobantesPage() {
   const [periodo, setPeriodo] = useState<Periodo>('hoy');
   const [vendedorId, setVendedorId] = useState<number | ''>('');
   const [soloPendientes, setSoloPendientes] = useState(false);
+  const [formaPagoId, setFormaPagoId] = useState<number | ''>('');
 
   const [previewItem, setPreviewItem] = useState<IComprobante | null>(null);
   const [descargandoZip, setDescargandoZip] = useState(false);
@@ -61,6 +62,7 @@ export default function ComprobantesPage() {
         periodo,
         vendedor_id: vendedorId || undefined,
         solo_pendientes: soloPendientes || undefined,
+        forma_pago_id: formaPagoId || undefined,
       };
       const data = await comprobanteService.getAll(filtros);
       setComprobantes(data.comprobantes);
@@ -71,7 +73,7 @@ export default function ComprobantesPage() {
     } finally {
       setLoading(false);
     }
-  }, [periodo, vendedorId, soloPendientes]);
+  }, [periodo, vendedorId, soloPendientes, formaPagoId]);
 
   useEffect(() => {
     fetchVendedores();
@@ -118,6 +120,7 @@ export default function ComprobantesPage() {
         periodo,
         vendedor_id: vendedorId || undefined,
         solo_pendientes: soloPendientes || undefined,
+        forma_pago_id: formaPagoId || undefined,
       });
     } catch {
       addNotification('Error al descargar el ZIP', 'error');
@@ -189,6 +192,20 @@ export default function ComprobantesPage() {
           {vendedores.map(v => (
             <MenuItem key={v.id} value={v.id}>{v.nombre}</MenuItem>
           ))}
+        </Select>
+
+        {/* Forma de pago */}
+        <Select
+          value={formaPagoId}
+          onChange={(e) => setFormaPagoId(e.target.value as number | '')}
+          size="small"
+          displayEmpty
+          sx={{ fontSize: '13px', minWidth: 180, bgcolor: 'white' }}
+        >
+          <MenuItem value=""><em>Todas las formas de pago</em></MenuItem>
+          <MenuItem value={1}>Financiera</MenuItem>
+          <MenuItem value={2}>Transferencia a Cuenta 0</MenuItem>
+          <MenuItem value={3}>Efectivo</MenuItem>
         </Select>
 
         {/* Solo pendientes */}
