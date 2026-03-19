@@ -15,7 +15,7 @@ interface IVendedor {
   nombre: string;
 }
 
-type Periodo = 'hoy' | '7dias' | 'todo';
+type Periodo = 'hoy' | 'ayer' | '7dias' | 'todo';
 
 export default function ComprobantesPage() {
   const router = useRouter();
@@ -167,10 +167,10 @@ export default function ComprobantesPage() {
       }}>
         {/* Período */}
         <Box sx={{ display: 'flex', gap: 1 }}>
-          {(['hoy', '7dias', 'todo'] as Periodo[]).map(p => (
+          {(['hoy', 'ayer', '7dias', 'todo'] as Periodo[]).map(p => (
             <Chip
               key={p}
-              label={p === 'hoy' ? 'Hoy' : p === '7dias' ? 'Últimos 7 días' : 'Todo'}
+              label={p === 'hoy' ? 'Hoy' : p === 'ayer' ? 'Ayer' : p === '7dias' ? 'Últimos 7 días' : 'Todo'}
               onClick={() => setPeriodo(p)}
               variant={periodo === p ? 'filled' : 'outlined'}
               color={periodo === p ? 'primary' : 'default'}

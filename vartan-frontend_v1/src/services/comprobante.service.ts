@@ -18,7 +18,7 @@ export interface IComprobantesResponse {
 }
 
 export interface IFiltrosComprobantes {
-  periodo?: 'hoy' | '7dias' | 'todo';
+  periodo?: 'hoy' | 'ayer' | '7dias' | 'todo';
   vendedor_id?: number;
   solo_pendientes?: boolean;
   forma_pago_id?: number;
