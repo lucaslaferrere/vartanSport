@@ -205,19 +205,23 @@ function ClientesPage() {
         // fall through to execCommand
       }
     }
-    // Fallback para iOS Safari
+    // Fallback para iOS Safari — el elemento debe estar en el viewport
     const textarea = document.createElement('textarea');
     textarea.value = text;
+    textarea.setAttribute('readonly', '');
     textarea.style.position = 'fixed';
-    textarea.style.left = '-9999px';
-    textarea.style.top = '-9999px';
+    textarea.style.top = '0';
+    textarea.style.left = '0';
+    textarea.style.width = '1px';
+    textarea.style.height = '1px';
+    textarea.style.opacity = '0';
     document.body.appendChild(textarea);
     textarea.focus();
-    textarea.select();
+    textarea.setSelectionRange(0, text.length);
     try {
-      document.execCommand('copy');
+      const ok = document.execCommand('copy');
       textarea.remove();
-      return true;
+      return ok;
     } catch {
       textarea.remove();
       return false;

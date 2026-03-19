@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Grid, Box, Typography, IconButton, TextField } from '@mui/material';
+import { Grid, Box, Typography, IconButton, TextField, Select, MenuItem } from '@mui/material';
 import BaseModal from './BaseModal';
 import { IVenta } from '@models/entities/ventaEntity';
 import { ventaService } from '@services/venta.service';
@@ -17,14 +17,22 @@ interface RegistrarPagoModalProps {
 export default function RegistrarPagoModal({ open, onClose, onSuccess, venta }: RegistrarPagoModalProps) {
   const { addNotification } = useNotification();
   const [nuevaSena, setNuevaSena] = useState<string>('');
+  const [formaPagoSaldoId, setFormaPagoSaldoId] = useState<number>(1);
   const [comprobante, setComprobante] = useState<File | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const formasPago = [
+    { id: 1, nombre: 'Financiera' },
+    { id: 2, nombre: 'Transferencia a Cuenta 0' },
+    { id: 3, nombre: 'Efectivo' },
+  ];
+
   useEffect(() => {
     if (open && venta) {
       setNuevaSena('');
+      setFormaPagoSaldoId(venta.forma_pago_id || 1);
       setComprobante(null);
       setError(null);
     }
@@ -38,6 +46,7 @@ export default function RegistrarPagoModal({ open, onClose, onSuccess, venta }: 
   const pagoDeHoy = parseFloat(nuevaSena) || 0;
   const nuevaSenaTotal = senaActual + pagoDeHoy;
   const nuevoSaldo = precioVenta - nuevaSenaTotal;
+  const descuentoFinanciera = formaPagoSaldoId === 1 ? pagoDeHoy * 0.03 : 0;
 
   const handleSubmit = async () => {
     setError(null);
@@ -55,7 +64,7 @@ export default function RegistrarPagoModal({ open, onClose, onSuccess, venta }: 
     setLoading(true);
 
     try {
-      const result = await ventaService.updatePago(venta.id, nuevaSenaTotal, comprobante || undefined);
+      const result = await ventaService.updatePago(venta.id, nuevaSenaTotal, formaPagoSaldoId, comprobante || undefined);
 
       addNotification('Pago registrado exitosamente', 'success');
 
@@ -80,6 +89,7 @@ export default function RegistrarPagoModal({ open, onClose, onSuccess, venta }: 
 
   const handleClose = () => {
     setNuevaSena('');
+    setFormaPagoSaldoId(1);
     setComprobante(null);
     setError(null);
     onClose();
@@ -192,6 +202,32 @@ export default function RegistrarPagoModal({ open, onClose, onSuccess, venta }: 
           </Box>
         </Grid>
 
+        {/* Método de pago del saldo */}
+        <Grid size={{ xs: 12 }}>
+          <Typography sx={{ fontSize: '12px', fontWeight: 600, color: '#374151', mb: 0.5 }}>
+            Método de Pago
+          </Typography>
+          <Select
+            fullWidth
+            size="small"
+            value={formaPagoSaldoId}
+            onChange={(e) => setFormaPagoSaldoId(Number(e.target.value))}
+            sx={{ fontSize: '13px', bgcolor: 'white' }}
+          >
+            {formasPago.map(fp => (
+              <MenuItem key={fp.id} value={fp.id}>{fp.nombre}</MenuItem>
+            ))}
+          </Select>
+          {formaPagoSaldoId === 1 && (
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.75 }}>
+              <i className="fa-solid fa-circle-info" style={{ color: '#D97706', fontSize: '12px' }} />
+              <Typography sx={{ fontSize: '12px', color: '#D97706', fontWeight: 500 }}>
+                Comisión financiera (3%) aplicada sobre el monto pagado
+              </Typography>
+            </Box>
+          )}
+        </Grid>
+
         {/* Pago de hoy */}
         <Grid size={{ xs: 12 }}>
           <Typography sx={{ fontSize: '12px', fontWeight: 600, color: '#374151', mb: 0.5 }}>
@@ -244,6 +280,15 @@ export default function RegistrarPagoModal({ open, onClose, onSuccess, venta }: 
                   + ${pagoDeHoy.toLocaleString('es-AR', { minimumFractionDigits: 2 })}
                 </Typography>
               </Box>
+
+              {descuentoFinanciera > 0 && (
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                  <Typography sx={{ fontSize: '12px', color: '#D97706' }}>Comisión financiera (3%):</Typography>
+                  <Typography sx={{ fontSize: '13px', fontWeight: 600, color: '#D97706' }}>
+                    - ${descuentoFinanciera.toLocaleString('es-AR', { minimumFractionDigits: 2 })}
+                  </Typography>
+                </Box>
+              )}
 
               <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
                 <Typography sx={{ fontSize: '12px', color: '#6B7280' }}>Nueva seña total:</Typography>

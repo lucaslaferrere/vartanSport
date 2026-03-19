@@ -103,9 +103,13 @@ export const ventaService = {
     },
 
     // Actualizar pago de una venta (seña + comprobante)
-    updatePago: async (ventaId: number, sena: number, comprobante?: File): Promise<IVentaCreateResponse> => {
+    updatePago: async (ventaId: number, sena: number, formaPagoSaldoId?: number, comprobante?: File): Promise<IVentaCreateResponse> => {
         const formData = new FormData();
         formData.append('sena', sena.toString());
+
+        if (formaPagoSaldoId) {
+            formData.append('forma_pago_saldo_id', formaPagoSaldoId.toString());
+        }
 
         if (comprobante) {
             formData.append('comprobante', comprobante);
