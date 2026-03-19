@@ -51,7 +51,7 @@ type revisarTodosRequest struct {
 func parsePeriodo(c *gin.Context) (string, error) {
 	periodo := strings.TrimSpace(strings.ToLower(c.DefaultQuery("periodo", "hoy")))
 	switch periodo {
-	case "hoy", "7dias", "todo":
+	case "hoy", "ayer", "7dias", "todo":
 		return periodo, nil
 	default:
 		return "", fmt.Errorf("periodo invalido")
@@ -104,13 +104,19 @@ func buildComprobantesQuery(c *gin.Context) (*gorm.DB, error) {
 
 	if periodo != "todo" {
 		now := time.Now()
-		var since time.Time
-		if periodo == "hoy" {
-			since = time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
-		} else {
-			since = now.AddDate(0, 0, -7)
+		switch periodo {
+		case "hoy":
+			since := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
+			query = query.Where("fecha_venta >= ?", since)
+		case "ayer":
+			ayer := now.AddDate(0, 0, -1)
+			inicio := time.Date(ayer.Year(), ayer.Month(), ayer.Day(), 0, 0, 0, 0, ayer.Location())
+			fin := time.Date(ayer.Year(), ayer.Month(), ayer.Day(), 23, 59, 59, 0, ayer.Location())
+			query = query.Where("fecha_venta BETWEEN ? AND ?", inicio, fin)
+		default:
+			since := now.AddDate(0, 0, -7)
+			query = query.Where("fecha_venta >= ?", since)
 		}
-		query = query.Where("fecha_venta >= ?", since)
 	}
 
 	if soloPendientes {
@@ -126,7 +132,7 @@ func buildComprobantesQuery(c *gin.Context) (*gorm.DB, error) {
 // @Tags Comprobantes
 // @Produce json
 // @Security BearerAuth
-// @Param periodo query string false "hoy | 7dias | todo"
+// @Param periodo query string false "hoy | ayer | 7dias | todo"
 // @Param vendedor_id query int false "ID vendedor"
 // @Param forma_pago_id query int false "ID forma de pago"
 // @Param solo_pendientes query bool false "true | false"
@@ -298,7 +304,7 @@ func PutComprobantesRevisarTodos(c *gin.Context) {
 // @Tags Comprobantes
 // @Produce application/zip
 // @Security BearerAuth
-// @Param periodo query string false "hoy | 7dias | todo"
+// @Param periodo query string false "hoy | ayer | 7dias | todo"
 // @Param vendedor_id query int false "ID vendedor"
 // @Param forma_pago_id query int false "ID forma de pago"
 // @Param solo_pendientes query bool false "true | false"
