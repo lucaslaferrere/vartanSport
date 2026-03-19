@@ -19,6 +19,7 @@ type Venta struct {
 	Ganancia       float64   `gorm:"type:decimal(10,2);not null;default:0" json:"ganancia"`
 	Total          float64   `gorm:"type:decimal(10,2);not null;default:0" json:"total"`
 	Sena           *float64  `gorm:"type:decimal(10,2);" json:"sena,omitempty"`
+	SenaInicial    float64   `gorm:"type:decimal(10,2);default:0" json:"sena_inicial"`
 	Saldo          float64   `gorm:"type:decimal(10,2);not null;default:0" json:"saldo"`
 	Descuento      float64   `gorm:"type:decimal(10,2);default:0" json:"descuento"`
 	TotalFinal     float64   `gorm:"type:decimal(10,2);not null;default:0" json:"total_final"`

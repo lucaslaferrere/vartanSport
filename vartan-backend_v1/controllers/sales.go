@@ -595,6 +595,7 @@ func processVenta(c *gin.Context, usuarioID *int, clienteID int, formaPagoID int
 		Ganancia:       ganancia,
 		Total:          total,
 		Sena:           senaPtr,
+		SenaInicial:    senaValue,
 		Saldo:          saldo,
 		Descuento:      descuento,
 		TotalFinal:     totalFinal,
