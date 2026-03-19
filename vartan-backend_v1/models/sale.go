@@ -12,6 +12,7 @@ type Venta struct {
 	UsuarioID      int       `gorm:"not null" json:"usuario_id"`
 	ClienteID      int       `gorm:"not null" json:"cliente_id"`
 	FormaPagoID    int       `gorm:"not null" json:"forma_pago_id"`
+	FormaPagoSaldoID *int    `gorm:"default:null" json:"forma_pago_saldo_id,omitempty"`
 	Transporte     string    `gorm:"type:varchar(50)" json:"transporte"`
 	Costo          float64   `gorm:"type:decimal(10,2);not null;default:0" json:"costo"`
 	PrecioVenta    float64   `gorm:"type:decimal(10,2);not null;default:0" json:"precio_venta"`
@@ -31,6 +32,7 @@ type Venta struct {
 	Usuario   Usuario        `gorm:"foreignKey:UsuarioID" json:"usuario,omitempty"`
 	Cliente   Cliente        `gorm:"foreignKey:ClienteID" json:"cliente,omitempty"`
 	FormaPago FormaPago      `gorm:"foreignKey:FormaPagoID" json:"forma_pago,omitempty"`
+	FormaPagoSaldo *FormaPago `gorm:"foreignKey:FormaPagoSaldoID" json:"forma_pago_saldo,omitempty"`
 	Detalles  []VentaDetalle `gorm:"foreignKey:VentaID" json:"detalles,omitempty"`
 }
 

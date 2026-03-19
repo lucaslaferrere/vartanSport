@@ -103,6 +103,8 @@ func DeleteVenta(c *gin.Context) {
 // @Produce json
 // @Security BearerAuth
 // @Param id path int true "ID de la venta"
+// @Param forma_pago_saldo_id formData int false "ID de la forma de pago del saldo"
+// @Param forma_pago_saldo_id formData int false "ID de la forma de pago del saldo"
 // @Success 200 {object} models.Venta
 // @Failure 404 {object} map[string]string "Venta no encontrada"
 // @Router /api/ventas/{id} [get]
@@ -666,6 +668,7 @@ func processVenta(c *gin.Context, usuarioID *int, clienteID int, formaPagoID int
 		Preload("Usuario").
 		Preload("Cliente").
 		Preload("FormaPago").
+		Preload("FormaPagoSaldo").
 		Preload("Detalles").
 		Preload("Detalles.Producto").
 		First(&venta, venta.ID)
@@ -986,6 +989,7 @@ func UpdateVenta(c *gin.Context) {
 // @Security BearerAuth
 // @Param id path int true "ID de la venta"
 // @Param sena formData number true "Nueva seña (acumulativa o total)"
+// @Param forma_pago_saldo_id formData int false "ID de la forma de pago del saldo"
 // @Param comprobante formData file false "Comprobante de pago"
 // @Success 200 {object} models.Venta
 // @Failure 400 {object} map[string]string "Datos inválidos"
@@ -1023,6 +1027,27 @@ func UpdateVentaPago(c *gin.Context) {
 	}
 
 	// Actualizar seña
+	senaActual := float64(0)
+	if venta.Sena != nil {
+		senaActual = *venta.Sena
+	}
+
+	formaPagoSaldoStr := c.PostForm("forma_pago_saldo_id")
+	if formaPagoSaldoStr != "" {
+		formaPagoSaldoID, err := strconv.Atoi(formaPagoSaldoStr)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "forma_pago_saldo_id invalido"})
+			return
+		}
+
+		var formaPagoSaldo models.FormaPago
+		if err := config.DB.First(&formaPagoSaldo, formaPagoSaldoID).Error; err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Forma de pago del saldo no encontrada"})
+			return
+		}
+		venta.FormaPagoSaldoID = &formaPagoSaldoID
+	}
+
 	venta.Sena = &nuevaSena
 
 	// El saldo depende solo de precio_venta - seña.
@@ -1037,7 +1062,13 @@ func UpdateVentaPago(c *gin.Context) {
 
 	venta.TotalFinal = venta.PrecioVenta
 	venta.Saldo = saldo
-	venta.Ganancia = venta.PrecioVenta - venta.Costo - venta.Descuento
+	ganancia := venta.PrecioVenta - venta.Costo - venta.Descuento
+	pagoDeHoy := nuevaSena - senaActual
+	if venta.FormaPagoSaldoID != nil && *venta.FormaPagoSaldoID == 1 && pagoDeHoy > 0 {
+		descuentoFinanciera := pagoDeHoy * 0.03
+		ganancia -= descuentoFinanciera
+	}
+	venta.Ganancia = ganancia
 
 	file, err := c.FormFile("comprobante")
 	if err == nil && file != nil {
@@ -1092,6 +1123,7 @@ func UpdateVentaPago(c *gin.Context) {
 		Preload("Usuario").
 		Preload("Cliente").
 		Preload("FormaPago").
+		Preload("FormaPagoSaldo").
 		Preload("Detalles").
 		Preload("Detalles.Producto").
 		First(&venta, venta.ID)
