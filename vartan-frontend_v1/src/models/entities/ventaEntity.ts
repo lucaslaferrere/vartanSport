@@ -12,12 +12,14 @@ export interface IVenta {
     usuario_id: number;
     cliente_id: number;
     forma_pago_id: number;
+    forma_pago_saldo_id?: number;
     transporte?: string;
     costo: number;
     precio_venta: number;
     ganancia: number;
     total: number;
     sena: number;
+    sena_inicial?: number;
     saldo: number;
     descuento: number;
     total_final: number;
@@ -28,6 +30,7 @@ export interface IVenta {
     usuario?: IUser;
     cliente?: ICliente;
     forma_pago?: IFormaPago;
+    forma_pago_saldo?: IFormaPago;
     detalles?: IVentaDetalle[];
 }
 

@@ -256,6 +256,60 @@ export default function DetalleVentaModal({ open, onClose, venta }: DetalleVenta
               </Box>
             </Grid>
 
+            {/* Resumen de Pagos */}
+            {(venta.sena_inicial !== undefined) && (
+              <Grid size={{ xs: 12 }}>
+                <Divider sx={{ my: 1 }} />
+                <Typography sx={{ fontSize: '13px', fontWeight: 600, mb: 1 }}>
+                  <i className="fa-solid fa-credit-card" style={{ marginRight: '6px' }} />Resumen de Pagos
+                </Typography>
+                <Box sx={{ p: 2, bgcolor: '#F9FAFB', borderRadius: '8px', border: '1px solid #E5E7EB' }}>
+                  {/* Seña inicial */}
+                  {(venta.sena_inicial ?? 0) > 0 && (
+                    <Box sx={{ mb: 1.5 }}>
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.25 }}>
+                        <Typography sx={{ fontSize: '12px', color: '#6B7280' }}>Seña inicial:</Typography>
+                        <Typography sx={{ fontSize: '13px', fontWeight: 600, color: '#3B82F6' }}>
+                          ${(venta.sena_inicial ?? 0).toLocaleString('es-AR', { minimumFractionDigits: 2 })}
+                        </Typography>
+                      </Box>
+                      <Typography sx={{ fontSize: '11px', color: '#9CA3AF' }}>
+                        Método: {venta.forma_pago?.nombre || 'N/A'}
+                        {venta.forma_pago_id === 1 && (
+                          <Box component="span" sx={{ ml: 1, color: '#D97706' }}>
+                            (comisión 3%: -${((venta.sena_inicial ?? 0) * 0.03).toLocaleString('es-AR', { minimumFractionDigits: 2 })})
+                          </Box>
+                        )}
+                      </Typography>
+                    </Box>
+                  )}
+                  {/* Pago de saldo */}
+                  {(venta.sena - (venta.sena_inicial ?? 0)) > 0 && (
+                    <Box sx={{ mb: 0.5 }}>
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.25 }}>
+                        <Typography sx={{ fontSize: '12px', color: '#6B7280' }}>Pago de saldo:</Typography>
+                        <Typography sx={{ fontSize: '13px', fontWeight: 600, color: '#059669' }}>
+                          ${(venta.sena - (venta.sena_inicial ?? 0)).toLocaleString('es-AR', { minimumFractionDigits: 2 })}
+                        </Typography>
+                      </Box>
+                      <Typography sx={{ fontSize: '11px', color: '#9CA3AF' }}>
+                        Método: {venta.forma_pago_saldo?.nombre || venta.forma_pago?.nombre || 'N/A'}
+                        {(venta.forma_pago_saldo_id ?? venta.forma_pago_id) === 1 && (
+                          <Box component="span" sx={{ ml: 1, color: '#D97706' }}>
+                            (comisión 3%: -${((venta.sena - (venta.sena_inicial ?? 0)) * 0.03).toLocaleString('es-AR', { minimumFractionDigits: 2 })})
+                          </Box>
+                        )}
+                      </Typography>
+                    </Box>
+                  )}
+                  {/* Sin pagos adicionales */}
+                  {(venta.sena_inicial ?? 0) === 0 && (venta.sena - (venta.sena_inicial ?? 0)) === 0 && (
+                    <Typography sx={{ fontSize: '12px', color: '#9CA3AF' }}>Sin pagos registrados</Typography>
+                  )}
+                </Box>
+              </Grid>
+            )}
+
             {/* Transporte */}
             <Grid size={{ xs: 12 }}>
               <Divider sx={{ my: 1 }} />
