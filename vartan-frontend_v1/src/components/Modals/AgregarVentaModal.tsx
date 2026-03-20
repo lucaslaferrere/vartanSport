@@ -458,7 +458,7 @@ export default function AgregarVentaModal({ open, onClose, onSuccess }: AgregarV
                       </Box>
                     </Box>
                     <Grid container spacing={1}>
-                      {tallesDisponibles.map(talle => (
+                      {tallesDisponibles.map((talle, idx) => (
                           <Grid size={{ xs: 2.4 }} key={talle}>
                             <Box sx={{ textAlign: 'center' }}>
                               <Typography sx={{ fontSize: '10px', mb: 0.25, color: '#6B7280' }}>{talle}</Typography>
@@ -466,8 +466,16 @@ export default function AgregarVentaModal({ open, onClose, onSuccess }: AgregarV
                                   type="number"
                                   min="0"
                                   placeholder="-"
+                                  data-talle-idx={idx}
                                   value={tallesActuales[talle] || ''}
                                   onChange={(e) => handleTalleCantidadChange(talle, parseInt(e.target.value) || 0)}
+                                  onKeyDown={(e) => {
+                                    if (e.key === 'Enter') {
+                                      e.preventDefault();
+                                      const next = document.querySelector<HTMLInputElement>(`[data-talle-idx="${idx + 1}"]`);
+                                      if (next) next.focus();
+                                    }
+                                  }}
                                   style={{
                                     width: '100%',
                                     padding: '4px',
@@ -711,7 +719,12 @@ export default function AgregarVentaModal({ open, onClose, onSuccess }: AgregarV
                     backgroundColor: 'white',
                     '&:focus': {
                       borderColor: '#588a9e'
-                    }
+                    },
+                    '&::-webkit-outer-spin-button, &::-webkit-inner-spin-button': {
+                      WebkitAppearance: 'none',
+                      margin: 0,
+                    },
+                    MozAppearance: 'textfield',
                   }}
                 />
               </Box>
