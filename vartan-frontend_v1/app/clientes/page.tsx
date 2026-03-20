@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState, useCallback } from 'react';
-import { Box, CircularProgress, Typography, Grid, Tooltip } from '@mui/material';
+import { Box, CircularProgress, Typography, Grid, Tooltip, Dialog, DialogTitle, DialogContent, DialogActions, TextField, Button, IconButton } from '@mui/material';
 import { ColumnDef } from '@tanstack/react-table';
 import TableClientSide from '@components/Tables/TableClientSide';
 import StatCard from '@components/Cards/StatCard';
@@ -52,6 +52,7 @@ function ClientesPage() {
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
   const [clienteToDelete, setClienteToDelete] = useState<IClienteDisplay | null>(null);
   const [generatingLink, setGeneratingLink] = useState(false);
+  const [linkGenerado, setLinkGenerado] = useState<string | null>(null);
 
   const transformCliente = (cliente: ICliente): IClienteDisplay => ({
     id: cliente.id,
@@ -196,38 +197,6 @@ function ClientesPage() {
     setAgregarClienteModalOpen(true);
   };
 
-  const copyToClipboard = async (text: string): Promise<boolean> => {
-    if (navigator.clipboard && window.isSecureContext) {
-      try {
-        await navigator.clipboard.writeText(text);
-        return true;
-      } catch {
-        // fall through to execCommand
-      }
-    }
-    // Fallback para iOS Safari — el elemento debe estar en el viewport
-    const textarea = document.createElement('textarea');
-    textarea.value = text;
-    textarea.setAttribute('readonly', '');
-    textarea.style.position = 'fixed';
-    textarea.style.top = '0';
-    textarea.style.left = '0';
-    textarea.style.width = '1px';
-    textarea.style.height = '1px';
-    textarea.style.opacity = '0';
-    document.body.appendChild(textarea);
-    textarea.focus();
-    textarea.setSelectionRange(0, text.length);
-    try {
-      const ok = document.execCommand('copy');
-      textarea.remove();
-      return ok;
-    } catch {
-      textarea.remove();
-      return false;
-    }
-  };
-
   const handleGenerarLink = async () => {
     setGeneratingLink(true);
     try {
@@ -238,17 +207,20 @@ function ClientesPage() {
         return;
       }
       const fullUrl = `${window.location.origin}/registro-cliente/${token}`;
-      const copiado = await copyToClipboard(fullUrl);
-      if (copiado) {
-        addNotification('Enlace copiado al portapapeles', 'success');
-      } else {
-        addNotification(`Enlace generado (copielo manualmente): ${fullUrl}`, 'warning', 8000);
-      }
+      setLinkGenerado(fullUrl);
     } catch {
       addNotification('Error al generar el enlace de registro', 'error');
     } finally {
       setGeneratingLink(false);
     }
+  };
+
+  // Debe llamarse directamente desde un click (sin awaits previos) para que funcione en iOS
+  const handleCopiarLink = () => {
+    if (!linkGenerado) return;
+    navigator.clipboard.writeText(linkGenerado)
+      .then(() => addNotification('Enlace copiado al portapapeles', 'success'))
+      .catch(() => addNotification('No se pudo copiar. Copialo manualmente.', 'warning'));
   };
 
   const columns: ColumnDef<IClienteDisplay>[] = [
@@ -401,6 +373,34 @@ function ClientesPage() {
           confirmText="Eliminar"
         />
       </Box>
+
+      {/* Dialog link de invitación */}
+      <Dialog open={!!linkGenerado} onClose={() => setLinkGenerado(null)} maxWidth="sm" fullWidth>
+        <DialogTitle sx={{ fontSize: '16px', fontWeight: 600 }}>
+          Enlace de registro generado
+        </DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" sx={{ color: '#6B7280', mb: 2 }}>
+            Válido por 24 horas. Compartilo con el cliente para que complete su registro.
+          </Typography>
+          <TextField
+            fullWidth
+            value={linkGenerado ?? ''}
+            slotProps={{ input: { readOnly: true } }}
+            size="small"
+            onClick={(e) => (e.target as HTMLInputElement).select()}
+          />
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2, gap: 1 }}>
+          <Button onClick={() => setLinkGenerado(null)} color="inherit" size="small">
+            Cerrar
+          </Button>
+          <Button onClick={handleCopiarLink} variant="contained" size="small"
+            sx={{ bgcolor: '#5a8a72', '&:hover': { bgcolor: '#3d6b55' } }}>
+            Copiar enlace
+          </Button>
+        </DialogActions>
+      </Dialog>
     </>
   );
 }

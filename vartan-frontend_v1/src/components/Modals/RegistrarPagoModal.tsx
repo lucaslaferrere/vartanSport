@@ -245,7 +245,16 @@ export default function RegistrarPagoModal({ open, onClose, onSuccess, venta }: 
             required
             slotProps={{
               input: {
-                sx: { fontSize: '14px' }
+                sx: {
+                  fontSize: '14px',
+                  '& input::-webkit-outer-spin-button, & input::-webkit-inner-spin-button': {
+                    WebkitAppearance: 'none',
+                    margin: 0,
+                  },
+                  '& input[type=number]': {
+                    MozAppearance: 'textfield',
+                  },
+                }
               }
             }}
           />
