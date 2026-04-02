@@ -577,6 +577,8 @@ export default function ComisionesPage() {
                     onClose={() => { setConfigurarModalOpen(false); setVendedorSeleccionado(null); }}
                     onSuccess={() => { fetchDataDueno(); addNotification('Configuración actualizada', 'success'); }}
                     vendedor={vendedorSeleccionado}
+                    mesInicial={calcularMes}
+                    anioInicial={calcularAnio}
                 />
             )}
         </>
