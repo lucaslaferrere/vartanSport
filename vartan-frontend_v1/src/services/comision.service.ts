@@ -92,5 +92,11 @@ export const comisionService = {
         const response = await api.put<IComision>(`/api/owner/comisiones/${id}/observaciones`, data);
         return response.data;
     },
+
+    // Solo dueño: actualizar gasto publicitario de un mes específico
+    updateGastoPublicitario: async (id: number, gasto_publicitario: number): Promise<IComision> => {
+        const response = await api.put<IComision>(`/api/owner/comisiones/${id}/gasto-publicitario`, { gasto_publicitario });
+        return response.data;
+    },
 };
 

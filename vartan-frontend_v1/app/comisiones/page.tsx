@@ -65,6 +65,8 @@ export default function ComisionesPage() {
     const [error, setError] = useState<string | null>(null);
     const [calcularMes, setCalcularMes] = useState(new Date().getMonth() + 1);
     const [calcularAnio, setCalcularAnio] = useState(new Date().getFullYear());
+    const [editandoGasto, setEditandoGasto] = useState<{ [id: number]: string }>({});
+    const [guardandoGasto, setGuardandoGasto] = useState<{ [id: number]: boolean }>({});
 
     const fetchDataDueno = useCallback(async () => {
         if (!mounted) return;
@@ -198,6 +200,22 @@ export default function ComisionesPage() {
             }
         }
     }, [mounted, user?.rol, fetchDataDueno, fetchDataVendedor]);
+
+    const handleGuardarGasto = async (id: number) => {
+        const valor = parseFloat(editandoGasto[id] || '0');
+        if (isNaN(valor)) return;
+        setGuardandoGasto(prev => ({ ...prev, [id]: true }));
+        try {
+            const updated = await comisionService.updateGastoPublicitario(id, valor);
+            setHistorialCompleto(prev => prev.map(h => h.id === id ? { ...h, gasto_publicitario: updated.gasto_publicitario, total_comision: updated.total_comision, base_comision: updated.base_comision } : h));
+            setEditandoGasto(prev => { const next = { ...prev }; delete next[id]; return next; });
+            addNotification('Gasto publicitario actualizado', 'success');
+        } catch {
+            addNotification('Error al actualizar gasto publicitario', 'error');
+        } finally {
+            setGuardandoGasto(prev => ({ ...prev, [id]: false }));
+        }
+    };
 
     const handleConfigurar = (v: IVendedorDisplay) => {
         setVendedorSeleccionado({
@@ -535,6 +553,7 @@ export default function ComisionesPage() {
                                                 <TableCell sx={{ fontWeight: 600, fontSize: 13 }}>Mes</TableCell>
                                                 <TableCell sx={{ fontWeight: 600, fontSize: 13 }}>Vendedor</TableCell>
                                                 <TableCell align="right" sx={{ fontWeight: 600, fontSize: 13 }}>Ventas</TableCell>
+                                                <TableCell align="right" sx={{ fontWeight: 600, fontSize: 13 }}>Gasto Pub.</TableCell>
                                                 <TableCell align="right" sx={{ fontWeight: 600, fontSize: 13 }}>Comisión</TableCell>
                                                 <TableCell align="right" sx={{ fontWeight: 600, fontSize: 13 }}>Sueldo</TableCell>
                                                 <TableCell align="right" sx={{ fontWeight: 600, fontSize: 13 }}>Total</TableCell>
@@ -542,8 +561,10 @@ export default function ComisionesPage() {
                                             </TableRow>
                                         </TableHead>
                                         <TableBody>
-                                            {historialCompleto.map((h) => (
-                                                <TableRow key={h.id} hover>
+                                            {historialCompleto.map((h) => {
+                                                const id = h.id;
+                                                return (
+                                                <TableRow key={id} hover>
                                                     <TableCell sx={{ fontSize: 13 }}>
                                                         {meses[h.mes - 1]} {h.anio}
                                                     </TableCell>
@@ -556,12 +577,38 @@ export default function ComisionesPage() {
                                                         </Box>
                                                     </TableCell>
                                                     <TableCell align="right" sx={{ fontSize: 13 }}>{formatCurrency(h.total_ventas)}</TableCell>
+                                                    <TableCell align="right" sx={{ fontSize: 13 }}>
+                                                        {id in editandoGasto ? (
+                                                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, justifyContent: 'flex-end' }}>
+                                                                <input
+                                                                    type="number"
+                                                                    value={editandoGasto[id]}
+                                                                    onChange={e => setEditandoGasto(prev => ({ ...prev, [id]: e.target.value }))}
+                                                                    onKeyDown={e => { if (e.key === 'Enter') handleGuardarGasto(id); if (e.key === 'Escape') setEditandoGasto(prev => { const next = { ...prev }; delete next[id]; return next; }); }}
+                                                                    autoFocus
+                                                                    style={{ width: 90, padding: '2px 6px', fontSize: 12, border: '1px solid #D1D5DB', borderRadius: 4, textAlign: 'right', appearance: 'textfield' }}
+                                                                />
+                                                                <button onClick={() => handleGuardarGasto(id)} disabled={guardandoGasto[id]} style={{ fontSize: 11, padding: '2px 6px', background: '#2563EB', color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer' }}>
+                                                                    {guardandoGasto[id] ? '...' : 'OK'}
+                                                                </button>
+                                                                <button onClick={() => setEditandoGasto(prev => { const next = { ...prev }; delete next[id]; return next; })} style={{ fontSize: 11, padding: '2px 6px', background: 'transparent', color: '#6B7280', border: 'none', cursor: 'pointer' }}>✕</button>
+                                                            </Box>
+                                                        ) : (
+                                                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, justifyContent: 'flex-end', cursor: 'pointer' }} onClick={() => setEditandoGasto(prev => ({ ...prev, [id]: String(h.gasto_publicitario || 0) }))}>
+                                                                <Typography sx={{ fontSize: 13, color: h.gasto_publicitario ? colors.error : '#9CA3AF' }}>
+                                                                    {h.gasto_publicitario ? `-${formatCurrency(h.gasto_publicitario)}` : '$0'}
+                                                                </Typography>
+                                                                <i className="fa-solid fa-pen" style={{ fontSize: 10, color: '#9CA3AF' }} />
+                                                            </Box>
+                                                        )}
+                                                    </TableCell>
                                                     <TableCell align="right" sx={{ fontSize: 13, color: colors.success, fontWeight: 600 }}>{formatCurrency(h.total_comision)}</TableCell>
                                                     <TableCell align="right" sx={{ fontSize: 13 }}>{formatCurrency(h.sueldo)}</TableCell>
                                                     <TableCell align="right" sx={{ fontSize: 14, fontWeight: 700, color: colors.primary }}>{formatCurrency(h.sueldo + h.total_comision)}</TableCell>
                                                     <TableCell sx={{ fontSize: 13, color: '#6B7280' }}>{h.observaciones || '-'}</TableCell>
                                                 </TableRow>
-                                            ))}
+                                                );
+                                            })}
                                         </TableBody>
                                     </Table>
                                 </TableContainer>
