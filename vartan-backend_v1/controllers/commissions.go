@@ -176,37 +176,60 @@ func CalcularComisionesMesActual(c *gin.Context) {
 			Select("COALESCE(SUM(ganancia), 0)").
 			Scan(&totalGanancia)
 
+		// Buscar si ya existe comisión para este mes
+		var comisionExistente models.Comision
+		result := config.DB.Where("usuario_id = ? AND mes = ? AND anio = ?", usuario.ID, mes, anio).First(&comisionExistente)
+
+		// Determinar el gasto publicitario a usar:
+		// - Si el registro mensual tiene un valor explícito (no nil), usarlo (permite 0.0 intencional)
+		// - Si es nil (no seteado), usar el gasto actual del usuario
+		gastoPublicitario := usuario.GastoPublicitario
+		if result.Error == nil && comisionExistente.GastoPublicitario != nil {
+			gastoPublicitario = *comisionExistente.GastoPublicitario
+		}
+
+		// Usar el porcentaje del registro si ya existe (snapshot histórico), si no el actual del usuario
+		porcentajeComision := usuario.PorcentajeComision
+		if result.Error == nil && comisionExistente.PorcentajeComision > 0 {
+			porcentajeComision = comisionExistente.PorcentajeComision
+		}
+
 		// Calcular comisión con gasto descontado antes de aplicar porcentaje.
-		porcentaje := usuario.PorcentajeComision / 100.0 // Convertir % a decimal
-		gananciaNeta := totalGanancia - usuario.GastoPublicitario
+		porcentaje := porcentajeComision / 100.0
+		gananciaNeta := totalGanancia - gastoPublicitario
 		if gananciaNeta < 0 {
 			gananciaNeta = 0
 		}
 		comisionNeta := gananciaNeta * porcentaje
 
-		// Buscar si ya existe comisión para este mes
-		var comisionExistente models.Comision
-		result := config.DB.Where("usuario_id = ? AND mes = ? AND anio = ?", usuario.ID, mes, anio).First(&comisionExistente)
-
 		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
-			// No existe, crear nueva
+			// No existe, crear nueva — snapshot de sueldo, porcentaje y gasto vigentes del usuario
+			gastoSnapshot := usuario.GastoPublicitario
 			nuevaComision := models.Comision{
-				UsuarioID:     usuario.ID,
-				Mes:           mes,
-				Anio:          anio,
-				TotalVentas:   totalVentas,
-				TotalComision: comisionNeta,
-				Sueldo:        usuario.Sueldo,
+				UsuarioID:          usuario.ID,
+				Mes:                mes,
+				Anio:               anio,
+				TotalVentas:        totalVentas,
+				TotalComision:      comisionNeta,
+				Sueldo:             usuario.Sueldo,
+				PorcentajeComision: usuario.PorcentajeComision,
+				GastoPublicitario:  &gastoSnapshot,
 			}
 			config.DB.Create(&nuevaComision)
 		} else if result.Error != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error al verificar comisión existente"})
 			return
 		} else {
-			// Ya existe, actualizar
+			// Ya existe, actualizar totales y completar snapshots si faltan
 			comisionExistente.TotalVentas = totalVentas
 			comisionExistente.TotalComision = comisionNeta
-			comisionExistente.Sueldo = usuario.Sueldo
+			if comisionExistente.PorcentajeComision == 0 {
+				comisionExistente.PorcentajeComision = usuario.PorcentajeComision
+			}
+			if comisionExistente.GastoPublicitario == nil {
+				gastoSnapshot := usuario.GastoPublicitario
+				comisionExistente.GastoPublicitario = &gastoSnapshot
+			}
 			config.DB.Save(&comisionExistente)
 		}
 	}
@@ -312,17 +335,6 @@ func GetMiResumenComision(c *gin.Context) {
 			userID, mesInicio, mesFin).
 		Count(&cantidadVentasMes)
 
-	// Calcular comisión estimada del mes con gasto descontado antes del porcentaje.
-	porcentaje := usuario.PorcentajeComision / 100.0
-	gananciaNeta := totalGananciaMesActual - usuario.GastoPublicitario
-	if gananciaNeta < 0 {
-		gananciaNeta = 0
-	}
-	comisionNeta := gananciaNeta * porcentaje
-
-	// Total a cobrar (sueldo + comisión)
-	totalACobrar := usuario.Sueldo + comisionNeta
-
 	// Obtener comisión registrada del mes actual (si existe)
 	var comisionMesActual models.Comision
 	comisionRegistrada := false
@@ -330,6 +342,27 @@ func GetMiResumenComision(c *gin.Context) {
 		First(&comisionMesActual).Error; err == nil {
 		comisionRegistrada = true
 	}
+
+	// Usar el gasto publicitario del registro mensual si fue seteado explícitamente (no nil), si no el del usuario
+	gastoPublicitarioMes := usuario.GastoPublicitario
+	if comisionRegistrada && comisionMesActual.GastoPublicitario != nil {
+		gastoPublicitarioMes = *comisionMesActual.GastoPublicitario
+	}
+
+	// Usar el porcentaje del snapshot mensual si existe, si no el actual del usuario
+	porcentajeParaCalculo := usuario.PorcentajeComision
+	if comisionRegistrada && comisionMesActual.PorcentajeComision > 0 {
+		porcentajeParaCalculo = comisionMesActual.PorcentajeComision
+	}
+
+	// Calcular comisión estimada del mes con el gasto correcto descontado antes del porcentaje.
+	porcentaje := porcentajeParaCalculo / 100.0
+	gananciaNeta := totalGananciaMesActual - gastoPublicitarioMes
+	if gananciaNeta < 0 {
+		gananciaNeta = 0
+	}
+	comisionNeta := gananciaNeta * porcentaje
+	totalACobrar := usuario.Sueldo + comisionNeta
 
 	// Obtener historial de comisiones (últimos 6 meses)
 	nowFilter := time.Now()
@@ -366,7 +399,7 @@ func GetMiResumenComision(c *gin.Context) {
 			"total_ganancia":         totalGananciaMesActual,
 			"cantidad_ventas":        cantidadVentasMes,
 			"comision_bruta":         gananciaNeta,
-			"gasto_publicitario":     usuario.GastoPublicitario,
+			"gasto_publicitario":     gastoPublicitarioMes,
 			"comision_neta":          comisionNeta,
 			"sueldo_base":            usuario.Sueldo,
 			"total_a_cobrar":         totalACobrar,
@@ -376,4 +409,79 @@ func GetMiResumenComision(c *gin.Context) {
 		// Historial de comisiones
 		"historial": historialComisiones,
 	})
+}
+
+// UpdateGastoPublicitarioMes godoc
+// @Summary Actualizar gasto publicitario de un mes
+// @Description Permite al dueño actualizar el gasto publicitario de una comisión mensual específica
+// @Tags Comisiones
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param id path int true "ID de la comisión"
+// @Param request body object true "Gasto publicitario" example({"gasto_publicitario": 5000.00})
+// @Success 200 {object} models.Comision
+// @Failure 400 {object} map[string]string "Datos inválidos"
+// @Failure 404 {object} map[string]string "Comisión no encontrada"
+// @Failure 500 {object} map[string]string "Error interno"
+// @Router /api/owner/comisiones/{id}/gasto-publicitario [put]
+func UpdateGastoPublicitarioMes(c *gin.Context) {
+	id := c.Param("id")
+
+	var comision models.Comision
+	if err := config.DB.Preload("Usuario").First(&comision, id).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Comisión no encontrada"})
+		return
+	}
+
+	var req struct {
+		GastoPublicitario float64 `json:"gasto_publicitario" binding:"required"`
+	}
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Datos inválidos"})
+		return
+	}
+
+	if req.GastoPublicitario < 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "El gasto publicitario no puede ser negativo"})
+		return
+	}
+
+	loc, err := time.LoadLocation("America/Argentina/Buenos_Aires")
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error al cargar zona horaria"})
+		return
+	}
+	mesInicio, mesFin := monthRange(comision.Mes, comision.Anio, loc)
+
+	var totalVentas float64
+	config.DB.Model(&models.Venta{}).
+		Where("usuario_id = ? AND fecha_venta >= ? AND fecha_venta < ?", comision.UsuarioID, mesInicio, mesFin).
+		Select("COALESCE(SUM(total_final), 0)").
+		Scan(&totalVentas)
+
+	var totalGanancia float64
+	config.DB.Model(&models.Venta{}).
+		Where("usuario_id = ? AND fecha_venta >= ? AND fecha_venta < ?", comision.UsuarioID, mesInicio, mesFin).
+		Select("COALESCE(SUM(ganancia), 0)").
+		Scan(&totalGanancia)
+
+	// Usar el porcentaje del snapshot histórico del registro, no el actual del usuario
+	porcentaje := comision.PorcentajeComision / 100.0
+	gananciaNeta := totalGanancia - req.GastoPublicitario
+	if gananciaNeta < 0 {
+		gananciaNeta = 0
+	}
+
+	comision.GastoPublicitario = &req.GastoPublicitario
+	comision.TotalVentas = totalVentas
+	comision.TotalComision = gananciaNeta * porcentaje
+
+	if err := config.DB.Save(&comision).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error al actualizar gasto publicitario"})
+		return
+	}
+
+	c.JSON(http.StatusOK, comision)
 }
