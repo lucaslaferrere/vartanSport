@@ -17,6 +17,12 @@ func periodIsFuture(mes int, anio int, now time.Time) bool {
 	return anio > currentYear || (anio == currentYear && mes > currentMonth)
 }
 
+func monthRange(mes int, anio int, loc *time.Location) (time.Time, time.Time) {
+	start := time.Date(anio, time.Month(mes), 1, 0, 0, 0, 0, loc)
+	end := start.AddDate(0, 1, 0)
+	return start, end
+}
+
 // GetMisComisiones godoc
 // @Summary Obtener mis comisiones
 // @Description Obtiene las comisiones del usuario autenticado
@@ -141,6 +147,13 @@ func CalcularComisionesMesActual(c *gin.Context) {
 		return
 	}
 
+	loc, err := time.LoadLocation("America/Argentina/Buenos_Aires")
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error al cargar zona horaria"})
+		return
+	}
+	mesInicio, mesFin := monthRange(mes, anio, loc)
+
 	// Obtener todos los empleados
 	var usuarios []models.Usuario
 	if err := config.DB.Where("rol IN (?, ?, ?) AND activo = ?", "empleado", "vendedor", "dueño", true).Find(&usuarios).Error; err != nil {
@@ -152,14 +165,14 @@ func CalcularComisionesMesActual(c *gin.Context) {
 		// Calcular ventas del mes (sintaxis PostgreSQL)
 		var totalVentas float64
 		config.DB.Model(&models.Venta{}).
-			Where("usuario_id = ? AND EXTRACT(MONTH FROM fecha_venta) = ? AND EXTRACT(YEAR FROM fecha_venta) = ?", usuario.ID, mes, anio).
+			Where("usuario_id = ? AND fecha_venta >= ? AND fecha_venta < ?", usuario.ID, mesInicio, mesFin).
 			Select("COALESCE(SUM(total_final), 0)").
 			Scan(&totalVentas)
 
 		// Calcular base de comisión con la ganancia real (incluye descuento financiera).
 		var totalGanancia float64
 		config.DB.Model(&models.Venta{}).
-			Where("usuario_id = ? AND EXTRACT(MONTH FROM fecha_venta) = ? AND EXTRACT(YEAR FROM fecha_venta) = ?", usuario.ID, mes, anio).
+			Where("usuario_id = ? AND fecha_venta >= ? AND fecha_venta < ?", usuario.ID, mesInicio, mesFin).
 			Select("COALESCE(SUM(ganancia), 0)").
 			Scan(&totalGanancia)
 
@@ -269,27 +282,34 @@ func GetMiResumenComision(c *gin.Context) {
 	mesActual := int(now.Month())
 	anioActual := now.Year()
 
+	loc, err := time.LoadLocation("America/Argentina/Buenos_Aires")
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error al cargar zona horaria"})
+		return
+	}
+	mesInicio, mesFin := monthRange(mesActual, anioActual, loc)
+
 	// Calcular ventas del mes actual
 	var totalVentasMesActual float64
 	config.DB.Model(&models.Venta{}).
-		Where("usuario_id = ? AND EXTRACT(MONTH FROM fecha_venta) = ? AND EXTRACT(YEAR FROM fecha_venta) = ?",
-			userID, mesActual, anioActual).
+		Where("usuario_id = ? AND fecha_venta >= ? AND fecha_venta < ?",
+			userID, mesInicio, mesFin).
 		Select("COALESCE(SUM(total_final), 0)").
 		Scan(&totalVentasMesActual)
 
 	// Calcular ganancia del mes actual para usarla como base de comisión.
 	var totalGananciaMesActual float64
 	config.DB.Model(&models.Venta{}).
-		Where("usuario_id = ? AND EXTRACT(MONTH FROM fecha_venta) = ? AND EXTRACT(YEAR FROM fecha_venta) = ?",
-			userID, mesActual, anioActual).
+		Where("usuario_id = ? AND fecha_venta >= ? AND fecha_venta < ?",
+			userID, mesInicio, mesFin).
 		Select("COALESCE(SUM(ganancia), 0)").
 		Scan(&totalGananciaMesActual)
 
 	// Contar cantidad de ventas del mes
 	var cantidadVentasMes int64
 	config.DB.Model(&models.Venta{}).
-		Where("usuario_id = ? AND EXTRACT(MONTH FROM fecha_venta) = ? AND EXTRACT(YEAR FROM fecha_venta) = ?",
-			userID, mesActual, anioActual).
+		Where("usuario_id = ? AND fecha_venta >= ? AND fecha_venta < ?",
+			userID, mesInicio, mesFin).
 		Count(&cantidadVentasMes)
 
 	// Calcular comisión estimada del mes con gasto descontado antes del porcentaje.
