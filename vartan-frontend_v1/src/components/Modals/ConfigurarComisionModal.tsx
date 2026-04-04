@@ -51,6 +51,11 @@ export default function ConfigurarComisionModal({
   }, [vendedor]);
 
   useEffect(() => {
+    if (mesInicial) setSelectedMes(mesInicial);
+    if (anioInicial) setSelectedAnio(anioInicial);
+  }, [mesInicial, anioInicial]);
+
+  useEffect(() => {
     const comision = comisiones.find(c => c.mes === selectedMes && c.anio === selectedAnio);
     setGastoPublicitario(comision && comision.gasto_publicitario !== null ? String(comision.gasto_publicitario) : '0');
   }, [selectedMes, selectedAnio, comisiones]);
