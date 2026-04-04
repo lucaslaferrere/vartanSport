@@ -179,9 +179,13 @@ func CalcularComisionesMesActual(c *gin.Context) {
 		// Determinar el gasto publicitario a usar:
 		// - Si el registro mensual tiene un valor explícito (no nil), usarlo (permite 0.0 intencional)
 		// - Si es nil (no seteado), usar el gasto actual del usuario
-		gastoPublicitario := usuario.GastoPublicitario
-		if result.Error == nil && comisionExistente.GastoPublicitario != nil {
-			gastoPublicitario = *comisionExistente.GastoPublicitario
+		gastoPublicitario := 0.0
+		if result.Error == nil {
+			if comisionExistente.GastoPublicitario != nil {
+				gastoPublicitario = *comisionExistente.GastoPublicitario
+			} else {
+				gastoPublicitario = usuario.GastoPublicitario
+			}
 		}
 
 		// Usar el porcentaje del registro si ya existe (snapshot histórico), si no el actual del usuario
@@ -200,7 +204,7 @@ func CalcularComisionesMesActual(c *gin.Context) {
 
 		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 			// No existe, crear nueva — snapshot de sueldo, porcentaje y gasto vigentes del usuario
-			gastoSnapshot := usuario.GastoPublicitario
+			gastoSnapshot := 0.0
 			nuevaComision := models.Comision{
 				UsuarioID:          usuario.ID,
 				Mes:                mes,
@@ -216,17 +220,13 @@ func CalcularComisionesMesActual(c *gin.Context) {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error al verificar comisión existente"})
 			return
 		} else {
-			// Ya existe, actualizar totales y completar snapshots si faltan
+			// Ya existe, actualizar totales (no tocar gasto_publicitario)
 			comisionExistente.TotalVentas = totalVentas
 			comisionExistente.TotalComision = comisionNeta
 			if comisionExistente.PorcentajeComision == 0 {
 				comisionExistente.PorcentajeComision = usuario.PorcentajeComision
 			}
-			if comisionExistente.GastoPublicitario == nil {
-				gastoSnapshot := usuario.GastoPublicitario
-				comisionExistente.GastoPublicitario = &gastoSnapshot
-			}
-			config.DB.Save(&comisionExistente)
+			config.DB.Model(&comisionExistente).Omit("gasto_publicitario").Updates(&comisionExistente)
 		}
 	}
 
