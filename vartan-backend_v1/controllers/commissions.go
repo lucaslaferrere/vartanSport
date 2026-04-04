@@ -65,14 +65,10 @@ func GetMisComisiones(c *gin.Context) {
 // @Router /api/owner/comisiones/usuario/{id} [get]
 func GetComisionesByUsuario(c *gin.Context) {
 	usuarioID := c.Param("id")
-	now := time.Now()
-	currentMonth := int(now.Month())
-	currentYear := now.Year()
 
 	var comisiones []models.Comision
 	if err := config.DB.
 		Where("usuario_id = ?", usuarioID).
-		Where("(anio < ?) OR (anio = ? AND mes <= ?)", currentYear, currentYear, currentMonth).
 		Preload("Usuario").
 		Order("anio DESC, mes DESC").
 		Find(&comisiones).Error; err != nil {
