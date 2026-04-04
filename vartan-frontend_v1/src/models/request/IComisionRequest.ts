@@ -4,7 +4,7 @@ export interface IComisionObservacionesRequest {
 
 export interface IUsuarioComisionConfigRequest {
     porcentaje_comision: number;
-    gasto_publicitario: number;
+    gasto_publicitario?: number;
     sueldo: number;
     observaciones?: string;
 }
