@@ -135,7 +135,7 @@ export default function ComisionesPage() {
                     email: v.email,
                     rol: v.rol,
                     porcentaje_comision: v.porcentaje_comision,
-                    gasto_publicitario: comActual?.gasto_publicitario ?? v.gasto_publicitario,
+                    gasto_publicitario: comActual ? (comActual.gasto_publicitario ?? 0) : v.gasto_publicitario,
                     sueldo: sueldoBase,
                     observaciones_config: v.observaciones_config,
                     ventas_mes_actual: ventas,
