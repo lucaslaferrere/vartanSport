@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Box, Typography, Grid } from '@mui/material';
+import { Box, Typography, Grid, Select, MenuItem, FormControl } from '@mui/material';
 import BaseModal from './BaseModal';
 import { IUser } from '@models/entities/userEntity';
 import { usuarioService } from '@services/usuario.service';
@@ -32,8 +32,8 @@ export default function ConfigurarComisionModal({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [comisiones, setComisiones] = useState<IComision[]>([]);
-  const [selectedMes] = useState(mesInicial ?? new Date().getMonth() + 1);
-  const [selectedAnio] = useState(anioInicial ?? new Date().getFullYear());
+  const [selectedMes, setSelectedMes] = useState(mesInicial ?? new Date().getMonth() + 1);
+  const [selectedAnio, setSelectedAnio] = useState(anioInicial ?? new Date().getFullYear());
 
   useEffect(() => {
     if (vendedor) {
@@ -49,6 +49,11 @@ export default function ConfigurarComisionModal({
       }).catch(() => setComisiones([]));
     }
   }, [vendedor]);
+
+  useEffect(() => {
+    const comision = comisiones.find(c => c.mes === selectedMes && c.anio === selectedAnio);
+    setGastoPublicitario(comision && comision.gasto_publicitario !== null ? String(comision.gasto_publicitario) : '0');
+  }, [selectedMes, selectedAnio, comisiones]);
 
   const handleSubmit = async () => {
     if (!vendedor) return;
@@ -135,10 +140,26 @@ export default function ConfigurarComisionModal({
 
         <Grid size={{ xs: 12, md: 4 }}>
           <Box>
-            <Typography sx={{ fontSize: '13px', fontWeight: 500, color: '#6B7280', mb: 0.75 }}>
-              Gasto pub. {mesesNombres[selectedMes - 1]} {selectedAnio} ($)
-              {!comisionSeleccionada && <span style={{ color: '#9CA3AF', fontSize: '11px', marginLeft: 4 }}>(sin registro)</span>}
-            </Typography>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.75 }}>
+              <Typography sx={{ fontSize: '13px', fontWeight: 500, color: '#6B7280' }}>Gasto pub.</Typography>
+              <FormControl size="small">
+                <Select value={selectedMes} onChange={(e) => setSelectedMes(Number(e.target.value))} sx={{ fontSize: '12px', height: 24 }}>
+                  {mesesNombres.map((m, i) => (
+                    <MenuItem key={i + 1} value={i + 1} disabled={!comisiones.some(c => c.mes === i + 1 && c.anio === selectedAnio)}>
+                      {m}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+              <FormControl size="small">
+                <Select value={selectedAnio} onChange={(e) => setSelectedAnio(Number(e.target.value))} sx={{ fontSize: '12px', height: 24 }}>
+                  {[...new Set(comisiones.map(c => c.anio))].sort().map(a => (
+                    <MenuItem key={a} value={a}>{a}</MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+              {!comisionSeleccionada && <Typography sx={{ fontSize: '11px', color: '#9CA3AF' }}>(sin registro)</Typography>}
+            </Box>
             <input
               type="number"
               value={gastoPublicitario}
