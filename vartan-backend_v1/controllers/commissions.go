@@ -435,7 +435,7 @@ func UpdateGastoPublicitarioMes(c *gin.Context) {
 	}
 
 	var req struct {
-		GastoPublicitario float64 `json:"gasto_publicitario" binding:"required"`
+		GastoPublicitario *float64 `json:"gasto_publicitario" binding:"required"`
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -443,7 +443,7 @@ func UpdateGastoPublicitarioMes(c *gin.Context) {
 		return
 	}
 
-	if req.GastoPublicitario < 0 {
+	if req.GastoPublicitario == nil || *req.GastoPublicitario < 0 {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "El gasto publicitario no puede ser negativo"})
 		return
 	}
@@ -469,12 +469,12 @@ func UpdateGastoPublicitarioMes(c *gin.Context) {
 
 	// Usar el porcentaje del snapshot histórico del registro, no el actual del usuario
 	porcentaje := comision.PorcentajeComision / 100.0
-	gananciaNeta := totalGanancia - req.GastoPublicitario
+	gananciaNeta := totalGanancia - *req.GastoPublicitario
 	if gananciaNeta < 0 {
 		gananciaNeta = 0
 	}
 
-	comision.GastoPublicitario = &req.GastoPublicitario
+	comision.GastoPublicitario = req.GastoPublicitario
 	comision.TotalVentas = totalVentas
 	comision.TotalComision = gananciaNeta * porcentaje
 
