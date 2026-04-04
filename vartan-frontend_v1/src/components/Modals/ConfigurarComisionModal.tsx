@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Box, Typography, Grid, Select, MenuItem, FormControl } from '@mui/material';
+import { Box, Typography, Grid } from '@mui/material';
 import BaseModal from './BaseModal';
 import { IUser } from '@models/entities/userEntity';
 import { usuarioService } from '@services/usuario.service';
@@ -140,26 +140,10 @@ export default function ConfigurarComisionModal({
 
         <Grid size={{ xs: 12, md: 4 }}>
           <Box>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.75 }}>
-              <Typography sx={{ fontSize: '13px', fontWeight: 500, color: '#6B7280' }}>Gasto pub.</Typography>
-              <FormControl size="small">
-                <Select value={selectedMes} onChange={(e) => setSelectedMes(Number(e.target.value))} sx={{ fontSize: '12px', height: 24 }}>
-                  {mesesNombres.map((m, i) => (
-                    <MenuItem key={i + 1} value={i + 1} disabled={!comisiones.some(c => c.mes === i + 1 && c.anio === selectedAnio)}>
-                      {m}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-              <FormControl size="small">
-                <Select value={selectedAnio} onChange={(e) => setSelectedAnio(Number(e.target.value))} sx={{ fontSize: '12px', height: 24 }}>
-                  {[...new Set(comisiones.map(c => c.anio))].sort().map(a => (
-                    <MenuItem key={a} value={a}>{a}</MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-              {!comisionSeleccionada && <Typography sx={{ fontSize: '11px', color: '#9CA3AF' }}>(sin registro)</Typography>}
-            </Box>
+            <Typography sx={{ fontSize: '13px', fontWeight: 500, color: '#6B7280', mb: 0.75 }}>
+              Gasto pub. {mesesNombres[selectedMes - 1]} {selectedAnio} ($)
+              {!comisionSeleccionada && <span style={{ color: '#9CA3AF', fontSize: '11px', marginLeft: 4 }}>(sin registro)</span>}
+            </Typography>
             <input
               type="number"
               value={gastoPublicitario}
