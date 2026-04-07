@@ -131,6 +131,10 @@ func SetupRoutes(router *gin.Engine) {
 		owner.PUT("/comisiones/:id/observaciones", controllers.UpdateObservaciones)
 		owner.PUT("/comisiones/:id/gasto-publicitario", controllers.UpdateGastoPublicitarioMes)
 
+		// Gasto publicitario mensual (nuevo: el dueño debe setearlo cada mes; default 0)
+		owner.GET("/comisiones-publicitarias/usuario/:id", controllers.GetComisionPublicitariaDelMes)
+		owner.POST("/comisiones-publicitarias/usuario/:id", controllers.SetComisionPublicitariaDelMes)
+
 		// Comprobantes
 		owner.GET("/comprobantes", controllers.GetComprobantes)
 		owner.PUT("/comprobantes/:venta_id/revisar", controllers.PutComprobanteRevisado)

@@ -3,6 +3,7 @@ package controllers
 import (
 	"errors"
 	"net/http"
+	"strconv"
 	"time"
 	"vartan-backend/config"
 	"vartan-backend/models"
@@ -10,6 +11,17 @@ import (
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 )
+
+// getGastoPublicitarioMensual looks up the advertising commission value for a given
+// employee+month+year. Returns 0 if the owner has not set it explicitly for that period.
+func getGastoPublicitarioMensual(empleadoID, mes, anio int) float64 {
+	var rec models.ComisionPublicitariaMensual
+	if err := config.DB.Where("empleado_id = ? AND mes = ? AND anio = ?", empleadoID, mes, anio).
+		First(&rec).Error; err != nil {
+		return 0
+	}
+	return rec.ValorComision
+}
 
 func periodIsFuture(mes int, anio int, now time.Time) bool {
 	currentYear := now.Year()
@@ -177,15 +189,11 @@ func CalcularComisionesMesActual(c *gin.Context) {
 		result := config.DB.Where("usuario_id = ? AND mes = ? AND anio = ?", usuario.ID, mes, anio).First(&comisionExistente)
 
 		// Determinar el gasto publicitario a usar:
-		// - Si el registro mensual tiene un valor explícito (no nil), usarlo (permite 0.0 intencional)
-		// - Si es nil (no seteado), usar el gasto actual del usuario
-		gastoPublicitario := 0.0
-		if result.Error == nil {
-			if comisionExistente.GastoPublicitario != nil {
-				gastoPublicitario = *comisionExistente.GastoPublicitario
-			} else {
-				gastoPublicitario = usuario.GastoPublicitario
-			}
+		// 1. Buscar en la tabla comisiones_publicitarias_mensuales (seteo explícito del dueño); si no existe → 0
+		// 2. Si el registro de comisión mensual ya tiene un override explícito (no nil), respetarlo
+		gastoPublicitario := getGastoPublicitarioMensual(usuario.ID, mes, anio)
+		if result.Error == nil && comisionExistente.GastoPublicitario != nil {
+			gastoPublicitario = *comisionExistente.GastoPublicitario
 		}
 
 		// Usar el porcentaje del registro si ya existe (snapshot histórico), si no el actual del usuario
@@ -203,8 +211,8 @@ func CalcularComisionesMesActual(c *gin.Context) {
 		comisionNeta := gananciaNeta * porcentaje
 
 		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
-			// No existe, crear nueva — snapshot de sueldo, porcentaje y gasto vigentes del usuario
-			gastoSnapshot := 0.0
+			// No existe, crear nueva — snapshot de sueldo, porcentaje y gasto del mes actual
+			gastoSnapshot := gastoPublicitario
 			nuevaComision := models.Comision{
 				UsuarioID:          usuario.ID,
 				Mes:                mes,
@@ -339,8 +347,9 @@ func GetMiResumenComision(c *gin.Context) {
 		comisionRegistrada = true
 	}
 
-	// Usar el gasto publicitario del registro mensual si fue seteado explícitamente (no nil), si no el del usuario
-	gastoPublicitarioMes := usuario.GastoPublicitario
+	// Gasto publicitario del mes: leer de la tabla mensual (default 0 si el dueño no lo seteó).
+	// Si existe un override explícito en el registro de comisión, respetarlo.
+	gastoPublicitarioMes := getGastoPublicitarioMensual(userID, mesActual, anioActual)
 	if comisionRegistrada && comisionMesActual.GastoPublicitario != nil {
 		gastoPublicitarioMes = *comisionMesActual.GastoPublicitario
 	}
@@ -480,4 +489,130 @@ func UpdateGastoPublicitarioMes(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, comision)
+}
+
+// GetComisionPublicitariaDelMes godoc
+// @Summary Obtener gasto publicitario mensual de un empleado
+// @Description Devuelve el gasto publicitario seteado para el empleado en el mes/año indicado (solo dueño). Si no fue seteado, devuelve 0 con not_set=true.
+// @Tags Comisiones
+// @Produce json
+// @Security BearerAuth
+// @Param id path int true "ID del empleado"
+// @Param mes query int false "Mes (1-12, default: mes actual)"
+// @Param anio query int false "Año (default: año actual)"
+// @Success 200 {object} map[string]interface{}
+// @Router /api/owner/comisiones-publicitarias/usuario/{id} [get]
+func GetComisionPublicitariaDelMes(c *gin.Context) {
+	empleadoID, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "ID inválido"})
+		return
+	}
+
+	now := time.Now()
+	mes := int(now.Month())
+	anio := now.Year()
+
+	if m, err := strconv.Atoi(c.Query("mes")); err == nil && m >= 1 && m <= 12 {
+		mes = m
+	}
+	if a, err := strconv.Atoi(c.Query("anio")); err == nil && a > 0 {
+		anio = a
+	}
+
+	var rec models.ComisionPublicitariaMensual
+	result := config.DB.Where("empleado_id = ? AND mes = ? AND anio = ?", empleadoID, mes, anio).First(&rec)
+
+	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+		c.JSON(http.StatusOK, gin.H{
+			"empleado_id":   empleadoID,
+			"mes":           mes,
+			"anio":          anio,
+			"valor_comision": 0,
+			"not_set":       true,
+		})
+		return
+	}
+	if result.Error != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error al obtener gasto publicitario"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"empleado_id":   rec.EmpleadoID,
+		"mes":           rec.Mes,
+		"anio":          rec.Anio,
+		"valor_comision": rec.ValorComision,
+		"not_set":       false,
+	})
+}
+
+// SetComisionPublicitariaDelMes godoc
+// @Summary Setear gasto publicitario mensual de un empleado (solo dueño)
+// @Description Crea o actualiza el gasto publicitario para el empleado en el mes/año indicado. Si no se llama este endpoint, el mes queda en 0.
+// @Tags Comisiones
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param id path int true "ID del empleado"
+// @Param request body object true "Datos" example({"mes":4,"anio":2026,"valor_comision":5000.00})
+// @Success 200 {object} models.ComisionPublicitariaMensual
+// @Failure 400 {object} map[string]string
+// @Failure 404 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Router /api/owner/comisiones-publicitarias/usuario/{id} [post]
+func SetComisionPublicitariaDelMes(c *gin.Context) {
+	empleadoID, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "ID inválido"})
+		return
+	}
+
+	// Verificar que el empleado existe
+	var empleado models.Usuario
+	if err := config.DB.First(&empleado, empleadoID).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Empleado no encontrado"})
+		return
+	}
+
+	var req struct {
+		Mes           int     `json:"mes" binding:"required,min=1,max=12"`
+		Anio          int     `json:"anio" binding:"required"`
+		ValorComision float64 `json:"valor_comision"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Datos inválidos: se requieren mes, anio y valor_comision"})
+		return
+	}
+	if req.ValorComision < 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "valor_comision no puede ser negativo"})
+		return
+	}
+
+	var rec models.ComisionPublicitariaMensual
+	result := config.DB.Where("empleado_id = ? AND mes = ? AND anio = ?", empleadoID, req.Mes, req.Anio).First(&rec)
+
+	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+		rec = models.ComisionPublicitariaMensual{
+			EmpleadoID:    empleadoID,
+			Mes:           req.Mes,
+			Anio:          req.Anio,
+			ValorComision: req.ValorComision,
+		}
+		if err := config.DB.Create(&rec).Error; err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error al crear gasto publicitario"})
+			return
+		}
+	} else if result.Error != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error al buscar registro existente"})
+		return
+	} else {
+		rec.ValorComision = req.ValorComision
+		if err := config.DB.Save(&rec).Error; err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error al actualizar gasto publicitario"})
+			return
+		}
+	}
+
+	c.JSON(http.StatusOK, rec)
 }
