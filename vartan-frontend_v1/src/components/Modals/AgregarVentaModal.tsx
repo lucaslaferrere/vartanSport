@@ -170,6 +170,11 @@ export default function AgregarVentaModal({ open, onClose, onSuccess }: AgregarV
       return;
     }
 
+    if (!comprobante) {
+      setError('Debe adjuntar un comprobante');
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -652,7 +657,7 @@ export default function AgregarVentaModal({ open, onClose, onSuccess }: AgregarV
                 >
                   <i className="fa-solid fa-paperclip" style={{ color: '#9CA3AF', fontSize: '14px' }} />
                   <Typography sx={{ fontSize: '12px', color: '#6B7280' }}>
-                    {isDragging ? 'Suelta aquí' : 'Adjuntar Comprobante (Opcional)'}
+                    {isDragging ? 'Suelta aquí' : 'Adjuntar Comprobante *'}
                   </Typography>
                   <input id="file-input" type="file" accept=".pdf,.jpg,.jpeg,.png" onChange={handleFileSelect} style={{ display: 'none' }} />
                 </Box>

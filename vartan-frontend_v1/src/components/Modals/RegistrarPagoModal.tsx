@@ -61,6 +61,11 @@ export default function RegistrarPagoModal({ open, onClose, onSuccess, venta }: 
       return;
     }
 
+    if (!comprobante) {
+      setError('Debe adjuntar un comprobante');
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -337,7 +342,7 @@ export default function RegistrarPagoModal({ open, onClose, onSuccess, venta }: 
         {/* Comprobante */}
         <Grid size={{ xs: 12 }}>
           <Typography sx={{ fontSize: '12px', fontWeight: 600, color: '#374151', mb: 0.5 }}>
-            Comprobante de Pago (Opcional)
+            Comprobante de Pago *
           </Typography>
           {!comprobante ? (
             <Box
