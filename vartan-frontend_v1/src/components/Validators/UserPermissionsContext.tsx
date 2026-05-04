@@ -7,7 +7,7 @@ type UserPermissionsContextType = {
   userPermissions: Set<PermissionType>;
   reloadPermissions: () => void;
   validatePermission: (permissions: PermissionType[]) => boolean;
-  userRole: 'dueño' | 'vendedor' | 'demo';
+  userRole: 'dueño' | 'vendedor' | 'demo' | 'repositor';
 };
 
 const UserPermissionsContext = createContext<UserPermissionsContextType>({
@@ -19,11 +19,11 @@ const UserPermissionsContext = createContext<UserPermissionsContextType>({
 
 export function UserPermissionsProvider({children}: { children: React.ReactNode }) {
   const { user } = useAuthStore();
-  
-  // ✅ Reconocer rol 'demo'
-  const userRole: 'dueño' | 'vendedor' | 'demo' = 
-    user?.rol === 'vendedor' ? 'vendedor' : 
-    user?.rol === 'demo' ? 'demo' : 
+
+  const userRole: 'dueño' | 'vendedor' | 'demo' | 'repositor' =
+    user?.rol === 'vendedor' ? 'vendedor' :
+    user?.rol === 'demo' ? 'demo' :
+    user?.rol === 'repositor' ? 'repositor' :
     'dueño';
 
   const allPermissions = new Set<PermissionType>(Object.values(PermissionType));

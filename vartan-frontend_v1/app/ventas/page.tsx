@@ -40,9 +40,9 @@ interface IVentasStats {
 
 const metodoPagoOptions = [
   { value: 'Efectivo', label: 'Efectivo' },
-  { value: 'Transferencia Financiera', label: 'Transferencia Financiera' },
-  { value: 'Transferencia a Cero', label: 'Transferencia a Cero' },
-  { value: 'Transferencia Bancaria', label: 'Transferencia Bancaria' },
+  { value: 'Financiera', label: 'Financiera' },
+  { value: 'Cuenta 0', label: 'Cuenta 0' },
+  { value: 'Valu Tahiel', label: 'Valu Tahiel' },
 ];
 
 export default function VentasPage() {
@@ -140,9 +140,10 @@ export default function VentasPage() {
   const getMetodoPagoChip = (metodo: string) => {
     const chipColors: Record<string, { bg: string; color: string }> = {
       'Efectivo': { bg: 'rgba(16, 185, 129, 0.1)', color: '#059669' },
-      'Transferencia Financiera': { bg: 'rgba(245, 158, 11, 0.1)', color: '#D97706' },
-      'Transferencia a Cero': { bg: 'rgba(59, 130, 246, 0.1)', color: '#2563EB' },
-      'Transferencia Bancaria': { bg: 'rgba(139, 92, 246, 0.1)', color: '#7C3AED' },
+      'Financiera': { bg: 'rgba(245, 158, 11, 0.1)', color: '#D97706' },
+      'Cuenta 0': { bg: 'rgba(59, 130, 246, 0.1)', color: '#2563EB' },
+      'Valu Tahiel': { bg: 'rgba(139, 92, 246, 0.1)', color: '#7C3AED' },
+      'Señas': { bg: 'rgba(239, 68, 68, 0.1)', color: '#DC2626' },
     };
     const style = chipColors[metodo] || { bg: 'rgba(107, 114, 128, 0.1)', color: '#6B7280' };
     return <Chip label={metodo} size="small" sx={{ bgcolor: style.bg, color: style.color, fontWeight: 600, fontSize: '11px' }} />;

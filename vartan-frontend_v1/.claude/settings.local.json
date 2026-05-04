@@ -2,7 +2,10 @@
   "permissions": {
     "allow": [
       "Bash(xargs grep -n \"password\\\\|Password\\\\|usuario\\\\|user\")",
-      "Bash(find:*)"
+      "Bash(find:*)",
+      "Bash(xargs grep *)",
+      "Bash(grep -E \"\\\\.\\(tsx|ts\\)$\")",
+      "Bash(xargs cat *)"
     ]
   }
 }

@@ -53,7 +53,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
     name.split(' ').map((n) => n[0]).join('').toUpperCase().substring(0, 2);
 
   // Obtener menú según el rol del usuario
-  const userRole = user?.rol as 'dueño' | 'vendedor' | undefined;
+  const userRole = user?.rol as 'dueño' | 'vendedor' | 'demo' | 'repositor' | undefined;
   const menuItems = layoutConfig.getMenuByRole(userRole);
 
   const currentPageLabel = menuItems.find((item) => item.path === pathname)?.label || 'Dashboard';

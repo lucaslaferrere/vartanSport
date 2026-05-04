@@ -8,8 +8,10 @@ import { ventaService } from '@services/venta.service';
 import { clienteService } from '@services/cliente.service';
 import { productoService } from '@services/producto.service';
 import { useNotification } from '@components/Notifications';
+import { useAuthStore } from '@libraries/store';
 import { ICliente } from '@models/entities/clienteEntity';
 import { IProducto } from '@models/entities/productoEntity';
+import { IFormaPago } from '@models/entities/ventaEntity';
 import { TalleEnum } from '@models/enums/TalleEnum';
 
 interface ProductoConTalles {
@@ -25,14 +27,17 @@ interface AgregarVentaModalProps {
 
 export default function AgregarVentaModal({ open, onClose, onSuccess }: AgregarVentaModalProps) {
   const { addNotification } = useNotification();
+  const { user } = useAuthStore();
+  const isDueno = user?.rol === 'dueño' || user?.rol === 'demo';
   const [clientes, setClientes] = useState<ICliente[]>([]);
   const [transporte, setTransporte] = useState<string>('');
   const [productos, setProductos] = useState<IProducto[]>([]);
   const [clienteId, setClienteId] = useState<number | null>(null);
-  const [formaPagoId, setFormaPagoId] = useState<number>(1);
-  const [precioVenta, setPrecioVenta] = useState<string>(''); // NUEVO
+  const [formasPago, setFormasPago] = useState<IFormaPago[]>([]);
+  const [formaPagoId, setFormaPagoId] = useState<number>(0);
+  const [precioVenta, setPrecioVenta] = useState<string>('');
   const [sena, setSena] = useState<string>('');
-  const [usaDescuentoFinanciera, setUsaDescuentoFinanciera] = useState(true); // NUEVO
+  const [usaDescuentoFinanciera, setUsaDescuentoFinanciera] = useState(false);
   const [observaciones, setObservaciones] = useState('');
   const [comprobante, setComprobante] = useState<File | null>(null);
   const [isDragging, setIsDragging] = useState(false);
@@ -56,23 +61,28 @@ export default function AgregarVentaModal({ open, onClose, onSuccess }: AgregarV
     return () => clearTimeout(t);
   }, [productoInput]);
 
-  const formasPago = [
-    { id: 1, nombre: 'Financiera' },
-    { id: 2, nombre: 'Transferencia a Cuenta 0' },
-    { id: 3, nombre: 'Efectivo' },
-  ];
-
   const tallesDisponibles = Object.values(TalleEnum);
+
+  const isFinanciera = (id: number) =>
+    formasPago.find(fp => fp.id === id)?.nombre?.toLowerCase().includes('financiera') ?? false;
 
   const loadData = useCallback(async () => {
     try {
-      const [clientesData, productosData] = await Promise.all([
+      const [clientesData, productosData, formasPagoData] = await Promise.all([
         clienteService.getAll(),
-        productoService.getAll()
+        productoService.getAll(),
+        ventaService.getFormasPago(),
       ]);
 
       setClientes(clientesData || []);
       setProductos(productosData?.filter(p => p.activo) || []);
+      const formasFiltradas = formasPagoData || [];
+      setFormasPago(formasFiltradas);
+      if (formasFiltradas.length) {
+        const primera = formasFiltradas[0];
+        setFormaPagoId(primera.id);
+        setUsaDescuentoFinanciera(primera.nombre.toLowerCase().includes('financiera'));
+      }
     } catch (err) {
       console.error('Error cargando datos:', err);
       addNotification('Error al cargar datos', 'error');
@@ -137,7 +147,7 @@ export default function AgregarVentaModal({ open, onClose, onSuccess }: AgregarV
     let costo = 0;
     productosSeleccionados.forEach(item => {
       item.talles.forEach(t => {
-        costo += item.producto.costo_unitario * t.cantidad;
+        costo += (item.producto.costo_unitario ?? 0) * t.cantidad;
       });
     });
     return costo;
@@ -145,12 +155,18 @@ export default function AgregarVentaModal({ open, onClose, onSuccess }: AgregarV
 
   // Calcular ganancia
   const calcularGanancia = () => {
-  const costo = calcularCosto();
-  const precio = parseFloat(precioVenta) || 0;
-  // Si es financiera (id=1), descontar el 3% de la ganancia
-  const descuentoFinanciera = (formaPagoId === 1) ? precio * 0.03 : 0;
-  return precio - costo - descuentoFinanciera;
-};
+    const costo = calcularCosto();
+    const precio = parseFloat(precioVenta) || 0;
+    const descuentoFinanciera = isFinanciera(formaPagoId) ? precio * 0.025 : 0;
+    return precio - costo - descuentoFinanciera;
+  };
+
+  const calcularGananciaDisplay = () => {
+    if (isDueno) return calcularGanancia();
+    const costo = calcularCosto();
+    const precio = parseFloat(precioVenta) || 0;
+    return precio - costo;
+  };
 
   const handleSubmit = async () => {
     setError(null);
@@ -172,6 +188,7 @@ export default function AgregarVentaModal({ open, onClose, onSuccess }: AgregarV
 
     if (!comprobante) {
       setError('Debe adjuntar un comprobante');
+      addNotification('Error: Falta agregar comprobante de pago', 'error');
       return;
     }
 
@@ -185,7 +202,7 @@ export default function AgregarVentaModal({ open, onClose, onSuccess }: AgregarV
             producto_id: item.producto.id,
             talle: t.talle,
             cantidad: t.cantidad,
-            precio_unitario: item.producto.costo_unitario
+            precio_unitario: item.producto.costo_unitario ?? 0
           });
         });
       });
@@ -386,14 +403,11 @@ export default function AgregarVentaModal({ open, onClose, onSuccess }: AgregarV
                 <Box sx={{ flex: 1 }}>
                   <Autocomplete
                     options={productos}
-                    getOptionLabel={(p) => `${p.nombre} - $${p.costo_unitario.toLocaleString('es-AR')}`}
+                    getOptionLabel={(p) => `${p.nombre} - $${(p.costo_unitario ?? 0).toLocaleString('es-AR')}`}
                     filterOptions={(options) => {
                       const search = productoInputDebounced.toLowerCase();
                       if (!search) return options;
-                      return options.filter(p =>
-                        p.nombre.toLowerCase().includes(search) ||
-                        (p.equipo?.nombre && p.equipo.nombre.toLowerCase().includes(search))
-                      );
+                      return options.filter(p => p.nombre.toLowerCase().includes(search));
                     }}
                     value={productoActual}
                     onChange={(_, val) => {
@@ -520,7 +534,7 @@ export default function AgregarVentaModal({ open, onClose, onSuccess }: AgregarV
                           </Box>
                           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                             <Typography sx={{ fontSize: '12px', fontWeight: 500, color: '#111827' }}>
-                              ${(item.talles.reduce((sum, t) => sum + (t.cantidad * item.producto.costo_unitario), 0)).toLocaleString('es-AR')}
+                              ${(item.talles.reduce((sum, t) => sum + (t.cantidad * (item.producto.costo_unitario ?? 0)), 0)).toLocaleString('es-AR')}
                             </Typography>
                             <IconButton size="small" onClick={() => eliminarProducto(idx)} sx={{ color: '#EF4444', p: 0.5 }}>
                               <i className="fa-solid fa-times" style={{ fontSize: '12px' }}/>
@@ -550,7 +564,7 @@ export default function AgregarVentaModal({ open, onClose, onSuccess }: AgregarV
                 onChange={(e) => {
                   const id = Number(e.target.value);
                   setFormaPagoId(id);
-                  setUsaDescuentoFinanciera(id === 1); // automático
+                  setUsaDescuentoFinanciera(isFinanciera(id));
                   }}
                 style={{
                   width: '100%',
@@ -740,28 +754,27 @@ export default function AgregarVentaModal({ open, onClose, onSuccess }: AgregarV
                 justifyContent: 'space-between',
                 alignItems: 'center',
                 p: 1.5,
-                bgcolor: calcularGanancia() >= 0 ? '#ECFDF5' : '#FEF2F2',
+                bgcolor: calcularGananciaDisplay() >= 0 ? '#ECFDF5' : '#FEF2F2',
                 borderRadius: '6px',
-                border: calcularGanancia() >= 0 ? '1px solid #A7F3D0' : '1px solid #FECACA',
+                border: calcularGananciaDisplay() >= 0 ? '1px solid #A7F3D0' : '1px solid #FECACA',
                 mb: 1.5
               }}>
-                <Typography sx={{ fontSize: '13px', color: calcularGanancia() >= 0 ? '#047857' : '#DC2626', fontWeight: 600 }}>
-                  Ganancia:
+                <Typography sx={{ fontSize: '13px', color: calcularGananciaDisplay() >= 0 ? '#047857' : '#DC2626', fontWeight: 600 }}>
+                  Precio Venta:
                 </Typography>
-                <Typography sx={{ fontSize: '18px', fontWeight: 700, color: calcularGanancia() >= 0 ? '#059669' : '#DC2626' }}>
-                  ${calcularGanancia().toLocaleString('es-AR', { minimumFractionDigits: 2 })}
+                <Typography sx={{ fontSize: '18px', fontWeight: 700, color: calcularGananciaDisplay() >= 0 ? '#059669' : '#DC2626' }}>
+                  ${calcularGananciaDisplay().toLocaleString('es-AR', { minimumFractionDigits: 2 })}
                 </Typography>
               </Box>
 
-              {/* Checkbox Descuento Financiera - Solo si es Transferencia Financiera */}
-              {formaPagoId === 1 && (
-         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.5 }}>
-         <i className="fa-solid fa-circle-info" style={{ color: '#D97706', fontSize: '12px' }} />
-    <Typography sx={{ fontSize: '12px', color: '#D97706', fontWeight: 500 }}>
-      Comisión financiera (3%) aplicada automáticamente
-    </Typography>
-           </Box>
-          )}
+              {isFinanciera(formaPagoId) && isDueno && (
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.5 }}>
+                  <i className="fa-solid fa-circle-info" style={{ color: '#D97706', fontSize: '12px' }} />
+                  <Typography sx={{ fontSize: '12px', color: '#D97706', fontWeight: 500 }}>
+                    Comisión financiera (2.5%) aplicada automáticamente
+                  </Typography>
+                </Box>
+              )}
             </Box>
           </Grid>
 

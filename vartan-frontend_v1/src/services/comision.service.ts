@@ -54,11 +54,10 @@ export interface IMiResumenComision {
 
 export const comisionService = {
     // Para empleados/vendedores: ver MI resumen (solo lectura)
-    getMiResumen: async (): Promise<IMiResumenComision> => {
-        console.log('📡 comisionService.getMiResumen() - Iniciando petición');
-        console.log('📍 Endpoint:', '/api/mi-resumen-comision');
-        const response = await api.get<IMiResumenComision>('/api/mi-resumen-comision');
-        console.log('✅ comisionService.getMiResumen() - Respuesta:', response.data);
+    // Acepta mes/anio opcionales para consultar un período específico
+    getMiResumen: async (mes?: number, anio?: number): Promise<IMiResumenComision> => {
+        const params = mes && anio ? `?mes=${mes}&anio=${anio}` : '';
+        const response = await api.get<IMiResumenComision>(`/api/mi-resumen-comision${params}`);
         return response.data;
     },
 

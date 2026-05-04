@@ -167,7 +167,7 @@ export default function ConfigurarComisionModal({
         <Grid size={{ xs: 12, md: 4 }}>
           <Box>
             <Typography sx={{ fontSize: '13px', fontWeight: 500, color: '#6B7280', mb: 0.75 }}>
-              Sueldo base ($) *
+              Bonos ($) *
             </Typography>
             <input
               type="number"
@@ -189,7 +189,7 @@ export default function ConfigurarComisionModal({
               Cálculo de sueldo total
             </Typography>
             <Typography sx={{ fontSize: '12px', color: '#075985', lineHeight: 1.5 }}>
-              Sueldo Total = Sueldo base + ((Ventas - Gasto publicitario) × {porcentajeComision || '0'}%)
+              Sueldo Total = Bonos + ((Ventas - Gasto publicitario) × {porcentajeComision || '0'}%)
             </Typography>
           </Box>
         </Grid>

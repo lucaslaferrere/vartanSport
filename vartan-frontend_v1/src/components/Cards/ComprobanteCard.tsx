@@ -8,6 +8,8 @@ interface ComprobanteCardProps {
   comprobante: IComprobante;
   onVer: () => void;
   onDescargar: () => void;
+  onVerSaldo?: () => void;
+  onDescargarSaldo?: () => void;
   onRevisar: () => void;
 }
 
@@ -19,10 +21,11 @@ const formatFecha = (iso: string) =>
 
 const getExtension = (url: string) => url.split('.').pop()?.toLowerCase() ?? '';
 
-export default function ComprobanteCard({ comprobante, onVer, onDescargar, onRevisar }: ComprobanteCardProps) {
-  const { revisado, venta_id, vendedor, cliente, total_final, fecha_venta, comprobante_url } = comprobante;
+export default function ComprobanteCard({ comprobante, onVer, onDescargar, onVerSaldo, onDescargarSaldo, onRevisar }: ComprobanteCardProps) {
+  const { revisado, venta_id, vendedor, cliente, total_final, fecha_venta, comprobante_url, comprobante_saldo_url, forma_pago, forma_pago_saldo } = comprobante;
   const ext = getExtension(comprobante_url);
   const isPdf = ext === 'pdf';
+  const tieneSaldo = !!comprobante_saldo_url;
 
   return (
     <Box
@@ -49,20 +52,58 @@ export default function ComprobanteCard({ comprobante, onVer, onDescargar, onRev
         </Box>
       )}
 
-      {/* Preview área */}
-      <Box sx={{
-        height: 100,
-        bgcolor: '#F9FAFB',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        borderBottom: '1px solid #E5E7EB',
-        cursor: 'pointer',
-      }} onClick={onVer}>
-        <i
-          className={isPdf ? 'fa-solid fa-file-pdf' : 'fa-solid fa-file-image'}
-          style={{ fontSize: '36px', color: isPdf ? '#EF4444' : '#3B82F6' }}
-        />
+      {/* Preview área — una o dos columnas según si hay saldo */}
+      <Box sx={{ display: 'flex', borderBottom: '1px solid #E5E7EB' }}>
+        <Box
+          sx={{
+            flex: 1,
+            height: 100,
+            bgcolor: '#F9FAFB',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: 'pointer',
+            borderRight: tieneSaldo ? '1px solid #E5E7EB' : 'none',
+          }}
+          onClick={onVer}
+        >
+          <i
+            className={isPdf ? 'fa-solid fa-file-pdf' : 'fa-solid fa-file-image'}
+            style={{ fontSize: tieneSaldo ? '24px' : '36px', color: isPdf ? '#EF4444' : '#3B82F6' }}
+          />
+          {tieneSaldo && (
+            <Typography sx={{ fontSize: '9px', color: '#9CA3AF', mt: 0.5 }}>Seña</Typography>
+          )}
+        </Box>
+
+        {tieneSaldo && (
+          <Box
+            sx={{
+              flex: 1,
+              height: 100,
+              bgcolor: '#F9FAFB',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+            }}
+            onClick={onVerSaldo}
+          >
+            {(() => {
+              const extSaldo = getExtension(comprobante_saldo_url!);
+              const isPdfSaldo = extSaldo === 'pdf';
+              return (
+                <i
+                  className={isPdfSaldo ? 'fa-solid fa-file-pdf' : 'fa-solid fa-file-image'}
+                  style={{ fontSize: '24px', color: isPdfSaldo ? '#EF4444' : '#3B82F6' }}
+                />
+              );
+            })()}
+            <Typography sx={{ fontSize: '9px', color: '#9CA3AF', mt: 0.5 }}>Saldo</Typography>
+          </Box>
+        )}
       </Box>
 
       {/* Info */}
@@ -79,6 +120,16 @@ export default function ComprobanteCard({ comprobante, onVer, onDescargar, onRev
         <Typography sx={{ fontSize: '12px', fontWeight: 600, color: '#1F2937', mt: 0.5 }}>
           {formatCurrency(total_final)}
         </Typography>
+        <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap', mt: 0.25 }}>
+          <Typography sx={{ fontSize: '10px', color: '#588a9e', fontWeight: 600 }}>
+            {forma_pago.nombre}
+          </Typography>
+          {forma_pago_saldo && (
+            <Typography sx={{ fontSize: '10px', color: '#6B7280' }}>
+              + {forma_pago_saldo.nombre}
+            </Typography>
+          )}
+        </Box>
         <Typography sx={{ fontSize: '10px', color: '#9CA3AF' }}>
           {formatFecha(fecha_venta)}
         </Typography>
@@ -91,16 +142,30 @@ export default function ComprobanteCard({ comprobante, onVer, onDescargar, onRev
         borderTop: '1px solid #F3F4F6',
         p: 0.5,
       }}>
-        <Tooltip title="Ver">
+        <Tooltip title={tieneSaldo ? 'Ver seña' : 'Ver'}>
           <IconButton size="small" onClick={onVer} sx={{ color: '#6B7280' }}>
             <i className="fa-solid fa-eye" style={{ fontSize: '13px' }} />
           </IconButton>
         </Tooltip>
-        <Tooltip title="Descargar">
+        <Tooltip title={tieneSaldo ? 'Descargar seña' : 'Descargar'}>
           <IconButton size="small" onClick={onDescargar} sx={{ color: '#6B7280' }}>
             <i className="fa-solid fa-download" style={{ fontSize: '13px' }} />
           </IconButton>
         </Tooltip>
+        {tieneSaldo && (
+          <>
+            <Tooltip title="Ver saldo">
+              <IconButton size="small" onClick={onVerSaldo} sx={{ color: '#6B7280' }}>
+                <i className="fa-solid fa-eye" style={{ fontSize: '13px' }} />
+              </IconButton>
+            </Tooltip>
+            <Tooltip title="Descargar saldo">
+              <IconButton size="small" onClick={onDescargarSaldo} sx={{ color: '#6B7280' }}>
+                <i className="fa-solid fa-download" style={{ fontSize: '13px' }} />
+              </IconButton>
+            </Tooltip>
+          </>
+        )}
         <Tooltip title={revisado ? 'Marcar como pendiente' : 'Marcar como revisado'}>
           <IconButton
             size="small"

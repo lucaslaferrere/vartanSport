@@ -1,12 +1,11 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Typography, Box, Switch, FormControlLabel } from '@mui/material';
+import { Box, Switch, FormControlLabel, Typography } from '@mui/material';
 import BaseModal from './BaseModal';
 import FormField from '@components/Forms/FormField';
 import { IProductoUpdateRequest } from '@models/request/IProductoRequest';
-import { TalleEnum, TALLES_OPTIONS } from '@models/enums/TalleEnum';
-import { ColorEnum, COLORES_OPTIONS } from '@models/enums/ColorEnum';
+import { TALLES_OPTIONS } from '@models/enums/TalleEnum';
 import { IProducto } from '@models/entities/productoEntity';
 import { productoService } from '@services/producto.service';
 
@@ -17,72 +16,48 @@ interface EditarProductoModalProps {
   producto: IProducto | null;
 }
 
-interface ExtendedProductoUpdateRequest extends IProductoUpdateRequest {
-  talles?: TalleEnum[];
-  colores?: ColorEnum[];
-  activo?: boolean;
-}
-
 export default function EditarProductoModal({ open, onClose, onSuccess, producto }: EditarProductoModalProps) {
-  const [formData, setFormData] = useState<ExtendedProductoUpdateRequest>({
+  const [formData, setFormData] = useState<IProductoUpdateRequest>({
     nombre: '',
     costo_unitario: 0,
     talles: [],
-    colores: [],
-    activo: true
+    activo: true,
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Cargar datos del producto cuando se abre el modal
   useEffect(() => {
     if (open && producto) {
-        setFormData({
-            nombre: producto.nombre,
-            costo_unitario: producto.costo_unitario,
-            talles: producto.talles_disponibles || [],
-            colores: producto.colores_disponibles || [],
-            activo: producto.activo
-        });
+      setFormData({
+        nombre: producto.nombre,
+        costo_unitario: producto.costo_unitario || 0,
+        talles: producto.talles_disponibles || [],
+        activo: producto.activo,
+      });
     }
-}, [open, producto]);
+  }, [open, producto]);
 
   const handleSubmit = async () => {
     setError(null);
-    
-    if (!producto) {
-      setError('No se ha seleccionado un producto para editar');
-      return;
-    }
+
+    if (!producto) return;
 
     if (!formData.nombre.trim()) {
       setError('El nombre del producto es requerido');
       return;
     }
 
-    if (formData.costo_unitario <= 0) {
+    if ((formData.costo_unitario || 0) <= 0) {
       setError('El costo unitario debe ser mayor a 0');
       return;
     }
 
-    if (!formData.talles || formData.talles.length === 0) {
-      setError('Debe seleccionar al menos un talle');
-      return;
-    }
-
-    if (!formData.colores || formData.colores.length === 0) {
-      setError('Debe seleccionar al menos un color');
-      return;
-    }
-
     setLoading(true);
-
     try {
-      await productoService.update(producto.id, formData as IProductoUpdateRequest);
+      await productoService.update(producto.id, formData);
       handleClose();
       onSuccess();
-    } catch (err) {
-      console.error('Error actualizando producto:', err);
+    } catch {
       setError('Error al actualizar el producto. Inténtelo nuevamente.');
     } finally {
       setLoading(false);
@@ -90,13 +65,7 @@ export default function EditarProductoModal({ open, onClose, onSuccess, producto
   };
 
   const handleClose = () => {
-    setFormData({
-      nombre: '',
-      costo_unitario: 0,
-      talles: [],
-      colores: [],
-      activo: true
-    });
+    setFormData({ nombre: '', costo_unitario: 0, talles: [], activo: true });
     setError(null);
     onClose();
   };
@@ -105,7 +74,7 @@ export default function EditarProductoModal({ open, onClose, onSuccess, producto
 
   return (
     <BaseModal
-      title={`Editar Producto: ${producto.nombre}`}
+      title={`Editar: ${producto.nombre}`}
       open={open}
       onClose={handleClose}
       onSubmit={handleSubmit}
@@ -135,39 +104,19 @@ export default function EditarProductoModal({ open, onClose, onSuccess, producto
           setFormData(prev => ({ ...prev, costo_unitario: value }));
           if (error) setError(null);
         }}
-        error={!!error && formData.costo_unitario <= 0}
+        error={!!error && (formData.costo_unitario || 0) <= 0}
         startAdornment={<Typography sx={{ mr: 1, color: '#9CA3AF', fontSize: '14px' }}>$</Typography>}
         inputProps={{ min: 0, step: 0.01 }}
       />
 
       <FormField
         label="Talles Disponibles"
-        required
         type="multiselect"
         placeholder="Seleccione los talles disponibles"
         value={formData.talles}
-        onChange={(value) => {
-          setFormData(prev => ({ ...prev, talles: value || [] }));
-          if (error) setError(null);
-        }}
+        onChange={(value) => setFormData(prev => ({ ...prev, talles: value || [] }))}
         options={TALLES_OPTIONS}
         getOptionLabel={(option) => option}
-        error={!!error && (!formData.talles || formData.talles.length === 0)}
-      />
-
-      <FormField
-        label="Colores Disponibles"
-
-        type="multiselect"
-        placeholder="Seleccione los colores disponibles"
-        value={formData.colores}
-        onChange={(value) => {
-          setFormData(prev => ({ ...prev, colores: value || [] }));
-          if (error) setError(null);
-        }}
-        options={COLORES_OPTIONS}
-        getOptionLabel={(option) => option}
-        error={!!error && (!formData.colores || formData.colores.length === 0)}
       />
 
       <Box sx={{ mb: 3 }}>
@@ -175,24 +124,14 @@ export default function EditarProductoModal({ open, onClose, onSuccess, producto
           control={
             <Switch
               checked={formData.activo}
-              onChange={(event) => {
-                setFormData(prev => ({ ...prev, activo: event.target.checked }));
-              }}
+              onChange={(e) => setFormData(prev => ({ ...prev, activo: e.target.checked }))}
               sx={{
-                '& .MuiSwitch-switchBase.Mui-checked': {
-                  color: '#10B981',
-                },
-                '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': {
-                  backgroundColor: '#10B981',
-                },
+                '& .MuiSwitch-switchBase.Mui-checked': { color: '#10B981' },
+                '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': { backgroundColor: '#10B981' },
               }}
             />
           }
-          label={
-            <Typography sx={{ fontSize: '14px', fontWeight: 500, color: '#374151' }}>
-              Producto activo
-            </Typography>
-          }
+          label={<Typography sx={{ fontSize: '14px', fontWeight: 500, color: '#374151' }}>Producto activo</Typography>}
         />
       </Box>
     </BaseModal>

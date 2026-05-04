@@ -7,5 +7,5 @@ export interface IRegisterRequest {
     nombre: string;
     email: string;
     password: string;
-    rol: 'dueño' | 'vendedor' | 'demo';
+    rol: 'dueño' | 'vendedor' | 'demo' | 'repositor';
 }

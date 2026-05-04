@@ -151,7 +151,7 @@ export default function DetalleVentaModal({ open, onClose, venta }: DetalleVenta
               🚚 ${transporteActual || 'Sin transporte especificado'}
             </div>
 
-            <div class="pedido">Pedido #${venta.id}</div>
+            <div class="pedido">Venta #${venta.id}</div>
           </div>
           <script>window.onload = () => { window.print(); window.onafterprint = () => window.close(); }</script>
         </body>
@@ -203,8 +203,8 @@ export default function DetalleVentaModal({ open, onClose, venta }: DetalleVenta
               <Typography sx={{ fontSize: '13px' }}>{venta.usuario?.nombre || 'N/A'}</Typography>
             </Grid>
             <Grid size={{ xs: 6, md: 3 }}>
-              <Typography sx={{ fontSize: '11px', fontWeight: 600, color: '#6B7280', mb: 0.5 }}>Financiera</Typography>
-              <Typography sx={{ fontSize: '13px' }}>{venta.usa_financiera ? 'Sí (-3%)' : 'No'}</Typography>
+              {/*<Typography sx={{ fontSize: '11px', fontWeight: 600, color: '#6B7280', mb: 0.5 }}>Financiera</Typography>
+              <Typography sx={{ fontSize: '13px' }}>{venta.usa_financiera ? 'Sí (-3%)' : 'No'}</Typography> */ }
             </Grid>
 
             {/* Productos */}
@@ -265,43 +265,52 @@ export default function DetalleVentaModal({ open, onClose, venta }: DetalleVenta
                 </Typography>
                 <Box sx={{ p: 2, bgcolor: '#F9FAFB', borderRadius: '8px', border: '1px solid #E5E7EB' }}>
                   {/* Seña inicial */}
-                  {(venta.sena_inicial ?? 0) > 0 && (
-                    <Box sx={{ mb: 1.5 }}>
-                      <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.25 }}>
-                        <Typography sx={{ fontSize: '12px', color: '#6B7280' }}>Seña inicial:</Typography>
-                        <Typography sx={{ fontSize: '13px', fontWeight: 600, color: '#3B82F6' }}>
-                          ${(venta.sena_inicial ?? 0).toLocaleString('es-AR', { minimumFractionDigits: 2 })}
+                  {(venta.sena_inicial ?? 0) > 0 && (() => {
+                    const metodoPagoSena = venta.forma_pago?.nombre || 'N/A';
+                    const esFinancieraSena = metodoPagoSena.toLowerCase().includes('financiera');
+                    return (
+                      <Box sx={{ mb: 1.5 }}>
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.25 }}>
+                          <Typography sx={{ fontSize: '12px', color: '#6B7280' }}>Seña inicial:</Typography>
+                          <Typography sx={{ fontSize: '13px', fontWeight: 600, color: '#3B82F6' }}>
+                            ${(venta.sena_inicial ?? 0).toLocaleString('es-AR', { minimumFractionDigits: 2 })}
+                          </Typography>
+                        </Box>
+                        <Typography sx={{ fontSize: '11px', color: '#9CA3AF' }}>
+                          Método: {metodoPagoSena}
+                          {esFinancieraSena && (
+                            <Box component="span" sx={{ ml: 1, color: '#D97706' }}>
+                              (comisión 2.5%: -${((venta.sena_inicial ?? 0) * 0.025).toLocaleString('es-AR', { minimumFractionDigits: 2 })})
+                            </Box>
+                          )}
                         </Typography>
                       </Box>
-                      <Typography sx={{ fontSize: '11px', color: '#9CA3AF' }}>
-                        Método: {venta.forma_pago?.nombre || 'N/A'}
-                        {venta.forma_pago_id === 1 && (
-                          <Box component="span" sx={{ ml: 1, color: '#D97706' }}>
-                            (comisión 3%: -${((venta.sena_inicial ?? 0) * 0.03).toLocaleString('es-AR', { minimumFractionDigits: 2 })})
-                          </Box>
-                        )}
-                      </Typography>
-                    </Box>
-                  )}
+                    );
+                  })()}
                   {/* Pago de saldo */}
-                  {(venta.sena - (venta.sena_inicial ?? 0)) > 0 && (
-                    <Box sx={{ mb: 0.5 }}>
-                      <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.25 }}>
-                        <Typography sx={{ fontSize: '12px', color: '#6B7280' }}>Pago de saldo:</Typography>
-                        <Typography sx={{ fontSize: '13px', fontWeight: 600, color: '#059669' }}>
-                          ${(venta.sena - (venta.sena_inicial ?? 0)).toLocaleString('es-AR', { minimumFractionDigits: 2 })}
+                  {(venta.sena - (venta.sena_inicial ?? 0)) > 0 && (() => {
+                    const metodoPagoSaldo = venta.forma_pago_saldo?.nombre || venta.forma_pago?.nombre || 'N/A';
+                    const esFinancieraSaldo = metodoPagoSaldo.toLowerCase().includes('financiera');
+                    const montoPagoSaldo = venta.sena - (venta.sena_inicial ?? 0);
+                    return (
+                      <Box sx={{ mb: 0.5 }}>
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.25 }}>
+                          <Typography sx={{ fontSize: '12px', color: '#6B7280' }}>Pago de saldo:</Typography>
+                          <Typography sx={{ fontSize: '13px', fontWeight: 600, color: '#059669' }}>
+                            ${montoPagoSaldo.toLocaleString('es-AR', { minimumFractionDigits: 2 })}
+                          </Typography>
+                        </Box>
+                        <Typography sx={{ fontSize: '11px', color: '#9CA3AF' }}>
+                          Método: {metodoPagoSaldo}
+                          {esFinancieraSaldo && (
+                            <Box component="span" sx={{ ml: 1, color: '#D97706' }}>
+                              (comisión 2.5%: -${(montoPagoSaldo * 0.025).toLocaleString('es-AR', { minimumFractionDigits: 2 })})
+                            </Box>
+                          )}
                         </Typography>
                       </Box>
-                      <Typography sx={{ fontSize: '11px', color: '#9CA3AF' }}>
-                        Método: {venta.forma_pago_saldo?.nombre || venta.forma_pago?.nombre || 'N/A'}
-                        {(venta.forma_pago_saldo_id ?? venta.forma_pago_id) === 1 && (
-                          <Box component="span" sx={{ ml: 1, color: '#D97706' }}>
-                            (comisión 3%: -${((venta.sena - (venta.sena_inicial ?? 0)) * 0.03).toLocaleString('es-AR', { minimumFractionDigits: 2 })})
-                          </Box>
-                        )}
-                      </Typography>
-                    </Box>
-                  )}
+                    );
+                  })()}
                   {/* Sin pagos adicionales */}
                   {(venta.sena_inicial ?? 0) === 0 && (venta.sena - (venta.sena_inicial ?? 0)) === 0 && (
                     <Typography sx={{ fontSize: '12px', color: '#9CA3AF' }}>Sin pagos registrados</Typography>

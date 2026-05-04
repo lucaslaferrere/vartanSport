@@ -3,9 +3,12 @@ import { api } from '@libraries/api';
 export interface IComprobante {
   venta_id: number;
   comprobante_url: string;
+  comprobante_saldo_url?: string;
   fecha_venta: string;
   vendedor: { id: number; nombre: string };
   cliente: { id: number; nombre: string };
+  forma_pago: { id: number; nombre: string };
+  forma_pago_saldo?: { id: number; nombre: string };
   total_final: number;
   revisado: boolean;
   revisado_at: string | null;
@@ -55,6 +58,23 @@ export const comprobanteService = {
 
   descargar: async (ventaId: number, nombreArchivo: string): Promise<void> => {
     const blob = await comprobanteService.getArchivoBlob(ventaId);
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', nombreArchivo);
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(url);
+  },
+
+  getArchivoBlobSaldo: async (ventaId: number): Promise<Blob> => {
+    const response = await api.get(`/api/ventas/${ventaId}/comprobante-saldo`, { responseType: 'blob' });
+    return response.data;
+  },
+
+  descargarSaldo: async (ventaId: number, nombreArchivo: string): Promise<void> => {
+    const blob = await comprobanteService.getArchivoBlobSaldo(ventaId);
     const url = window.URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;

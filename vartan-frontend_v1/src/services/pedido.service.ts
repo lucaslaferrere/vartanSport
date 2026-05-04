@@ -21,6 +21,12 @@ export const pedidoService = {
         return response.data;
     },
 
+    // Repositor: obtener todos los pedidos (sin permisos de dueño)
+    getAllRepositor: async (): Promise<IPedido[]> => {
+        const response = await api.get<IPedido[]>('/api/pedidos');
+        return response.data;
+    },
+
     // Solo dueño: obtener pedidos por estado
     getByEstado: async (estado: 'pendiente' | 'despachado' | 'cancelado'): Promise<IPedido[]> => {
         const response = await api.get<IPedido[]>(`/api/owner/pedidos/estado/${estado}`);
