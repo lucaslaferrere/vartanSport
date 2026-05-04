@@ -16,7 +16,7 @@ const TRANSPORTES = ['', 'Correo Argentino', 'Viacargo', 'Moto', 'Retira'];
 
 export default function DetalleVentaModal({ open, onClose, venta }: DetalleVentaModalProps) {
   const { user } = useAuthStore();
-  const isDueno = user?.rol === 'dueno';
+  const isDueno = user?.rol === 'dueño';
   const [previsualizando, setPrevisualizando] = useState(false);
   const [transporteEdit, setTransporteEdit] = useState(venta?.transporte || '');
   const [transporteActual, setTransporteActual] = useState(venta?.transporte || '');
