@@ -177,13 +177,6 @@ func CalcularComisionesMesActual(c *gin.Context) {
 			Select("COALESCE(SUM(total_final), 0)").
 			Scan(&totalVentas)
 
-		// Calcular base de comisión con la ganancia real (incluye descuento financiera).
-		var totalGanancia float64
-		config.DB.Model(&models.Venta{}).
-			Where("usuario_id = ? AND fecha_venta >= ? AND fecha_venta < ?", usuario.ID, mesInicio, mesFin).
-			Select("COALESCE(SUM(ganancia), 0)").
-			Scan(&totalGanancia)
-
 		// Buscar si ya existe comisión para este mes
 		var comisionExistente models.Comision
 		result := config.DB.Where("usuario_id = ? AND mes = ? AND anio = ?", usuario.ID, mes, anio).First(&comisionExistente)
@@ -196,19 +189,12 @@ func CalcularComisionesMesActual(c *gin.Context) {
 			gastoPublicitario = *comisionExistente.GastoPublicitario
 		}
 
-		// Usar el porcentaje del registro si ya existe (snapshot histórico), si no el actual del usuario
+		// Usar el porcentaje actual configurado para el vendedor.
 		porcentajeComision := usuario.PorcentajeComision
-		if result.Error == nil && comisionExistente.PorcentajeComision > 0 {
-			porcentajeComision = comisionExistente.PorcentajeComision
-		}
 
-		// Calcular comisión con gasto descontado antes de aplicar porcentaje.
+		// Calcular comisión como porcentaje de la facturación mensual del vendedor.
 		porcentaje := porcentajeComision / 100.0
-		gananciaNeta := totalGanancia - gastoPublicitario
-		if gananciaNeta < 0 {
-			gananciaNeta = 0
-		}
-		comisionNeta := gananciaNeta * porcentaje
+		comisionNeta := totalVentas * porcentaje
 
 		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 			// No existe, crear nueva — snapshot de sueldo, porcentaje y gasto del mes actual
@@ -231,9 +217,7 @@ func CalcularComisionesMesActual(c *gin.Context) {
 			// Ya existe, actualizar totales (no tocar gasto_publicitario)
 			comisionExistente.TotalVentas = totalVentas
 			comisionExistente.TotalComision = comisionNeta
-			if comisionExistente.PorcentajeComision == 0 {
-				comisionExistente.PorcentajeComision = usuario.PorcentajeComision
-			}
+			comisionExistente.PorcentajeComision = usuario.PorcentajeComision
 			config.DB.Model(&comisionExistente).Omit("gasto_publicitario").Updates(&comisionExistente)
 		}
 	}
@@ -360,13 +344,9 @@ func GetMiResumenComision(c *gin.Context) {
 		porcentajeParaCalculo = comisionMesActual.PorcentajeComision
 	}
 
-	// Calcular comisión estimada del mes con el gasto correcto descontado antes del porcentaje.
+	// Calcular comisión estimada del mes como porcentaje de la facturación.
 	porcentaje := porcentajeParaCalculo / 100.0
-	gananciaNeta := totalGananciaMesActual - gastoPublicitarioMes
-	if gananciaNeta < 0 {
-		gananciaNeta = 0
-	}
-	comisionNeta := gananciaNeta * porcentaje
+	comisionNeta := totalVentasMesActual * porcentaje
 	totalACobrar := usuario.Sueldo + comisionNeta
 
 	// Obtener historial de comisiones (últimos 6 meses)
@@ -403,7 +383,8 @@ func GetMiResumenComision(c *gin.Context) {
 			"total_ventas":           totalVentasMesActual,
 			"total_ganancia":         totalGananciaMesActual,
 			"cantidad_ventas":        cantidadVentasMes,
-			"comision_bruta":         gananciaNeta,
+			"base_comision":          totalVentasMesActual,
+			"comision_bruta":         totalVentasMesActual,
 			"gasto_publicitario":     gastoPublicitarioMes,
 			"comision_neta":          comisionNeta,
 			"sueldo_base":            usuario.Sueldo,
@@ -466,22 +447,12 @@ func UpdateGastoPublicitarioMes(c *gin.Context) {
 		Select("COALESCE(SUM(total_final), 0)").
 		Scan(&totalVentas)
 
-	var totalGanancia float64
-	config.DB.Model(&models.Venta{}).
-		Where("usuario_id = ? AND fecha_venta >= ? AND fecha_venta < ?", comision.UsuarioID, mesInicio, mesFin).
-		Select("COALESCE(SUM(ganancia), 0)").
-		Scan(&totalGanancia)
-
 	// Usar el porcentaje del snapshot histórico del registro, no el actual del usuario
 	porcentaje := comision.PorcentajeComision / 100.0
-	gananciaNeta := totalGanancia - *req.GastoPublicitario
-	if gananciaNeta < 0 {
-		gananciaNeta = 0
-	}
 
 	comision.GastoPublicitario = req.GastoPublicitario
 	comision.TotalVentas = totalVentas
-	comision.TotalComision = gananciaNeta * porcentaje
+	comision.TotalComision = totalVentas * porcentaje
 
 	if err := config.DB.Save(&comision).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error al actualizar gasto publicitario"})
@@ -525,11 +496,11 @@ func GetComisionPublicitariaDelMes(c *gin.Context) {
 
 	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 		c.JSON(http.StatusOK, gin.H{
-			"empleado_id":   empleadoID,
-			"mes":           mes,
-			"anio":          anio,
+			"empleado_id":    empleadoID,
+			"mes":            mes,
+			"anio":           anio,
 			"valor_comision": 0,
-			"not_set":       true,
+			"not_set":        true,
 		})
 		return
 	}
@@ -539,11 +510,11 @@ func GetComisionPublicitariaDelMes(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"empleado_id":   rec.EmpleadoID,
-		"mes":           rec.Mes,
-		"anio":          rec.Anio,
+		"empleado_id":    rec.EmpleadoID,
+		"mes":            rec.Mes,
+		"anio":           rec.Anio,
 		"valor_comision": rec.ValorComision,
-		"not_set":       false,
+		"not_set":        false,
 	})
 }
 

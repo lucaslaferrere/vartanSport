@@ -23,7 +23,7 @@ func SetupRoutes(router *gin.Engine) {
 	}
 
 	api := router.Group("/api")
-	api.Use(middleware.AuthMiddleware())
+	api.Use(middleware.AuthMiddleware(), middleware.RestrictRepositorToPedidos())
 	{
 		api.GET("/profile", controllers.GetProfile)
 		api.GET("/me", controllers.GetMe)
@@ -32,6 +32,7 @@ func SetupRoutes(router *gin.Engine) {
 		api.GET("/productos/:id", controllers.GetProducto)
 		api.GET("/stock", controllers.GetStock)
 		api.GET("/stock/producto/:id", controllers.GetStockByProducto)
+		api.GET("/stock/producto/:id/talles", controllers.GetStockPorTalle)
 
 		// Tipos de producto
 		api.GET("/tipos-producto", controllers.GetTiposProducto)
@@ -61,6 +62,8 @@ func SetupRoutes(router *gin.Engine) {
 		api.GET("/ventas-pendientes", controllers.GetPagosPendientes)
 
 		api.GET("/mis-pedidos", controllers.GetMisPedidos)
+		api.GET("/pedidos", middleware.RequirePedidosRead(), controllers.GetPedidos)
+		api.GET("/pedidos/:id", controllers.GetPedido)
 		api.PUT("/pedidos/:id", middleware.RequireWrite(), controllers.UpdatePedidoEstado)
 
 		api.GET("/mis-comisiones", controllers.GetMisComisiones)
@@ -90,6 +93,9 @@ func SetupRoutes(router *gin.Engine) {
 	owner := router.Group("/api/owner")
 	owner.Use(middleware.AuthMiddleware(), middleware.RequireDueno())
 	{
+		// Dashboard
+		owner.GET("/dashboard", controllers.GetDashboardMensual)
+
 		// Usuarios
 		owner.GET("/usuarios/vendedores", controllers.GetVendedores)
 		owner.PUT("/usuarios/:id/comision-config", controllers.UpdateComisionConfig)
@@ -100,7 +106,7 @@ func SetupRoutes(router *gin.Engine) {
 		owner.DELETE("/productos/:id", controllers.DeleteProducto)
 
 		// Stock
-		owner.POST("/stock", controllers.AddStock)
+		owner.POST("/stock", controllers.AddStockPorTalle)
 		owner.PUT("/stock/:id", controllers.UpdateStock)
 
 		// Tipos de producto

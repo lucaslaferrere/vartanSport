@@ -3,6 +3,7 @@ package controllers
 import (
 	"net/http"
 	"os"
+	"strings"
 	"time"
 	"vartan-backend/config"
 	"vartan-backend/models"
@@ -11,6 +12,36 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 	"golang.org/x/crypto/bcrypt"
 )
+
+func normalizeRegistroRol(raw string) string {
+	rol := strings.TrimSpace(strings.ToLower(raw))
+	rol = strings.NewReplacer(
+		"á", "a",
+		"é", "e",
+		"í", "i",
+		"ó", "o",
+		"ú", "u",
+		"ñ", "n",
+		"Ã¡", "a",
+		"Ã©", "e",
+		"Ã­", "i",
+		"Ã³", "o",
+		"Ãº", "u",
+		"Ã±", "n",
+		"Ã£Â±", "n",
+	).Replace(rol)
+
+	switch rol {
+	case "dueño", "dueno", "owner", "admin":
+		return "dueño"
+	case "empleado", "vendedor", "seller":
+		return "empleado"
+	case "repositor", "repositores":
+		return "repositor"
+	default:
+		return rol
+	}
+}
 
 // Login godoc
 // @Summary Iniciar sesión
@@ -85,7 +116,8 @@ func Register(c *gin.Context) {
 		return
 	}
 
-	if regReq.Rol != "dueño" && regReq.Rol != "empleado" {
+	rol := normalizeRegistroRol(regReq.Rol)
+	if rol != "dueño" && rol != "empleado" && rol != "repositor" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Rol inválido"})
 		return
 	}
@@ -106,7 +138,7 @@ func Register(c *gin.Context) {
 		Nombre:       regReq.Nombre,
 		Email:        regReq.Email,
 		PasswordHash: string(hashedPassword),
-		Rol:          regReq.Rol,
+		Rol:          rol,
 		Activo:       true,
 	}
 

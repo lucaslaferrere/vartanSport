@@ -3,11 +3,66 @@ package controllers
 import (
 	"net/http"
 	"strconv"
+	"strings"
 	"vartan-backend/config"
 	"vartan-backend/models"
 
 	"github.com/gin-gonic/gin"
 )
+
+func isOwnerRole(raw string) bool {
+	role := strings.TrimSpace(strings.ToLower(raw))
+	role = strings.NewReplacer(
+		"á", "a",
+		"ñ", "n",
+		"Ã¡", "a",
+		"Ã±", "n",
+		"Ã£Â±", "n",
+	).Replace(role)
+	return role == "dueno" || role == "owner" || role == "admin"
+}
+
+func getStockPorTalle(productoID int) ([]models.StockPorTalleItem, int, error) {
+	var stockPorTalle []models.StockPorTalleItem
+	if err := config.DB.Model(&models.ProductoStock{}).
+		Select("talle, COALESCE(SUM(cantidad), 0) as cantidad").
+		Where("producto_id = ?", productoID).
+		Group("talle").
+		Order("talle").
+		Scan(&stockPorTalle).Error; err != nil {
+		return nil, 0, err
+	}
+
+	stockTotal := 0
+	for _, item := range stockPorTalle {
+		stockTotal += item.Cantidad
+	}
+
+	return stockPorTalle, stockTotal, nil
+}
+
+func buildProductoResponse(producto models.Producto, includeCost bool) (models.ProductoResponse, error) {
+	stockPorTalle, stockTotal, err := getStockPorTalle(producto.ID)
+	if err != nil {
+		return models.ProductoResponse{}, err
+	}
+
+	var costo *float64
+	if includeCost {
+		costo = &producto.CostoUnitario
+	}
+
+	return models.ProductoResponse{
+		ID:                producto.ID,
+		Nombre:            producto.Nombre,
+		CostoUnitario:     costo,
+		Activo:            producto.Activo,
+		FechaCreacion:     producto.FechaCreacion,
+		TallesDisponibles: producto.TallesDisponibles,
+		StockTotal:        stockTotal,
+		StockPorTalle:     stockPorTalle,
+	}, nil
+}
 
 // GetProductos godoc
 // @Summary Listar productos
@@ -22,34 +77,20 @@ import (
 func GetProductos(c *gin.Context) {
 	var productos []models.Producto
 
-	if err := config.DB.Preload("TipoProducto").Preload("Equipo").Where("activo = ?", true).Find(&productos).Error; err != nil {
+	if err := config.DB.Where("activo = ?", true).Find(&productos).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error al obtener productos"})
 		return
 	}
 
-	// Construir respuesta con stock total
+	includeCost := isOwnerRole(c.GetString("rol"))
 	var response []models.ProductoResponse
 	for _, p := range productos {
-		var stockTotal int
-		config.DB.Model(&models.ProductoStock{}).
-			Where("producto_id = ?", p.ID).
-			Select("COALESCE(SUM(cantidad), 0)").
-			Scan(&stockTotal)
-
-		response = append(response, models.ProductoResponse{
-			ID:                 p.ID,
-			Nombre:             p.Nombre,
-			CostoUnitario:      p.CostoUnitario,
-			Activo:             p.Activo,
-			FechaCreacion:      p.FechaCreacion,
-			TallesDisponibles:  p.TallesDisponibles,
-			ColoresDisponibles: p.ColoresDisponibles,
-			StockTotal:         stockTotal,
-			TipoProductoID:     p.TipoProductoID,
-			TipoProducto:       p.TipoProducto,
-			EquipoID:           p.EquipoID,
-			Equipo:             p.Equipo,
-		})
+		item, err := buildProductoResponse(p, includeCost)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error al calcular stock"})
+			return
+		}
+		response = append(response, item)
 	}
 
 	c.JSON(http.StatusOK, response)
@@ -63,19 +104,25 @@ func GetProductos(c *gin.Context) {
 // @Produce json
 // @Security BearerAuth
 // @Param id path int true "ID del producto"
-// @Success 200 {object} models.Producto
+// @Success 200 {object} models.ProductoResponse
 // @Failure 404 {object} map[string]string "Producto no encontrado"
 // @Router /api/productos/{id} [get]
 func GetProducto(c *gin.Context) {
 	id := c.Param("id")
 
 	var producto models.Producto
-	if err := config.DB.Preload("TipoProducto").Preload("Equipo").First(&producto, id).Error; err != nil {
+	if err := config.DB.First(&producto, id).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Producto no encontrado"})
 		return
 	}
 
-	c.JSON(http.StatusOK, producto)
+	response, err := buildProductoResponse(producto, isOwnerRole(c.GetString("rol")))
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error al calcular stock"})
+		return
+	}
+
+	c.JSON(http.StatusOK, response)
 }
 
 // CreateProducto godoc
@@ -266,12 +313,44 @@ func DeleteProducto(c *gin.Context) {
 func GetStock(c *gin.Context) {
 	var stock []models.ProductoStock
 
-	if err := config.DB.Preload("Producto").Find(&stock).Error; err != nil {
+	query := config.DB
+	if isOwnerRole(c.GetString("rol")) {
+		query = query.Preload("Producto")
+	}
+
+	if err := query.Find(&stock).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error al obtener stock"})
 		return
 	}
 
 	c.JSON(http.StatusOK, stock)
+}
+
+func GetStockPorTalle(c *gin.Context) {
+	productoID, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "ID de producto inválido"})
+		return
+	}
+
+	var producto models.Producto
+	if err := config.DB.First(&producto, productoID).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Producto no encontrado"})
+		return
+	}
+
+	stockPorTalle, stockTotal, err := getStockPorTalle(productoID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error al obtener stock por talle"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"producto_id":     producto.ID,
+		"producto_nombre": producto.Nombre,
+		"stock_total":     stockTotal,
+		"stock_por_talle": stockPorTalle,
+	})
 }
 
 // GetStockByProducto godoc
@@ -380,6 +459,92 @@ func AddStock(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusCreated, response)
+}
+
+func AddStockPorTalle(c *gin.Context) {
+	var req models.StockCreateRequest
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Datos inválidos"})
+		return
+	}
+
+	var producto models.Producto
+	if err := config.DB.First(&producto, req.ProductoID).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Producto no encontrado"})
+		return
+	}
+
+	var stocksCreados []models.ProductoStock
+	if len(req.CantidadesPorTalle) > 0 {
+		for _, item := range req.CantidadesPorTalle {
+			stock, err := guardarStockPorTalle(req.ProductoID, item.Talle, item.Cantidad)
+			if err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+				return
+			}
+			stocksCreados = append(stocksCreados, stock)
+		}
+	} else {
+		if req.Cantidad <= 0 || len(req.Talles) == 0 {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Debe enviar cantidades_por_talle o talles con cantidad"})
+			return
+		}
+		for _, talle := range req.Talles {
+			stock, err := guardarStockPorTalle(req.ProductoID, talle, req.Cantidad)
+			if err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+				return
+			}
+			stocksCreados = append(stocksCreados, stock)
+		}
+	}
+
+	response := models.StockCreateResponse{
+		Message:       "Stock creado/actualizado exitosamente",
+		StocksCreados: len(stocksCreados),
+		Stocks:        stocksCreados,
+	}
+
+	c.JSON(http.StatusCreated, response)
+}
+
+func guardarStockPorTalle(productoID int, talle models.TalleEnum, cantidad int) (models.ProductoStock, error) {
+	if !models.TallesValidos[talle] {
+		return models.ProductoStock{}, &stockValidationError{"Talle inválido: " + string(talle)}
+	}
+	if cantidad <= 0 {
+		return models.ProductoStock{}, &stockValidationError{"La cantidad debe ser mayor a 0"}
+	}
+
+	var stock models.ProductoStock
+	result := config.DB.Where("producto_id = ? AND talle = ?", productoID, talle).First(&stock)
+	if result.Error != nil {
+		stock = models.ProductoStock{
+			ProductoID: productoID,
+			Talle:      talle,
+			Color:      "",
+			Cantidad:   cantidad,
+		}
+		if err := config.DB.Create(&stock).Error; err != nil {
+			return models.ProductoStock{}, &stockValidationError{"Error al crear stock"}
+		}
+		return stock, nil
+	}
+
+	stock.Cantidad += cantidad
+	if err := config.DB.Save(&stock).Error; err != nil {
+		return models.ProductoStock{}, &stockValidationError{"Error al actualizar stock"}
+	}
+	return stock, nil
+}
+
+type stockValidationError struct {
+	message string
+}
+
+func (e *stockValidationError) Error() string {
+	return e.message
 }
 
 // UpdateStock godoc

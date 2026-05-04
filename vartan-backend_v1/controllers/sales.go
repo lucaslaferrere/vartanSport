@@ -16,6 +16,33 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+const financieraRate = 0.025
+
+func normalizeFormaPagoName(nombre string) string {
+	normalized := strings.TrimSpace(strings.ToLower(nombre))
+	normalized = strings.NewReplacer(
+		"á", "a",
+		"é", "e",
+		"í", "i",
+		"ó", "o",
+		"ú", "u",
+		"ñ", "n",
+		"Ã¡", "a",
+		"Ã©", "e",
+		"Ã­", "i",
+		"Ã³", "o",
+		"Ãº", "u",
+		"Ã±", "n",
+		"Ã£Â±", "n",
+	).Replace(normalized)
+	return normalized
+}
+
+func isFormaPagoFinanciera(formaPago models.FormaPago) bool {
+	normalized := normalizeFormaPagoName(formaPago.Nombre)
+	return normalized == "financiera" || normalized == "transferencia financiera"
+}
+
 // CreateVenta godoc
 // @Summary Crear venta
 // @Description Crea una nueva venta con descuentos automáticos y opcionalmente un comprobante
@@ -154,7 +181,40 @@ func GetFormasPago(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, formasPago)
+	orden := []string{"senas", "financiera", "valu tahiel", "cuenta 0", "efectivo"}
+	permitidas := map[string]models.FormaPago{}
+	for _, formaPago := range formasPago {
+		key := normalizeFormaPagoName(formaPago.Nombre)
+		if key == "senas" || key == "sena" || key == "señas" {
+			permitidas["senas"] = formaPago
+			continue
+		}
+		if key == "transferencia financiera" {
+			formaPago.Nombre = "Financiera"
+			permitidas["financiera"] = formaPago
+			continue
+		}
+		if key == "transferencia a cero" {
+			formaPago.Nombre = "Cuenta 0"
+			permitidas["cuenta 0"] = formaPago
+			continue
+		}
+		if key == "financiera" || key == "valu tahiel" || key == "cuenta 0" || key == "efectivo" {
+			permitidas[key] = formaPago
+		}
+	}
+
+	response := make([]models.FormaPago, 0, len(orden))
+	for _, key := range orden {
+		if formaPago, ok := permitidas[key]; ok {
+			if key == "senas" {
+				formaPago.Nombre = "Señas"
+			}
+			response = append(response, formaPago)
+		}
+	}
+
+	c.JSON(http.StatusOK, response)
 }
 
 // @Router /api/ventas/{id}/detalles [put]
@@ -300,8 +360,8 @@ func UpdateVentaDetalles(c *gin.Context) {
 
 	descuento := 0.0
 	usaFinanciera := false
-	if request.UsaDescuentoFinanciera && formaPago.Nombre == "Transferencia Financiera" {
-		descuento = request.PrecioVenta * 0.03
+	if request.UsaDescuentoFinanciera && isFormaPagoFinanciera(formaPago) {
+		descuento = request.PrecioVenta * financieraRate
 		usaFinanciera = true
 	}
 
@@ -562,9 +622,9 @@ func processVenta(c *gin.Context, usuarioID *int, clienteID int, formaPagoID int
 		saldo = 0
 	}
 
-	// El 3% de financiera afecta la GANANCIA, no lo que paga el cliente
-	if usaDescuentoFinanciera && formaPago.Nombre == "Transferencia Financiera" {
-		descuento = total * 0.03 // 3% del precio de venta
+	// La financiera afecta la GANANCIA, no lo que paga el cliente.
+	if usaDescuentoFinanciera && isFormaPagoFinanciera(formaPago) {
+		descuento = total * financieraRate
 		usaFinanciera = true
 	}
 
@@ -945,8 +1005,8 @@ func UpdateVenta(c *gin.Context) {
 		saldo = venta.PrecioVenta - senaValue
 	}
 
-	if venta.UsaFinanciera && formaPago.Nombre == "Transferencia Financiera" {
-		venta.Descuento = venta.PrecioVenta * 0.03
+	if venta.UsaFinanciera && isFormaPagoFinanciera(formaPago) {
+		venta.Descuento = venta.PrecioVenta * financieraRate
 		venta.UsaFinanciera = true
 	} else {
 		venta.Descuento = 0
@@ -1056,7 +1116,7 @@ func UpdateVentaPago(c *gin.Context) {
 
 	// La financiera impacta solo en la ganancia.
 	if venta.UsaFinanciera {
-		venta.Descuento = venta.PrecioVenta * 0.03
+		venta.Descuento = venta.PrecioVenta * financieraRate
 	} else {
 		venta.Descuento = 0
 	}
@@ -1065,9 +1125,12 @@ func UpdateVentaPago(c *gin.Context) {
 	venta.Saldo = saldo
 	ganancia := venta.PrecioVenta - venta.Costo - venta.Descuento
 	pagoDeHoy := nuevaSena - senaActual
-	if venta.FormaPagoSaldoID != nil && *venta.FormaPagoSaldoID == 1 && pagoDeHoy > 0 {
-		descuentoFinanciera := pagoDeHoy * 0.03
-		ganancia -= descuentoFinanciera
+	if venta.FormaPagoSaldoID != nil && pagoDeHoy > 0 {
+		var formaPagoSaldo models.FormaPago
+		if err := config.DB.First(&formaPagoSaldo, *venta.FormaPagoSaldoID).Error; err == nil && isFormaPagoFinanciera(formaPagoSaldo) {
+			descuentoFinanciera := pagoDeHoy * financieraRate
+			ganancia -= descuentoFinanciera
+		}
 	}
 	venta.Ganancia = ganancia
 
