@@ -552,7 +552,7 @@ const [miResumen, setMiResumen] = useState<IMiResumenComision | null>(null);
                                                     <XAxis dataKey="name" stroke="#6B7280" style={{ fontSize: '11px' }} />
                                                     <YAxis stroke="#6B7280" style={{ fontSize: '11px' }} tickFormatter={(v: number) => '$' + (v / 1000).toFixed(0) + 'k'} />
                                                     <Tooltip
-                                                        formatter={(value: number, name: string) => [formatCurrency(value), (name as string).replace('ventas_', '')]}
+                                                        formatter={(value: number | undefined, name: string) => [formatCurrency(value ?? 0), (name as string).replace('ventas_', '')]}
                                                         contentStyle={{ borderRadius: '8px', border: '1px solid #E5E7EB', fontSize: '12px' }}
                                                     />
                                                     <Legend wrapperStyle={{ fontSize: '11px' }} formatter={(name: string) => name.replace('ventas_', '')} />
