@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { Dialog, DialogTitle, DialogContent, DialogActions, Box, Typography, Grid, Divider } from '@mui/material';
 import { IVenta } from '@models/entities/ventaEntity';
 import { ventaService } from '@services/venta.service';
+import { useAuthStore } from '@libraries/store';
 
 interface DetalleVentaModalProps {
   open: boolean;
@@ -14,6 +15,8 @@ interface DetalleVentaModalProps {
 const TRANSPORTES = ['', 'Correo Argentino', 'Viacargo', 'Moto', 'Retira'];
 
 export default function DetalleVentaModal({ open, onClose, venta }: DetalleVentaModalProps) {
+  const { user } = useAuthStore();
+  const isDueno = user?.rol === 'dueno';
   const [previsualizando, setPrevisualizando] = useState(false);
   const [transporteEdit, setTransporteEdit] = useState(venta?.transporte || '');
   const [transporteActual, setTransporteActual] = useState(venta?.transporte || '');
@@ -218,10 +221,13 @@ export default function DetalleVentaModal({ open, onClose, venta }: DetalleVenta
                   <Box>
                     <Typography sx={{ fontSize: '13px', fontWeight: 600 }}>{detalle.producto?.nombre || 'Producto'}</Typography>
                     <Typography sx={{ fontSize: '11px', color: '#6B7280' }}>
-                      Talle: {detalle.talle} | Cant: {detalle.cantidad} | Precio: ${(detalle.precio_unitario || 0).toLocaleString('es-AR')}
+                      Talle: {detalle.talle} | Cant: {detalle.cantidad}
+                      {isDueno && ` | Precio: $${(detalle.precio_unitario || 0).toLocaleString('es-AR')}`}
                     </Typography>
                   </Box>
-                  <Typography sx={{ fontSize: '14px', fontWeight: 600, color: '#059669' }}>${(detalle.subtotal || 0).toLocaleString('es-AR')}</Typography>
+                  {isDueno && (
+                    <Typography sx={{ fontSize: '14px', fontWeight: 600, color: '#059669' }}>${(detalle.subtotal || 0).toLocaleString('es-AR')}</Typography>
+                  )}
                 </Box>
               ))}
             </Grid>
