@@ -5,7 +5,32 @@
       "Bash(curl:*)",
       "Bash(find:*)",
       "Bash(ls:*)",
-      "Bash(go build:*)"
+      "Bash(go build:*)",
+      "Read(//c/Users/lafer/vartanSport/vartan-frontend_v1/src/components/Dashboard/**)",
+      "Read(//c/Users/lafer/vartanSport/vartan-frontend_v1/src/services/**)",
+      "Read(//c/Users/lafer/vartanSport/vartan-frontend_v1/src/models/entities/**)",
+      "Read(//c/Users/lafer/vartanSport/vartan-frontend_v1/app/mi-comision/**)",
+      "Read(//c/Users/lafer/vartanSport/vartan-frontend_v1/**)",
+      "Bash(psql -U postgres -d vartan_sports -c \"SELECT id, nombre, email, rol, activo FROM usuarios WHERE rol = 'dueño';\")",
+      "PowerShell(& \"C:\\\\Program Files\\\\PostgreSQL\\\\17\\\\bin\\\\psql.exe\" -U postgres -d vartan_sports -c \"SELECT id, nombre, email, rol FROM usuarios WHERE rol = 'due�o';\" 2>&1)",
+      "Read(//c/Program Files/**)",
+      "PowerShell(Get-Command psql -ErrorAction SilentlyContinue)",
+      "Read(//c//**)",
+      "PowerShell($proc = Get-NetTCPConnection -LocalPort 8080 -ErrorAction SilentlyContinue | Select-Object -ExpandProperty OwningProcess -First 1; if \\($proc\\) { Stop-Process -Id $proc -Force; \"Proceso $proc terminado\" } else { \"No hay proceso en 8080\" })",
+      "Bash(Get-ChildItem -Path \"c:\\\\Users\\\\lafer\\\\vartanSport\\\\vartan-backend_v1\" -Recurse -Directory)",
+      "Bash(Select-Object -ExpandProperty FullName)",
+      "Bash(Sort-Object)"
+    ],
+    "additionalDirectories": [
+      "c:\\Users\\lafer\\vartanSport\\vartan-frontend_v1\\src\\components\\Dashboard",
+      "c:\\Users\\lafer\\vartanSport\\vartan-frontend_v1\\app\\mi-comision",
+      "c:\\Users\\lafer\\vartanSport\\vartan-frontend_v1\\src\\services",
+      "c:\\Users\\lafer\\vartanSport\\vartan-frontend_v1\\app\\pedidos",
+      "c:\\Users\\lafer\\vartanSport\\vartan-frontend_v1\\app\\comprobantes",
+      "c:\\Users\\lafer\\vartanSport\\vartan-frontend_v1\\src\\components\\Modals",
+      "c:\\Users\\lafer\\vartanSport\\vartan-frontend_v1\\app\\comisiones",
+      "c:\\Users\\lafer\\vartanSport\\vartan-frontend_v1\\app\\gastos",
+      "c:\\Users\\lafer\\vartanSport\\vartan-frontend_v1\\src\\components\\Cards"
     ]
   }
 }

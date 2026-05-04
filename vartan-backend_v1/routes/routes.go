@@ -58,13 +58,14 @@ func SetupRoutes(router *gin.Engine) {
 		api.PUT("/ventas/:id/detalles", middleware.RequireWrite(), controllers.UpdateVentaDetalles)
 		api.DELETE("/ventas/:id", middleware.RequireWrite(), controllers.DeleteVenta)
 		api.GET("/ventas/:id/comprobante", controllers.GetVentaComprobante)
+		api.GET("/ventas/:id/comprobante-saldo", controllers.GetVentaComprobanteSaldo)
 		api.DELETE("/ventas/:id/comprobante", middleware.RequireWrite(), controllers.DeleteVentaComprobante)
 		api.GET("/ventas-pendientes", controllers.GetPagosPendientes)
 
 		api.GET("/mis-pedidos", controllers.GetMisPedidos)
 		api.GET("/pedidos", middleware.RequirePedidosRead(), controllers.GetPedidos)
 		api.GET("/pedidos/:id", controllers.GetPedido)
-		api.PUT("/pedidos/:id", middleware.RequireWrite(), controllers.UpdatePedidoEstado)
+		api.PUT("/pedidos/:id", controllers.UpdatePedidoEstado)
 
 		api.GET("/mis-comisiones", controllers.GetMisComisiones)
 		api.GET("/mi-resumen-comision", controllers.GetMiResumenComision) // Resumen completo para empleado/vendedor

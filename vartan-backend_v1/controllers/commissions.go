@@ -281,119 +281,107 @@ func UpdateObservaciones(c *gin.Context) {
 func GetMiResumenComision(c *gin.Context) {
 	userID := c.GetInt("user_id")
 
-	// Obtener información del usuario
 	var usuario models.Usuario
 	if err := config.DB.First(&usuario, userID).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Usuario no encontrado"})
 		return
 	}
 
-	// Obtener mes y año actual
 	now := time.Now()
-	mesActual := int(now.Month())
-	anioActual := now.Year()
+	mesHoy := int(now.Month())
+	anioHoy := now.Year()
+
+	// Período consultado: acepta ?mes=X&anio=Y, default mes actual
+	mes := mesHoy
+	anio := anioHoy
+	if m, err := strconv.Atoi(c.Query("mes")); err == nil && m >= 1 && m <= 12 {
+		mes = m
+	}
+	if a, err := strconv.Atoi(c.Query("anio")); err == nil && a > 0 {
+		anio = a
+	}
 
 	loc, err := time.LoadLocation("America/Argentina/Buenos_Aires")
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error al cargar zona horaria"})
 		return
 	}
-	mesInicio, mesFin := monthRange(mesActual, anioActual, loc)
+	mesInicio, mesFin := monthRange(mes, anio, loc)
 
-	// Calcular ventas del mes actual
-	var totalVentasMesActual float64
+	var totalVentas float64
 	config.DB.Model(&models.Venta{}).
-		Where("usuario_id = ? AND fecha_venta >= ? AND fecha_venta < ?",
-			userID, mesInicio, mesFin).
+		Where("usuario_id = ? AND fecha_venta >= ? AND fecha_venta < ?", userID, mesInicio, mesFin).
 		Select("COALESCE(SUM(total_final), 0)").
-		Scan(&totalVentasMesActual)
+		Scan(&totalVentas)
 
-	// Calcular ganancia del mes actual para usarla como base de comisión.
-	var totalGananciaMesActual float64
+	var totalGanancia float64
 	config.DB.Model(&models.Venta{}).
-		Where("usuario_id = ? AND fecha_venta >= ? AND fecha_venta < ?",
-			userID, mesInicio, mesFin).
+		Where("usuario_id = ? AND fecha_venta >= ? AND fecha_venta < ?", userID, mesInicio, mesFin).
 		Select("COALESCE(SUM(ganancia), 0)").
-		Scan(&totalGananciaMesActual)
+		Scan(&totalGanancia)
 
-	// Contar cantidad de ventas del mes
-	var cantidadVentasMes int64
+	var cantidadVentas int64
 	config.DB.Model(&models.Venta{}).
-		Where("usuario_id = ? AND fecha_venta >= ? AND fecha_venta < ?",
-			userID, mesInicio, mesFin).
-		Count(&cantidadVentasMes)
+		Where("usuario_id = ? AND fecha_venta >= ? AND fecha_venta < ?", userID, mesInicio, mesFin).
+		Count(&cantidadVentas)
 
-	// Obtener comisión registrada del mes actual (si existe)
-	var comisionMesActual models.Comision
+	var comisionPeriodo models.Comision
 	comisionRegistrada := false
-	if err := config.DB.Where("usuario_id = ? AND mes = ? AND anio = ?", userID, mesActual, anioActual).
-		First(&comisionMesActual).Error; err == nil {
+	if err := config.DB.Where("usuario_id = ? AND mes = ? AND anio = ?", userID, mes, anio).
+		First(&comisionPeriodo).Error; err == nil {
 		comisionRegistrada = true
 	}
 
-	// Gasto publicitario del mes: leer de la tabla mensual (default 0 si el dueño no lo seteó).
-	// Si existe un override explícito en el registro de comisión, respetarlo.
-	gastoPublicitarioMes := getGastoPublicitarioMensual(userID, mesActual, anioActual)
-	if comisionRegistrada && comisionMesActual.GastoPublicitario != nil {
-		gastoPublicitarioMes = *comisionMesActual.GastoPublicitario
+	gastoPublicitario := getGastoPublicitarioMensual(userID, mes, anio)
+	if comisionRegistrada && comisionPeriodo.GastoPublicitario != nil {
+		gastoPublicitario = *comisionPeriodo.GastoPublicitario
 	}
 
-	// Usar el porcentaje del snapshot mensual si existe, si no el actual del usuario
-	porcentajeParaCalculo := usuario.PorcentajeComision
-	if comisionRegistrada && comisionMesActual.PorcentajeComision > 0 {
-		porcentajeParaCalculo = comisionMesActual.PorcentajeComision
+	porcentaje := usuario.PorcentajeComision
+	if comisionRegistrada && comisionPeriodo.PorcentajeComision > 0 {
+		porcentaje = comisionPeriodo.PorcentajeComision
 	}
 
-	// Calcular comisión estimada del mes como porcentaje de la facturación.
-	porcentaje := porcentajeParaCalculo / 100.0
-	comisionNeta := totalVentasMesActual * porcentaje
+	comisionNeta := totalVentas * (porcentaje / 100.0)
 	totalACobrar := usuario.Sueldo + comisionNeta
 
-	// Obtener historial de comisiones (últimos 6 meses)
-	nowFilter := time.Now()
-	currentMonth := int(nowFilter.Month())
-	currentYear := nowFilter.Year()
-	var historialComisiones []models.Comision
+	// Historial: últimos 12 meses desde el mes real actual (no el consultado)
+	var historial []models.Comision
 	config.DB.Where("usuario_id = ?", userID).
-		Where("(anio < ?) OR (anio = ? AND mes <= ?)", currentYear, currentYear, currentMonth).
+		Where("(anio < ?) OR (anio = ? AND mes <= ?)", anioHoy, anioHoy, mesHoy).
 		Order("anio DESC, mes DESC").
-		Limit(6).
-		Find(&historialComisiones)
+		Limit(12).
+		Find(&historial)
 
-	// Respuesta
 	c.JSON(http.StatusOK, gin.H{
-		// Información del usuario
 		"usuario": gin.H{
 			"id":     usuario.ID,
 			"nombre": usuario.Nombre,
 			"email":  usuario.Email,
 			"rol":    usuario.Rol,
 		},
-		// Configuración de comisión (establecida por el dueño)
 		"configuracion": gin.H{
 			"porcentaje_comision": usuario.PorcentajeComision,
 			"gasto_publicitario":  usuario.GastoPublicitario,
 			"sueldo_base":         usuario.Sueldo,
 			"observaciones":       usuario.ObservacionesConfig,
 		},
-		// Resumen del mes actual
 		"mes_actual": gin.H{
-			"mes":                    mesActual,
-			"anio":                   anioActual,
-			"total_ventas":           totalVentasMesActual,
-			"total_ganancia":         totalGananciaMesActual,
-			"cantidad_ventas":        cantidadVentasMes,
-			"base_comision":          totalVentasMesActual,
-			"comision_bruta":         totalVentasMesActual,
-			"gasto_publicitario":     gastoPublicitarioMes,
+			"mes":                    mes,
+			"anio":                   anio,
+			"total_ventas":           totalVentas,
+			"total_ganancia":         totalGanancia,
+			"cantidad_ventas":        cantidadVentas,
+			"base_comision":          totalVentas,
+			"comision_bruta":         comisionNeta,
+			"gasto_publicitario":     gastoPublicitario,
 			"comision_neta":          comisionNeta,
 			"sueldo_base":            usuario.Sueldo,
 			"total_a_cobrar":         totalACobrar,
 			"comision_registrada":    comisionRegistrada,
-			"observaciones_comision": comisionMesActual.Observaciones,
+			"observaciones_comision": comisionPeriodo.Observaciones,
 		},
-		// Historial de comisiones
-		"historial": historialComisiones,
+		"historial": historial,
 	})
 }
 

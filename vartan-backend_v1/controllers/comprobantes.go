@@ -19,14 +19,17 @@ import (
 )
 
 type comprobanteItem struct {
-	VentaID         int        `json:"venta_id"`
-	ComprobanteURL  string     `json:"comprobante_url"`
-	FechaVenta      time.Time  `json:"fecha_venta"`
-	Vendedor        miniUser    `json:"vendedor"`
-	Cliente         miniCliente `json:"cliente"`
-	TotalFinal      float64    `json:"total_final"`
-	Revisado        bool       `json:"revisado"`
-	RevisadoAt      *time.Time `json:"revisado_at"`
+	VentaID             int            `json:"venta_id"`
+	ComprobanteURL      string         `json:"comprobante_url"`
+	ComprobanteSaldoURL *string        `json:"comprobante_saldo_url,omitempty"`
+	FechaVenta          time.Time      `json:"fecha_venta"`
+	Vendedor            miniUser       `json:"vendedor"`
+	Cliente             miniCliente    `json:"cliente"`
+	FormaPago           miniFormaPago  `json:"forma_pago"`
+	FormaPagoSaldo      *miniFormaPago `json:"forma_pago_saldo,omitempty"`
+	TotalFinal          float64        `json:"total_final"`
+	Revisado            bool           `json:"revisado"`
+	RevisadoAt          *time.Time     `json:"revisado_at"`
 }
 
 type miniUser struct {
@@ -35,6 +38,11 @@ type miniUser struct {
 }
 
 type miniCliente struct {
+	ID     int    `json:"id"`
+	Nombre string `json:"nombre"`
+}
+
+type miniFormaPago struct {
 	ID     int    `json:"id"`
 	Nombre string `json:"nombre"`
 }
@@ -84,7 +92,7 @@ func buildComprobantesQuery(c *gin.Context) (*gorm.DB, error) {
 	formaPagoID := strings.TrimSpace(c.Query("forma_pago_id"))
 
 	query := config.DB.Model(&models.Venta{}).
-		Where("comprobante_url IS NOT NULL AND comprobante_url <> ''")
+		Where("(comprobante_url IS NOT NULL AND comprobante_url <> '') OR (comprobante_saldo_url IS NOT NULL AND comprobante_saldo_url <> '')")
 
 	if vendedorID != "" {
 		id, err := strconv.Atoi(vendedorID)
@@ -99,7 +107,7 @@ func buildComprobantesQuery(c *gin.Context) (*gorm.DB, error) {
 		if err != nil {
 			return nil, err
 		}
-		query = query.Where("forma_pago_id = ?", id)
+		query = query.Where("COALESCE(forma_pago_saldo_id, forma_pago_id) = ?", id)
 	}
 
 	if periodo != "todo" {
@@ -163,6 +171,8 @@ func GetComprobantes(c *gin.Context) {
 	if err := query.Session(&gorm.Session{}).
 		Preload("Usuario").
 		Preload("Cliente").
+		Preload("FormaPago").
+		Preload("FormaPagoSaldo").
 		Order("fecha_venta DESC").
 		Find(&ventas).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error al obtener comprobantes"})
@@ -175,10 +185,18 @@ func GetComprobantes(c *gin.Context) {
 		if venta.ComprobanteURL != nil {
 			url = *venta.ComprobanteURL
 		}
+		var formaPagoSaldo *miniFormaPago
+		if venta.FormaPagoSaldoID != nil {
+			formaPagoSaldo = &miniFormaPago{
+				ID:     venta.FormaPagoSaldo.ID,
+				Nombre: venta.FormaPagoSaldo.Nombre,
+			}
+		}
 		items = append(items, comprobanteItem{
-			VentaID:        venta.ID,
-			ComprobanteURL: url,
-			FechaVenta:     venta.FechaVenta,
+			VentaID:             venta.ID,
+			ComprobanteURL:      url,
+			ComprobanteSaldoURL: venta.ComprobanteSaldoURL,
+			FechaVenta:          venta.FechaVenta,
 			Vendedor: miniUser{
 				ID:     venta.Usuario.ID,
 				Nombre: venta.Usuario.Nombre,
@@ -187,9 +205,14 @@ func GetComprobantes(c *gin.Context) {
 				ID:     venta.Cliente.ID,
 				Nombre: venta.Cliente.Nombre,
 			},
-			TotalFinal: venta.TotalFinal,
-			Revisado:   venta.ComprobanteRevisado,
-			RevisadoAt: venta.ComprobanteRevisadoAt,
+			FormaPago: miniFormaPago{
+				ID:     venta.FormaPago.ID,
+				Nombre: venta.FormaPago.Nombre,
+			},
+			FormaPagoSaldo: formaPagoSaldo,
+			TotalFinal:     venta.TotalFinal,
+			Revisado:       venta.ComprobanteRevisado,
+			RevisadoAt:     venta.ComprobanteRevisadoAt,
 		})
 	}
 
@@ -323,6 +346,8 @@ func GetComprobantesZip(c *gin.Context) {
 	if err := query.Session(&gorm.Session{}).
 		Preload("Usuario").
 		Preload("Cliente").
+		Preload("FormaPago").
+		Preload("FormaPagoSaldo").
 		Order("fecha_venta DESC").
 		Find(&ventas).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error al obtener comprobantes"})
@@ -336,45 +361,47 @@ func GetComprobantesZip(c *gin.Context) {
 	zipWriter := zip.NewWriter(c.Writer)
 	defer zipWriter.Close()
 
-	for _, venta := range ventas {
-		if venta.ComprobanteURL == nil || *venta.ComprobanteURL == "" {
-			continue
-		}
-
-		filePath := *venta.ComprobanteURL
+	addToZip := func(venta models.Venta, filePath string, sufijo string) {
 		if _, err := os.Stat(filePath); os.IsNotExist(err) {
 			log.Printf("Comprobante no encontrado en disco: %s", filePath)
-			continue
+			return
 		}
-
 		ext := filepath.Ext(filePath)
 		if ext == "" {
 			ext = ".pdf"
 		}
-
 		vendedor := sanitizeFilename(venta.Usuario.Nombre)
 		if vendedor == "" {
 			vendedor = "vendedor"
 		}
-		fileName := "venta_" + strconv.Itoa(venta.ID) + "_" + vendedor + "_" + venta.FechaVenta.Format("2006-01-02") + ext
-
+		fileName := "venta_" + strconv.Itoa(venta.ID) + "_" + vendedor + "_" + venta.FechaVenta.Format("2006-01-02") + sufijo + ext
 		zipFile, err := zipWriter.Create(fileName)
 		if err != nil {
 			log.Printf("Error creando archivo en ZIP: %v", err)
-			continue
+			return
 		}
-
 		f, err := os.Open(filePath)
 		if err != nil {
 			log.Printf("Error abriendo comprobante: %v", err)
-			continue
+			return
 		}
-
+		defer f.Close()
 		if _, err := io.Copy(zipFile, f); err != nil {
 			log.Printf("Error copiando comprobante al ZIP: %v", err)
 		}
+	}
 
-		f.Close()
+	for _, venta := range ventas {
+		if venta.ComprobanteURL != nil && *venta.ComprobanteURL != "" {
+			sufijo := ""
+			if venta.ComprobanteSaldoURL != nil && *venta.ComprobanteSaldoURL != "" {
+				sufijo = "_sena"
+			}
+			addToZip(venta, *venta.ComprobanteURL, sufijo)
+		}
+		if venta.ComprobanteSaldoURL != nil && *venta.ComprobanteSaldoURL != "" {
+			addToZip(venta, *venta.ComprobanteSaldoURL, "_saldo")
+		}
 	}
 }
 

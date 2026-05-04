@@ -192,7 +192,7 @@ func RestrictRepositorToPedidos() gin.HandlerFunc {
 			return
 		}
 
-		if c.Request.Method == http.MethodGet && (path == "/api/mis-pedidos" || path == "/api/pedidos" || path == "/api/pedidos/:id") {
+		if path == "/api/mis-pedidos" || path == "/api/pedidos" || path == "/api/pedidos/:id" {
 			c.Next()
 			return
 		}

@@ -96,6 +96,9 @@ func DeleteVenta(c *gin.Context) {
 	if venta.ComprobanteURL != nil && *venta.ComprobanteURL != "" {
 		os.Remove(*venta.ComprobanteURL)
 	}
+	if venta.ComprobanteSaldoURL != nil && *venta.ComprobanteSaldoURL != "" {
+		os.Remove(*venta.ComprobanteSaldoURL)
+	}
 
 	if err := tx.Where("venta_id = ?", venta.ID).Delete(&models.Pedido{}).Error; err != nil {
 		tx.Rollback()
@@ -143,6 +146,7 @@ func GetVenta(c *gin.Context) {
 		Preload("Usuario").
 		Preload("Cliente").
 		Preload("FormaPago").
+		Preload("FormaPagoSaldo").
 		Preload("Detalles").
 		Preload("Detalles.Producto").
 		First(&venta, ventaID).Error; err != nil {
@@ -412,6 +416,7 @@ func UpdateVentaDetalles(c *gin.Context) {
 		Preload("Usuario").
 		Preload("Cliente").
 		Preload("FormaPago").
+		Preload("FormaPagoSaldo").
 		Preload("Detalles").
 		Preload("Detalles.Producto").
 		First(&venta, ventaID).Error; err != nil {
@@ -431,6 +436,7 @@ func GetPagosPendientes(c *gin.Context) {
 		Preload("Usuario").
 		Preload("Cliente").
 		Preload("FormaPago").
+		Preload("FormaPagoSaldo").
 		Preload("Detalles").
 		Preload("Detalles.Producto").
 		Order("fecha_venta DESC")
@@ -755,6 +761,7 @@ func GetMisVentas(c *gin.Context) {
 		Where("usuario_id = ?", userID).
 		Preload("Cliente").
 		Preload("FormaPago").
+		Preload("FormaPagoSaldo").
 		Preload("Detalles").
 		Preload("Detalles.Producto").
 		Order("fecha_venta DESC").
@@ -782,6 +789,7 @@ func GetVentas(c *gin.Context) {
 		Preload("Usuario").
 		Preload("Cliente").
 		Preload("FormaPago").
+		Preload("FormaPagoSaldo").
 		Preload("Detalles").
 		Preload("Detalles.Producto").
 		Order("fecha_venta DESC").
@@ -813,6 +821,7 @@ func GetVentasByUsuario(c *gin.Context) {
 		Preload("Usuario").
 		Preload("Cliente").
 		Preload("FormaPago").
+		Preload("FormaPagoSaldo").
 		Preload("Detalles").
 		Preload("Detalles.Producto").
 		Order("fecha_venta DESC").
@@ -866,6 +875,28 @@ func GetVentaComprobante(c *gin.Context) {
 // @Success 200 {object} map[string]string "Comprobante eliminado"
 // @Failure 404 {object} map[string]string "Venta o comprobante no encontrado"
 // @Router /api/ventas/{id}/comprobante [delete]
+func GetVentaComprobanteSaldo(c *gin.Context) {
+	ventaID := c.Param("id")
+
+	var venta models.Venta
+	if err := config.DB.First(&venta, ventaID).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Venta no encontrada"})
+		return
+	}
+
+	if venta.ComprobanteSaldoURL == nil || *venta.ComprobanteSaldoURL == "" {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Esta venta no tiene comprobante de saldo adjunto"})
+		return
+	}
+
+	if _, err := os.Stat(*venta.ComprobanteSaldoURL); os.IsNotExist(err) {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Archivo de comprobante de saldo no encontrado"})
+		return
+	}
+
+	c.File(*venta.ComprobanteSaldoURL)
+}
+
 func DeleteVentaComprobante(c *gin.Context) {
 	ventaID := c.Param("id")
 
@@ -1148,12 +1179,8 @@ func UpdateVentaPago(c *gin.Context) {
 			return
 		}
 
-		if venta.ComprobanteURL != nil && *venta.ComprobanteURL != "" {
-			os.Remove(*venta.ComprobanteURL)
-		}
-
 		uploadDir := "uploads/comprobantes"
-		filename := fmt.Sprintf("comprobante_pago_%d%s", time.Now().UnixNano(), ext)
+		filename := fmt.Sprintf("comprobante_saldo_%d%s", time.Now().UnixNano(), ext)
 		filePath := filepath.Join(uploadDir, filename)
 
 		src, err := file.Open()
@@ -1175,7 +1202,11 @@ func UpdateVentaPago(c *gin.Context) {
 			return
 		}
 
-		venta.ComprobanteURL = &filePath
+		// Guardar en el campo de saldo para preservar el comprobante de la seña
+		if venta.ComprobanteSaldoURL != nil && *venta.ComprobanteSaldoURL != "" {
+			os.Remove(*venta.ComprobanteSaldoURL)
+		}
+		venta.ComprobanteSaldoURL = &filePath
 	}
 
 	if err := config.DB.Save(&venta).Error; err != nil {
