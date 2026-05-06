@@ -318,7 +318,7 @@ const handleSubmit = async () => {
               Resumen de Venta
             </Typography>
 
-            {/* Costo (Calculado) */}
+            {/* Costo (Calculado)
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1.5 }}>
               <Typography sx={{ fontSize: '12px', color: '#6B7280', fontWeight: 500 }}>
                 Costo (Productos):
@@ -326,7 +326,7 @@ const handleSubmit = async () => {
               <Typography sx={{ fontSize: '16px', fontWeight: 600, color: '#DC2626' }}>
                 ${calcularCosto().toLocaleString('es-AR', { minimumFractionDigits: 2 })}
               </Typography>
-            </Box>
+            </Box> */}
 
             {/* Precio de Venta (Input) */}
             <Box sx={{ mb: 1.5 }}>
@@ -355,7 +355,7 @@ const handleSubmit = async () => {
               />
             </Box>
 
-            {/* Ganancia (Calculada) */}
+            {/* Ganancia (Calculada)  
             <Box sx={{
               display: 'flex',
               justifyContent: 'space-between',
@@ -372,18 +372,18 @@ const handleSubmit = async () => {
               <Typography sx={{ fontSize: '18px', fontWeight: 700, color: calcularGanancia() >= 0 ? '#059669' : '#DC2626' }}>
                 ${calcularGanancia().toLocaleString('es-AR', { minimumFractionDigits: 2 })}
               </Typography>
-            </Box>
+            </Box> */}
 
             
-            {/* Mensaje informativo de financiera */}
+            {/* Mensaje informativo de financiera 
             {venta?.forma_pago_id === 1 && (
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.5 }}>
             <i className="fa-solid fa-circle-info" style={{ color: '#D97706', fontSize: '12px' }} />
-            <Typography sx={{ fontSize: '12px', color: '#D97706', fontWeight: 500 }}>
+            {/*<Typography sx={{ fontSize: '12px', color: '#D97706', fontWeight: 500 }}>
             Comisión financiera (3%) aplicada automáticamente a la ganancia
             </Typography>
               </Box>
-)}
+)}  */}
           </Box>
         </Grid>
 
