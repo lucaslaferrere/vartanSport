@@ -68,7 +68,7 @@ export default function DetalleStockModal({ open, onClose, producto }: DetalleSt
           <Box sx={{ textAlign: 'center', py: 4 }}>
             <Typography sx={{ color: '#6B7280' }}>Cargando...</Typography>
           </Box>
-        ) : stockPorTalle.length > 0 ? (
+        ) : (stockPorTalle ?? []).length > 0 ? (
           <>
             <TableContainer component={Paper} sx={{ boxShadow: 'none', border: '1px solid #E5E7EB' }}>
               <Table size="small">

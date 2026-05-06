@@ -4,6 +4,7 @@ import ReduxProvider from '@redux/provider';
 import { NotificationProvider } from '@components/Notifications';
 import AuthInitializer from '@components/Auth/AuthInitializer';
 import ThemeRegistry from '@components/ThemeRegistry';
+import NoWheelOnNumbers from '@components/NoWheelOnNumbers';
 import './globals.css';
 
 const inter = Inter({ subsets: ['latin'] });
@@ -29,6 +30,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <ThemeRegistry>
           <ReduxProvider>
             <NotificationProvider>
+              <NoWheelOnNumbers />
               <AuthInitializer>{children}</AuthInitializer>
             </NotificationProvider>
           </ReduxProvider>

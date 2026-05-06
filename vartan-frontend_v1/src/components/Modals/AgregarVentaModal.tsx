@@ -117,10 +117,26 @@ export default function AgregarVentaModal({ open, onClose, onSuccess }: AgregarV
     });
   };
 
+  const getStockDisponible = (talle: string): number => {
+    if (!productoActual) return 0;
+    return productoActual.stock_por_talle?.find(s => s.talle === talle)?.cantidad ?? 0;
+  };
+
   const agregarProducto = () => {
     if (!productoActual || Object.keys(tallesActuales).length === 0) {
       addNotification('Seleccione al menos un talle con cantidad', 'error');
       return;
+    }
+
+    for (const [talle, cantidad] of Object.entries(tallesActuales)) {
+      const disponible = getStockDisponible(talle);
+      if (cantidad > disponible) {
+        addNotification(
+          `Sin stock suficiente: ${productoActual.nombre} – Talle ${talle} (disponible: ${disponible}, pedido: ${cantidad})`,
+          'error'
+        );
+        return;
+      }
     }
 
     const talles = Object.entries(tallesActuales).map(([talle, cantidad]) => ({
@@ -477,14 +493,21 @@ export default function AgregarVentaModal({ open, onClose, onSuccess }: AgregarV
                       </Box>
                     </Box>
                     <Grid container spacing={1}>
-                      {tallesDisponibles.map((talle, idx) => (
+                      {tallesDisponibles.map((talle, idx) => {
+                        const disponible = getStockDisponible(talle);
+                        const pedido = tallesActuales[talle] || 0;
+                        const sinStock = disponible === 0;
+                        const excede = pedido > disponible && disponible > 0;
+                        return (
                           <Grid size={{ xs: 2.4 }} key={talle}>
                             <Box sx={{ textAlign: 'center' }}>
                               <Typography sx={{ fontSize: '10px', mb: 0.25, color: '#6B7280' }}>{talle}</Typography>
                               <input
                                   type="number"
                                   min="0"
+                                  max={disponible || undefined}
                                   placeholder="-"
+                                  disabled={sinStock}
                                   data-talle-idx={idx}
                                   value={tallesActuales[talle] || ''}
                                   onChange={(e) => handleTalleCantidadChange(talle, parseInt(e.target.value) || 0)}
@@ -500,14 +523,21 @@ export default function AgregarVentaModal({ open, onClose, onSuccess }: AgregarV
                                     padding: '4px',
                                     fontSize: '12px',
                                     textAlign: 'center',
-                                    border: '1px solid #E5E7EB',
+                                    border: `1px solid ${excede ? '#EF4444' : sinStock ? '#F3F4F6' : '#E5E7EB'}`,
                                     borderRadius: '4px',
-                                    outline: 'none'
+                                    outline: 'none',
+                                    backgroundColor: sinStock ? '#F9FAFB' : 'white',
+                                    color: sinStock ? '#D1D5DB' : 'inherit',
+                                    cursor: sinStock ? 'not-allowed' : 'text',
                                   }}
                               />
+                              <Typography sx={{ fontSize: '9px', mt: 0.25, color: excede ? '#EF4444' : sinStock ? '#D1D5DB' : '#9CA3AF', fontWeight: excede ? 600 : 400 }}>
+                                {sinStock ? 'Sin stock' : excede ? `Máx: ${disponible}` : `Stock: ${disponible}`}
+                              </Typography>
                             </Box>
                           </Grid>
-                      ))}
+                        );
+                      })}
                     </Grid>
                   </Box>
               )}
