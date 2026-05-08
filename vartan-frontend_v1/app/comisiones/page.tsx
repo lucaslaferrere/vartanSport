@@ -97,7 +97,7 @@ const [miResumen, setMiResumen] = useState<IMiResumenComision | null>(null);
                 const fecha = new Date(v.fecha_venta);
                 if (fecha.getMonth() + 1 === mesActualAuto && fecha.getFullYear() === anioActualAuto) {
                     ventasPorUsuario.set(v.usuario_id, (ventasPorUsuario.get(v.usuario_id) || 0) + 1);
-                    gananciaPorUsuario.set(v.usuario_id, (gananciaPorUsuario.get(v.usuario_id) || 0) + ((v.precio_venta || 0) - (v.costo || 0)));
+                    gananciaPorUsuario.set(v.usuario_id, (gananciaPorUsuario.get(v.usuario_id) || 0) + (v.ganancia || 0));
                 }
             });
 
