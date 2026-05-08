@@ -590,6 +590,31 @@ func processVenta(c *gin.Context, usuarioID *int, clienteID int, formaPagoID int
 		vendedorID = c.GetInt("user_id")
 	}
 
+	// Pre-validar stock y calcular costo real desde la DB (ignorar lo que mande el frontend)
+	costoPorProducto := make(map[int]float64)
+	for _, detalleReq := range detalles {
+		var producto models.Producto
+		if err := config.DB.First(&producto, detalleReq.ProductoID).Error; err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("Producto ID %d no encontrado", detalleReq.ProductoID)})
+			return
+		}
+		costoPorProducto[detalleReq.ProductoID] = producto.CostoUnitario
+		var stock models.ProductoStock
+		if err := config.DB.Where("producto_id = ? AND talle = ?", detalleReq.ProductoID, detalleReq.Talle).First(&stock).Error; err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("Sin stock registrado: %s – Talle %s", producto.Nombre, detalleReq.Talle)})
+			return
+		}
+		if stock.Cantidad < detalleReq.Cantidad {
+			c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("Stock insuficiente: %s – Talle %s (disponible: %d, pedido: %d)", producto.Nombre, detalleReq.Talle, stock.Cantidad, detalleReq.Cantidad)})
+			return
+		}
+	}
+
+	var costo float64
+	for _, detalleReq := range detalles {
+		costo += costoPorProducto[detalleReq.ProductoID] * float64(detalleReq.Cantidad)
+	}
+
 	if precioVenta == 0 {
 		precioVenta = costo
 	}
@@ -638,31 +663,6 @@ func processVenta(c *gin.Context, usuarioID *int, clienteID int, formaPagoID int
 	}
 
 	senaPtr := &sena
-
-	// Pre-validar stock y calcular costo real desde la DB (ignorar lo que mande el frontend)
-	costoPorProducto := make(map[int]float64)
-	for _, detalleReq := range detalles {
-		var producto models.Producto
-		if err := config.DB.First(&producto, detalleReq.ProductoID).Error; err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("Producto ID %d no encontrado", detalleReq.ProductoID)})
-			return
-		}
-		costoPorProducto[detalleReq.ProductoID] = producto.CostoUnitario
-		var stock models.ProductoStock
-		if err := config.DB.Where("producto_id = ? AND talle = ?", detalleReq.ProductoID, detalleReq.Talle).First(&stock).Error; err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("Sin stock registrado: %s – Talle %s", producto.Nombre, detalleReq.Talle)})
-			return
-		}
-		if stock.Cantidad < detalleReq.Cantidad {
-			c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("Stock insuficiente: %s – Talle %s (disponible: %d, pedido: %d)", producto.Nombre, detalleReq.Talle, stock.Cantidad, detalleReq.Cantidad)})
-			return
-		}
-	}
-
-	var costo float64
-	for _, detalleReq := range detalles {
-		costo += costoPorProducto[detalleReq.ProductoID] * float64(detalleReq.Cantidad)
-	}
 
 	tx := config.DB.Begin()
 	defer func() {
