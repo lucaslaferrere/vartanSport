@@ -94,9 +94,9 @@ func GetDashboardMensual(c *gin.Context) {
 	costoProductos := facturacion - gananciaReal
 
 	var publicidad float64
-	if err := config.DB.Model(&models.ComisionPublicitariaMensual{}).
+	if err := config.DB.Model(&models.Comision{}).
 		Where("mes = ? AND anio = ?", mes, anio).
-		Select("COALESCE(SUM(valor_comision), 0)").
+		Select("COALESCE(SUM(gasto_publicitario), 0)").
 		Scan(&publicidad).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error al calcular publicidad"})
 		return
