@@ -125,6 +125,7 @@ func SetupRoutes(router *gin.Engine) {
 
 		// Ventas (ver todas)
 		owner.GET("/ventas", controllers.GetVentas)
+		owner.GET("/venta/:id", controllers.GetVentaByID)
 		owner.GET("/ventas/usuario/:id", controllers.GetVentasByUsuario)
 
 		// Pedidos (ver todos)

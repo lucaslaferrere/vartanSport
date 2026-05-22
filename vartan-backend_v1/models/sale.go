@@ -24,8 +24,9 @@ type Venta struct {
 	Descuento      float64   `gorm:"type:decimal(10,2);default:0" json:"descuento"`
 	TotalFinal     float64   `gorm:"type:decimal(10,2);not null;default:0" json:"total_final"`
 	UsaFinanciera  bool      `gorm:"default:false" json:"usa_financiera"`
-	ComprobanteURL      *string   `gorm:"type:varchar(255)" json:"comprobante_url,omitempty"`
-	ComprobanteSaldoURL *string   `gorm:"type:varchar(255)" json:"comprobante_saldo_url,omitempty"`
+	ComprobanteURL      *string    `gorm:"type:varchar(255)" json:"comprobante_url,omitempty"`
+	ComprobanteSaldoURL *string    `gorm:"type:varchar(255)" json:"comprobante_saldo_url,omitempty"`
+	FechaPagoSaldo      *time.Time `gorm:"default:null" json:"fecha_pago_saldo,omitempty"`
 	ComprobanteRevisado   bool       `gorm:"default:false" json:"comprobante_revisado"`
 	ComprobanteRevisadoAt *time.Time `json:"comprobante_revisado_at,omitempty"`
 	Observaciones  *string   `gorm:"type:text" json:"observaciones"`

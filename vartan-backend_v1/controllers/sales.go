@@ -805,6 +805,44 @@ func GetMisVentas(c *gin.Context) {
 // @Failure 500 {object} map[string]string "Error interno"
 // @Router /api/owner/ventas [get]
 func GetVentas(c *gin.Context) {
+	pageStr := c.Query("page")
+	limitStr := c.Query("limit")
+
+	// Sin page/limit → devolver todo (compatibilidad con código existente)
+	if pageStr == "" && limitStr == "" {
+		var ventas []models.Venta
+		if err := config.DB.
+			Preload("Usuario").
+			Preload("Cliente").
+			Preload("FormaPago").
+			Preload("FormaPagoSaldo").
+			Preload("Detalles").
+			Preload("Detalles.Producto").
+			Order("fecha_venta DESC").
+			Find(&ventas).Error; err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error al obtener ventas"})
+			return
+		}
+		c.JSON(http.StatusOK, ventas)
+		return
+	}
+
+	page, err := strconv.Atoi(pageStr)
+	if err != nil || page < 1 {
+		page = 1
+	}
+	limit, err := strconv.Atoi(limitStr)
+	if err != nil || limit < 1 {
+		limit = 50
+	}
+	offset := (page - 1) * limit
+
+	var total int64
+	if err := config.DB.Model(&models.Venta{}).Count(&total).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error al contar ventas"})
+		return
+	}
+
 	var ventas []models.Venta
 	if err := config.DB.
 		Preload("Usuario").
@@ -814,12 +852,44 @@ func GetVentas(c *gin.Context) {
 		Preload("Detalles").
 		Preload("Detalles.Producto").
 		Order("fecha_venta DESC").
+		Limit(limit).
+		Offset(offset).
 		Find(&ventas).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error al obtener ventas"})
 		return
 	}
 
-	c.JSON(http.StatusOK, ventas)
+	totalPages := int(total) / limit
+	if int(total)%limit != 0 {
+		totalPages++
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"ventas":      ventas,
+		"total":       total,
+		"page":        page,
+		"limit":       limit,
+		"total_pages": totalPages,
+	})
+}
+
+func GetVentaByID(c *gin.Context) {
+	ventaID := c.Param("id")
+
+	var venta models.Venta
+	if err := config.DB.
+		Preload("Usuario").
+		Preload("Cliente").
+		Preload("FormaPago").
+		Preload("FormaPagoSaldo").
+		Preload("Detalles").
+		Preload("Detalles.Producto").
+		First(&venta, ventaID).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Venta no encontrada"})
+		return
+	}
+
+	c.JSON(http.StatusOK, venta)
 }
 
 // GetVentasByUsuario godoc
@@ -1229,6 +1299,9 @@ func UpdateVentaPago(c *gin.Context) {
 		}
 		venta.ComprobanteSaldoURL = &filePath
 	}
+
+	now := time.Now()
+	venta.FechaPagoSaldo = &now
 
 	if err := config.DB.Save(&venta).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error al actualizar venta"})

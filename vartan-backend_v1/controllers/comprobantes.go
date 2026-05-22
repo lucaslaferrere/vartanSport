@@ -107,7 +107,7 @@ func buildComprobantesQuery(c *gin.Context) (*gorm.DB, error) {
 		if err != nil {
 			return nil, err
 		}
-		query = query.Where("COALESCE(forma_pago_saldo_id, forma_pago_id) = ?", id)
+		query = query.Where("(forma_pago_id = ? OR forma_pago_saldo_id = ?)", id, id)
 	}
 
 	if periodo != "todo" {
@@ -115,15 +115,18 @@ func buildComprobantesQuery(c *gin.Context) (*gorm.DB, error) {
 		switch periodo {
 		case "hoy":
 			since := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
-			query = query.Where("fecha_venta >= ?", since)
+			query = query.Where("fecha_venta >= ? OR (fecha_pago_saldo IS NOT NULL AND fecha_pago_saldo >= ?)", since, since)
 		case "ayer":
 			ayer := now.AddDate(0, 0, -1)
 			inicio := time.Date(ayer.Year(), ayer.Month(), ayer.Day(), 0, 0, 0, 0, ayer.Location())
 			fin := time.Date(ayer.Year(), ayer.Month(), ayer.Day(), 23, 59, 59, 0, ayer.Location())
-			query = query.Where("fecha_venta BETWEEN ? AND ?", inicio, fin)
+			query = query.Where(
+				"(fecha_venta BETWEEN ? AND ?) OR (fecha_pago_saldo IS NOT NULL AND fecha_pago_saldo BETWEEN ? AND ?)",
+				inicio, fin, inicio, fin,
+			)
 		default:
 			since := now.AddDate(0, 0, -7)
-			query = query.Where("fecha_venta >= ?", since)
+			query = query.Where("fecha_venta >= ? OR (fecha_pago_saldo IS NOT NULL AND fecha_pago_saldo >= ?)", since, since)
 		}
 	}
 
