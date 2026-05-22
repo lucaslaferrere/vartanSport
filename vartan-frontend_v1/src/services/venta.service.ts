@@ -1,4 +1,5 @@
 import { api } from '@libraries/api';
+import { cache } from '@libraries/cache';
 import { IVenta, IFormaPago } from '@models/entities/ventaEntity';
 import { IVentaCreateRequest } from '@models/request/IVentaRequest';
 
@@ -7,9 +8,20 @@ interface IVentaCreateResponse {
     venta: IVenta;
 }
 
+export interface IVentasPaginadas {
+    ventas: IVenta[];
+    total: number;
+    page: number;
+    limit: number;
+    total_pages: number;
+}
+
 export const ventaService = {
     getFormasPago: async (): Promise<IFormaPago[]> => {
+        const cached = cache.get<IFormaPago[]>('formas-pago');
+        if (cached) return cached;
         const response = await api.get<IFormaPago[]>('/api/formas-pago');
+        cache.set('formas-pago', response.data);
         return response.data;
     },
 
@@ -85,6 +97,16 @@ export const ventaService = {
 
         const endpoint = isVendedor ? '/api/mis-ventas' : '/api/owner/ventas';
         const response = await api.get<IVenta[]>(endpoint);
+        return response.data;
+    },
+
+    getAllPaginated: async (page: number, limit: number): Promise<IVentasPaginadas> => {
+        const response = await api.get<IVentasPaginadas>('/api/owner/ventas', { params: { page, limit } });
+        return response.data;
+    },
+
+    getById: async (id: number): Promise<IVenta> => {
+        const response = await api.get<IVenta>(`/api/owner/venta/${id}`);
         return response.data;
     },
 

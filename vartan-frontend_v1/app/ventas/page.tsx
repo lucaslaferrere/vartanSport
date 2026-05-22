@@ -49,6 +49,10 @@ export default function VentasPage() {
   const mounted = useMounted();
   const { addNotification } = useNotification();
   const [ventas, setVentas] = useState<IVentaDisplay[]>([]);
+  const [ventasRaw, setVentasRaw] = useState<IVenta[]>([]);
+  const [totalVentas, setTotalVentas] = useState(0);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(50);
   const [stats, setStats] = useState<IVentasStats>({
     ventasHoy: 0,
     totalHoy: 0,
@@ -106,18 +110,25 @@ export default function VentasPage() {
     };
   };
 
-  const fetchVentas = useCallback(async () => {
+  const fetchVentas = useCallback(async (currentPage = page, currentPageSize = pageSize) => {
     if (!mounted) return;
 
     setLoading(true);
     setError(null);
     try {
-      const ventasData = user?.rol === 'dueño'
-        ? await ventaService.getAll()
-        : await ventaService.getMisVentas();
-
-      setVentas(ventasData.map(transformVenta));
-      setStats(calcularStats(ventasData));
+      if (user?.rol === 'dueño') {
+        const result = await ventaService.getAllPaginated(currentPage, currentPageSize);
+        setVentasRaw(result.ventas);
+        setVentas(result.ventas.map(transformVenta));
+        setTotalVentas(result.total);
+        setStats(calcularStats(result.ventas));
+      } else {
+        const ventasData = await ventaService.getMisVentas();
+        setVentasRaw(ventasData);
+        setVentas(ventasData.map(transformVenta));
+        setTotalVentas(ventasData.length);
+        setStats(calcularStats(ventasData));
+      }
     } catch (err: unknown) {
       console.error('Error fetching ventas:', err);
       const errorMessage = err instanceof Error && err.message.includes('Network')
@@ -127,7 +138,7 @@ export default function VentasPage() {
     } finally {
       setLoading(false);
     }
-  }, [mounted, user?.rol]);
+  }, [mounted, user?.rol, page, pageSize]);
 
   useEffect(() => {
     if (mounted) {
@@ -196,34 +207,16 @@ export default function VentasPage() {
     { accessorKey: 'vendedor', header: 'Vendedor' },
   ];
 
-  const handleVerDetalle = async (row: IVentaDisplay) => {
-    try {
-      const todasLasVentas = user?.rol === 'dueño'
-        ? await ventaService.getAll()
-        : await ventaService.getMisVentas();
-
-      const venta = todasLasVentas.find((v: IVenta) => v.id === row.id);
-      setVentaSeleccionada(venta || null);
-      setDetalleVentaModalOpen(true);
-    } catch (err) {
-      console.error('Error cargando detalle de venta:', err);
-      addNotification('Error al cargar el detalle', 'error');
-    }
+  const handleVerDetalle = (row: IVentaDisplay) => {
+    const venta = ventasRaw.find((v) => v.id === row.id) || null;
+    setVentaSeleccionada(venta);
+    setDetalleVentaModalOpen(true);
   };
 
-  const handleEliminar = async (row: IVentaDisplay): Promise<void> => {
-    try {
-      const todasLasVentas = user?.rol === 'dueño'
-        ? await ventaService.getAll()
-        : await ventaService.getMisVentas();
-
-      const venta = todasLasVentas.find((v: IVenta) => v.id === row.id) || null;
-      setVentaSeleccionada(venta);
-      setEliminarVentaModalOpen(true);
-    } catch (err) {
-      console.error('Error cargando venta para eliminar:', err);
-      addNotification('Error al cargar la venta', 'error');
-    }
+  const handleEliminar = (row: IVentaDisplay) => {
+    const venta = ventasRaw.find((v) => v.id === row.id) || null;
+    setVentaSeleccionada(venta);
+    setEliminarVentaModalOpen(true);
   };
 
   const confirmEliminar = async () => {
@@ -249,38 +242,20 @@ export default function VentasPage() {
     {
       icon: 'fa-solid fa-money-bill-wave',
       color: '#059669',
-      onClick: async (row: IVentaDisplay) => {
-        try {
-          const todasLasVentas = user?.rol === 'dueño'
-            ? await ventaService.getAll()
-            : await ventaService.getMisVentas();
-
-          const venta = todasLasVentas.find((v: IVenta) => v.id === row.id);
-          setVentaSeleccionada(venta || null);
-          setRegistrarPagoModalOpen(true);
-        } catch (err) {
-          console.error('Error cargando venta para pago:', err);
-          addNotification('Error al cargar la venta', 'error');
-        }
+      onClick: (row: IVentaDisplay) => {
+        const venta = ventasRaw.find((v) => v.id === row.id) || null;
+        setVentaSeleccionada(venta);
+        setRegistrarPagoModalOpen(true);
       },
       tooltip: 'Registrar Pago'
     },
     {
       icon: 'fa-solid fa-pen',
       color: '#6B7280',
-      onClick: async (row: IVentaDisplay) => {
-        try {
-          const todasLasVentas = user?.rol === 'dueño'
-            ? await ventaService.getAll()
-            : await ventaService.getMisVentas();
-
-          const venta = todasLasVentas.find((v: IVenta) => v.id === row.id);
-          setVentaSeleccionada(venta || null);
-          setEditarVentaModalOpen(true);
-        } catch (err) {
-          console.error('Error cargando venta para editar:', err);
-          addNotification('Error al cargar la venta', 'error');
-        }
+      onClick: (row: IVentaDisplay) => {
+        const venta = ventasRaw.find((v) => v.id === row.id) || null;
+        setVentaSeleccionada(venta);
+        setEditarVentaModalOpen(true);
       },
       tooltip: 'Editar'
     },
@@ -357,6 +332,20 @@ export default function VentasPage() {
           columns={columns}
           headerActions={headerActions}
           actions={actions}
+          serverSide={user?.rol === 'dueño' ? {
+            total: totalVentas,
+            page,
+            pageSize,
+            onPageChange: (newPage) => {
+              setPage(newPage);
+              fetchVentas(newPage, pageSize);
+            },
+            onPageSizeChange: (newSize) => {
+              setPageSize(newSize);
+              setPage(1);
+              fetchVentas(1, newSize);
+            },
+          } : undefined}
         />
 
         {/* Modal para agregar venta */}

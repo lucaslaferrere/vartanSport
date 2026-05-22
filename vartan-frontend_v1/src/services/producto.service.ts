@@ -1,4 +1,5 @@
 import { api } from '@libraries/api';
+import { cache } from '@libraries/cache';
 import { IProducto, IProductoStock, IStockPorTalleResponse } from '@models/entities/productoEntity';
 import {
   IProductoCreateRequest,
@@ -9,7 +10,10 @@ import {
 
 export const productoService = {
   getAll: async (): Promise<IProducto[]> => {
+    const cached = cache.get<IProducto[]>('productos');
+    if (cached) return cached;
     const response = await api.get<IProducto[]>('/api/productos');
+    cache.set('productos', response.data);
     return response.data;
   },
 
@@ -20,16 +24,19 @@ export const productoService = {
 
   create: async (data: IProductoCreateRequest): Promise<IProducto> => {
     const response = await api.post<IProducto>('/api/owner/productos', data);
+    cache.invalidate('productos');
     return response.data;
   },
 
   update: async (id: number, data: IProductoUpdateRequest): Promise<IProducto> => {
     const response = await api.put<IProducto>(`/api/owner/productos/${id}`, data);
+    cache.invalidate('productos');
     return response.data;
   },
 
   delete: async (id: number): Promise<void> => {
     await api.delete(`/api/owner/productos/${id}`);
+    cache.invalidate('productos');
   },
 
   getStock: async (): Promise<IProductoStock[]> => {
