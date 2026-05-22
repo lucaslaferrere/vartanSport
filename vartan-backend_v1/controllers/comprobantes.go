@@ -111,20 +111,24 @@ func buildComprobantesQuery(c *gin.Context) (*gorm.DB, error) {
 	}
 
 	if periodo != "todo" {
-		now := time.Now()
+		loc, _ := time.LoadLocation("America/Argentina/Buenos_Aires")
+		ahora := time.Now().In(loc)
+
+		var desde, hasta time.Time
 		switch periodo {
 		case "hoy":
-			since := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
-			query = query.Where("COALESCE(fecha_pago_saldo, fecha_venta) >= ?", since)
+			desde = time.Date(ahora.Year(), ahora.Month(), ahora.Day(), 0, 0, 0, 0, loc)
+			hasta = desde.Add(24 * time.Hour)
 		case "ayer":
-			ayer := now.AddDate(0, 0, -1)
-			inicio := time.Date(ayer.Year(), ayer.Month(), ayer.Day(), 0, 0, 0, 0, ayer.Location())
-			fin := time.Date(ayer.Year(), ayer.Month(), ayer.Day(), 23, 59, 59, 0, ayer.Location())
-			query = query.Where("COALESCE(fecha_pago_saldo, fecha_venta) BETWEEN ? AND ?", inicio, fin)
-		default:
-			since := now.AddDate(0, 0, -7)
-			query = query.Where("COALESCE(fecha_pago_saldo, fecha_venta) >= ?", since)
+			ayer := ahora.AddDate(0, 0, -1)
+			desde = time.Date(ayer.Year(), ayer.Month(), ayer.Day(), 0, 0, 0, 0, loc)
+			hasta = desde.Add(24 * time.Hour)
+		default: // 7dias
+			desde = ahora.AddDate(0, 0, -7)
+			hasta = ahora
 		}
+
+		query = query.Where("COALESCE(fecha_pago_saldo, fecha_venta) >= ? AND COALESCE(fecha_pago_saldo, fecha_venta) < ?", desde, hasta)
 	}
 
 	if soloPendientes {

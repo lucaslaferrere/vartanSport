@@ -1300,11 +1300,13 @@ func UpdateVentaPago(c *gin.Context) {
 		venta.ComprobanteSaldoURL = &filePath
 	}
 
-	now := time.Now()
-	venta.FechaPagoSaldo = &now
-
 	if err := config.DB.Save(&venta).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error al actualizar venta"})
+		return
+	}
+
+	if err := config.DB.Model(&venta).Update("fecha_pago_saldo", time.Now()).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error al guardar fecha de pago"})
 		return
 	}
 
