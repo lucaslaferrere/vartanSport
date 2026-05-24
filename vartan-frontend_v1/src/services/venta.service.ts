@@ -100,8 +100,8 @@ export const ventaService = {
         return response.data;
     },
 
-    getAllPaginated: async (page: number, limit: number): Promise<IVentasPaginadas> => {
-        const response = await api.get<IVentasPaginadas>('/api/owner/ventas', { params: { page, limit } });
+    getAllPaginated: async (page: number, limit: number, filters?: Record<string, string>): Promise<IVentasPaginadas> => {
+        const response = await api.get<IVentasPaginadas>('/api/owner/ventas', { params: { page, limit, ...filters } });
         return response.data;
     },
 

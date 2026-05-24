@@ -1,4 +1,4 @@
-import React, {useState} from "react";
+import React, {useState, useEffect} from "react";
 import {
     ColumnDef,
     flexRender,
@@ -27,6 +27,7 @@ interface ServerSidePagination {
     pageSize: number;
     onPageChange: (page: number) => void;
     onPageSizeChange: (pageSize: number) => void;
+    onFiltersChange?: (filters: Record<string, string>) => void;
 }
 
 interface ReactTableProps<TData> {
@@ -62,6 +63,18 @@ export default function TableClientSide<TData>({
 
     const [filters, setFilters] = useState<ColumnFiltersState>([])
 
+    useEffect(() => {
+        if (!serverSide?.onFiltersChange) return;
+        const timer = setTimeout(() => {
+            const record: Record<string, string> = {};
+            filters.forEach(f => {
+                if (f.value !== undefined && f.value !== '') record[f.id] = String(f.value);
+            });
+            serverSide.onFiltersChange!(record);
+        }, 400);
+        return () => clearTimeout(timer);
+    }, [filters]);
+
     const handleFiltersChange = (filter: Updater<ColumnFiltersState>) => {
         setFilters(prev => {
             return typeof filter === "function" ? filter(prev) : filter;
@@ -84,7 +97,7 @@ export default function TableClientSide<TData>({
             : setPagination,
         onColumnFiltersChange: handleFiltersChange,
         getCoreRowModel: getCoreRowModel(),
-        getFilteredRowModel: serverSide ? undefined! : getFilteredRowModel(),
+        getFilteredRowModel: getFilteredRowModel(),
         getPaginationRowModel: getPaginationRowModel(),
         manualPagination: !!serverSide,
         rowCount: serverSide?.total,

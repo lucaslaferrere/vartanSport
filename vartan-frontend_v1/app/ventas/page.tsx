@@ -53,6 +53,7 @@ export default function VentasPage() {
   const [totalVentas, setTotalVentas] = useState(0);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(50);
+  const [activeFilters, setActiveFilters] = useState<Record<string, string>>({});
   const [stats, setStats] = useState<IVentasStats>({
     ventasHoy: 0,
     totalHoy: 0,
@@ -110,14 +111,14 @@ export default function VentasPage() {
     };
   };
 
-  const fetchVentas = useCallback(async (currentPage = page, currentPageSize = pageSize) => {
+  const fetchVentas = useCallback(async (currentPage = page, currentPageSize = pageSize, currentFilters = activeFilters) => {
     if (!mounted) return;
 
     setLoading(true);
     setError(null);
     try {
       if (user?.rol === 'dueño') {
-        const result = await ventaService.getAllPaginated(currentPage, currentPageSize);
+        const result = await ventaService.getAllPaginated(currentPage, currentPageSize, currentFilters);
         setVentasRaw(result.ventas);
         setVentas(result.ventas.map(transformVenta));
         setTotalVentas(result.total);
@@ -138,7 +139,7 @@ export default function VentasPage() {
     } finally {
       setLoading(false);
     }
-  }, [mounted, user?.rol, page, pageSize]);
+  }, [mounted, user?.rol, page, pageSize, activeFilters]);
 
   useEffect(() => {
     if (mounted) {
@@ -344,6 +345,11 @@ export default function VentasPage() {
               setPageSize(newSize);
               setPage(1);
               fetchVentas(1, newSize);
+            },
+            onFiltersChange: (filters) => {
+              setActiveFilters(filters);
+              setPage(1);
+              fetchVentas(1, pageSize, filters);
             },
           } : undefined}
         />
