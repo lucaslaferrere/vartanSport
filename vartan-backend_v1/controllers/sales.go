@@ -807,18 +807,44 @@ func GetMisVentas(c *gin.Context) {
 func GetVentas(c *gin.Context) {
 	pageStr := c.Query("page")
 	limitStr := c.Query("limit")
+	clienteFilter := strings.TrimSpace(c.Query("cliente"))
+	productoFilter := strings.TrimSpace(c.Query("producto"))
+	metodoPagoFilter := strings.TrimSpace(c.Query("metodoPago"))
+
+	// Construir query base con filtros
+	query := config.DB.Model(&models.Venta{}).Table("venta")
+
+	if clienteFilter != "" {
+		query = query.
+			Joins("JOIN cliente ON cliente.id = venta.cliente_id").
+			Where("cliente.nombre ILIKE ?", "%"+clienteFilter+"%")
+	}
+
+	if productoFilter != "" {
+		query = query.
+			Joins("JOIN venta_detalle vd ON vd.venta_id = venta.id").
+			Joins("JOIN producto p ON p.id = vd.producto_id").
+			Where("p.nombre ILIKE ?", "%"+productoFilter+"%").
+			Group("venta.id")
+	}
+
+	if metodoPagoFilter != "" {
+		query = query.
+			Joins("JOIN forma_pago fp ON fp.id = venta.forma_pago_id").
+			Where("fp.nombre ILIKE ?", "%"+metodoPagoFilter+"%")
+	}
 
 	// Sin page/limit → devolver todo (compatibilidad con código existente)
 	if pageStr == "" && limitStr == "" {
 		var ventas []models.Venta
-		if err := config.DB.
+		if err := query.
 			Preload("Usuario").
 			Preload("Cliente").
 			Preload("FormaPago").
 			Preload("FormaPagoSaldo").
 			Preload("Detalles").
 			Preload("Detalles.Producto").
-			Order("fecha_venta DESC").
+			Order("venta.fecha_venta DESC").
 			Find(&ventas).Error; err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error al obtener ventas"})
 			return
@@ -838,20 +864,20 @@ func GetVentas(c *gin.Context) {
 	offset := (page - 1) * limit
 
 	var total int64
-	if err := config.DB.Model(&models.Venta{}).Count(&total).Error; err != nil {
+	if err := query.Count(&total).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error al contar ventas"})
 		return
 	}
 
 	var ventas []models.Venta
-	if err := config.DB.
+	if err := query.
 		Preload("Usuario").
 		Preload("Cliente").
 		Preload("FormaPago").
 		Preload("FormaPagoSaldo").
 		Preload("Detalles").
 		Preload("Detalles.Producto").
-		Order("fecha_venta DESC").
+		Order("venta.fecha_venta DESC").
 		Limit(limit).
 		Offset(offset).
 		Find(&ventas).Error; err != nil {
