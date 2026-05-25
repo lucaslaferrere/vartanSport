@@ -1,4 +1,4 @@
-import React, {useState, useEffect} from "react";
+import React, {useState, useEffect, useRef} from "react";
 import {
     ColumnDef,
     flexRender,
@@ -62,9 +62,14 @@ export default function TableClientSide<TData>({
     });
 
     const [filters, setFilters] = useState<ColumnFiltersState>([])
+    const isFirstFilterRender = useRef(true);
 
     useEffect(() => {
         if (!serverSide?.onFiltersChange) return;
+        if (isFirstFilterRender.current) {
+            isFirstFilterRender.current = false;
+            return;
+        }
         const timer = setTimeout(() => {
             const record: Record<string, string> = {};
             filters.forEach(f => {
