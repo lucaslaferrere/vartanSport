@@ -59,7 +59,7 @@ export default function VentasPage() {
     ventasMes: 0,
     totalMes: 0,
   });
-  const [loading, setLoading] = useState(true);
+  const [initialLoading, setInitialLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [agregarVentaModalOpen, setAgregarVentaModalOpen] = useState(false);
   const [detalleVentaModalOpen, setDetalleVentaModalOpen] = useState(false);
@@ -113,7 +113,6 @@ export default function VentasPage() {
   const fetchVentas = useCallback(async (currentPage = page, currentPageSize = pageSize, currentFilters: Record<string, string> = {}) => {
     if (!mounted) return;
 
-    setLoading(true);
     setError(null);
     try {
       if (user?.rol === 'dueño') {
@@ -136,7 +135,7 @@ export default function VentasPage() {
         : 'Error al cargar las ventas';
       setError(errorMessage);
     } finally {
-      setLoading(false);
+      setInitialLoading(false);
     }
   }, [mounted, user?.rol, page, pageSize]);
 
@@ -275,7 +274,7 @@ export default function VentasPage() {
     </PrimaryButton>
   );
 
-  if (loading) {
+  if (initialLoading) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '400px' }}>
         <CircularProgress sx={{ color: colors.primary }} />
@@ -283,7 +282,7 @@ export default function VentasPage() {
     );
   }
 
-  if (error) {
+  if (error && ventas.length === 0) {
     return (
       <Box sx={{ p: 4, textAlign: 'center' }}>
         <Typography color="error">{error}</Typography>
