@@ -14,7 +14,6 @@ import (
 	"vartan-backend/models"
 
 	"github.com/gin-gonic/gin"
-	"gorm.io/gorm"
 )
 
 const financieraRate = 0.025
@@ -813,7 +812,7 @@ func GetVentas(c *gin.Context) {
 	metodoPagoFilter := strings.TrimSpace(c.Query("metodoPago"))
 
 	// Construir query base con filtros
-	query := config.DB.Model(&models.Venta{}).Select("venta.*")
+	query := config.DB.Model(&models.Venta{}).Table("venta")
 
 	if clienteFilter != "" {
 		query = query.
@@ -838,7 +837,7 @@ func GetVentas(c *gin.Context) {
 	// Sin page/limit → devolver todo (compatibilidad con código existente)
 	if pageStr == "" && limitStr == "" {
 		var ventas []models.Venta
-		if err := query.Session(&gorm.Session{}).
+		if err := query.
 			Preload("Usuario").
 			Preload("Cliente").
 			Preload("FormaPago").
@@ -865,13 +864,13 @@ func GetVentas(c *gin.Context) {
 	offset := (page - 1) * limit
 
 	var total int64
-	if err := query.Session(&gorm.Session{}).Count(&total).Error; err != nil {
+	if err := query.Count(&total).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error al contar ventas"})
 		return
 	}
 
 	var ventas []models.Venta
-	if err := query.Session(&gorm.Session{}).
+	if err := query.
 		Preload("Usuario").
 		Preload("Cliente").
 		Preload("FormaPago").
