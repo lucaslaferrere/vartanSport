@@ -812,26 +812,18 @@ func GetVentas(c *gin.Context) {
 	metodoPagoFilter := strings.TrimSpace(c.Query("metodoPago"))
 
 	// Construir query base con filtros
-	query := config.DB.Model(&models.Venta{}).Table("venta")
+	query := config.DB.Model(&models.Venta{})
 
 	if clienteFilter != "" {
-		query = query.
-			Joins("JOIN cliente ON cliente.id = venta.cliente_id").
-			Where("cliente.nombre ILIKE ?", "%"+clienteFilter+"%")
+		query = query.Where("cliente_id IN (SELECT id FROM cliente WHERE nombre ILIKE ?)", "%"+clienteFilter+"%")
 	}
 
 	if productoFilter != "" {
-		query = query.
-			Joins("JOIN venta_detalle vd ON vd.venta_id = venta.id").
-			Joins("JOIN producto p ON p.id = vd.producto_id").
-			Where("p.nombre ILIKE ?", "%"+productoFilter+"%").
-			Group("venta.id")
+		query = query.Where("id IN (SELECT vd.venta_id FROM venta_detalle vd JOIN producto p ON p.id = vd.producto_id WHERE p.nombre ILIKE ?)", "%"+productoFilter+"%")
 	}
 
 	if metodoPagoFilter != "" {
-		query = query.
-			Joins("JOIN forma_pago fp ON fp.id = venta.forma_pago_id").
-			Where("fp.nombre ILIKE ?", "%"+metodoPagoFilter+"%")
+		query = query.Where("forma_pago_id IN (SELECT id FROM forma_pago WHERE nombre ILIKE ?)", "%"+metodoPagoFilter+"%")
 	}
 
 	// Sin page/limit → devolver todo (compatibilidad con código existente)
