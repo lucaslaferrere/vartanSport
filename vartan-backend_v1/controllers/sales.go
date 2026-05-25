@@ -815,15 +815,15 @@ func GetVentas(c *gin.Context) {
 	query := config.DB.Model(&models.Venta{})
 
 	if clienteFilter != "" {
-		query = query.Where("cliente_id IN (SELECT id FROM cliente WHERE nombre ILIKE ?)", "%"+clienteFilter+"%")
+		query = query.Where("cliente_id IN (SELECT id FROM clientes WHERE nombre ILIKE ?)", "%"+clienteFilter+"%")
 	}
 
 	if productoFilter != "" {
-		query = query.Where("id IN (SELECT vd.venta_id FROM venta_detalle vd JOIN producto p ON p.id = vd.producto_id WHERE p.nombre ILIKE ?)", "%"+productoFilter+"%")
+		query = query.Where("id IN (SELECT vd.venta_id FROM venta_detalles vd JOIN productos p ON p.id = vd.producto_id WHERE p.nombre ILIKE ?)", "%"+productoFilter+"%")
 	}
 
 	if metodoPagoFilter != "" {
-		query = query.Where("forma_pago_id IN (SELECT id FROM forma_pago WHERE nombre ILIKE ?)", "%"+metodoPagoFilter+"%")
+		query = query.Where("forma_pago_id IN (SELECT id FROM forma_pagos WHERE nombre ILIKE ?)", "%"+metodoPagoFilter+"%")
 	}
 
 	// Sin page/limit → devolver todo (compatibilidad con código existente)
