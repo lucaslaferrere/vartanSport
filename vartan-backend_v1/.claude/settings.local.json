@@ -19,7 +19,11 @@
       "PowerShell($proc = Get-NetTCPConnection -LocalPort 8080 -ErrorAction SilentlyContinue | Select-Object -ExpandProperty OwningProcess -First 1; if \\($proc\\) { Stop-Process -Id $proc -Force; \"Proceso $proc terminado\" } else { \"No hay proceso en 8080\" })",
       "Bash(Get-ChildItem -Path \"c:\\\\Users\\\\lafer\\\\vartanSport\\\\vartan-backend_v1\" -Recurse -Directory)",
       "Bash(Select-Object -ExpandProperty FullName)",
-      "Bash(Sort-Object)"
+      "Bash(Sort-Object)",
+      "Bash(go run *)",
+      "PowerShell(Get-NetTCPConnection *)",
+      "PowerShell(Stop-Process *)",
+      "PowerShell(Get-Process *)"
     ],
     "additionalDirectories": [
       "c:\\Users\\lafer\\vartanSport\\vartan-frontend_v1\\src\\components\\Dashboard",
