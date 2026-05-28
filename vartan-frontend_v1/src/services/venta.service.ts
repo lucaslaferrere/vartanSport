@@ -83,6 +83,12 @@ export const ventaService = {
         return response.data;
     },
 
+    getAllPaginated: async (_page: number, _pageSize: number, _filters: Record<string, string> = {}): Promise<{ ventas: IVenta[]; total: number }> => {
+        const response = await api.get<IVenta[]>('/api/owner/ventas');
+        const ventas = response.data;
+        return { ventas, total: ventas.length };
+    },
+
     getByUsuario: async (usuarioId: number): Promise<IVenta[]> => {
         const response = await api.get<IVenta[]>(`/api/owner/ventas/usuario/${usuarioId}`);
         return response.data;
