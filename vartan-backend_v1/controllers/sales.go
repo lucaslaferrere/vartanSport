@@ -79,6 +79,12 @@ func DeleteVenta(c *gin.Context) {
 		return
 	}
 
+	if err := tx.Where("venta_id = ?", venta.ID).Delete(&models.PagoVenta{}).Error; err != nil {
+		tx.Rollback()
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error al eliminar pagos de venta"})
+		return
+	}
+
 	if err := tx.Where("venta_id = ?", venta.ID).Delete(&models.VentaDetalle{}).Error; err != nil {
 		tx.Rollback()
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error al eliminar detalles de venta"})
