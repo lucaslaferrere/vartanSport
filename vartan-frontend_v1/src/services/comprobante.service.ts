@@ -2,16 +2,20 @@ import { api } from '@libraries/api';
 
 export interface IComprobante {
   venta_id: number;
+  pago_id?: number;
   comprobante_url: string;
   comprobante_saldo_url?: string;
   fecha_venta: string;
+  fecha_pago?: string;
+  monto?: number;
   vendedor: { id: number; nombre: string };
   cliente: { id: number; nombre: string };
-  forma_pago: { id: number; nombre: string };
+  forma_pago?: { id: number; nombre: string } | null;
   forma_pago_saldo?: { id: number; nombre: string };
   total_final: number;
   revisado: boolean;
   revisado_at: string | null;
+  origen?: string;
 }
 
 export interface IComprobantesResponse {

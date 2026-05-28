@@ -112,17 +112,17 @@ export default function ComprobanteCard({ comprobante, onVer, onDescargar, onVer
           Venta #{venta_id}
         </Typography>
         <Typography sx={{ fontSize: '11px', color: '#6B7280', mt: 0.25 }}>
-          {vendedor.nombre}
+          {vendedor?.nombre ?? '—'}
         </Typography>
         <Typography sx={{ fontSize: '11px', color: '#6B7280' }}>
-          {cliente.nombre}
+          {cliente?.nombre ?? '—'}
         </Typography>
         <Typography sx={{ fontSize: '12px', fontWeight: 600, color: '#1F2937', mt: 0.5 }}>
           {formatCurrency(total_final)}
         </Typography>
         <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap', mt: 0.25 }}>
           <Typography sx={{ fontSize: '10px', color: '#588a9e', fontWeight: 600 }}>
-            {forma_pago.nombre}
+            {forma_pago?.nombre ?? '—'}
           </Typography>
           {forma_pago_saldo && (
             <Typography sx={{ fontSize: '10px', color: '#6B7280' }}>
