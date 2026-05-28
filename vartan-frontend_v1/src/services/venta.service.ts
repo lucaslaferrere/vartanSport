@@ -91,8 +91,8 @@ export const ventaService = {
         return response.data;
     },
 
-    getAllPaginated: async (page: number, pageSize: number, _filters: Record<string, string> = {}): Promise<{ ventas: IVenta[]; total: number }> => {
-        const params = new URLSearchParams({ page: String(page), limit: String(pageSize) });
+    getAllPaginated: async (page: number, pageSize: number, filters: Record<string, string> = {}): Promise<{ ventas: IVenta[]; total: number }> => {
+        const params = new URLSearchParams({ page: String(page), limit: String(pageSize), ...filters });
         const response = await api.get<{ ventas: IVenta[]; total: number }>(`/api/owner/ventas?${params.toString()}`);
         return { ventas: response.data.ventas, total: response.data.total };
     },
