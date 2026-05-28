@@ -109,6 +109,19 @@ const [miResumen, setMiResumen] = useState<IMiResumenComision | null>(null);
                 usuariosBase.push(miUsuario);
             }
 
+            // Fetch gastos publicitarios del mes actual desde comisiones_publicitarias,
+            // ya que comActual.gasto_publicitario puede llegar null del backend.
+            const gastosResults = await Promise.allSettled(
+                usuariosBase.map(u =>
+                    comisionService.getComisionPublicitaria(u.id, mesActualAuto, anioActualAuto)
+                )
+            );
+            const gastoMap = new Map<number, number>();
+            usuariosBase.forEach((u, i) => {
+                const r = gastosResults[i];
+                if (r.status === 'fulfilled') gastoMap.set(u.id, r.value.valor_comision ?? 0);
+            });
+
             const mesActual = calcularMes;
             const anioActual = calcularAnio;
             const mesAnterior = mesActual === 1 ? 12 : mesActual - 1;
@@ -123,7 +136,6 @@ const [miResumen, setMiResumen] = useState<IMiResumenComision | null>(null);
                 const sueldoBase = v.sueldo || 0;
                 const sueldoTotal = sueldoBase + comisionEst;
 
-
                 const historial = comisionesData
                     .filter(c => c.usuario_id === v.id)
                     .sort((a, b) => (a.anio * 12 + a.mes) - (b.anio * 12 + b.mes))
@@ -136,7 +148,7 @@ const [miResumen, setMiResumen] = useState<IMiResumenComision | null>(null);
                     email: v.email,
                     rol: v.rol,
                     porcentaje_comision: v.porcentaje_comision,
-                    gasto_publicitario: comActual ? (comActual.gasto_publicitario ?? 0) : v.gasto_publicitario,
+                    gasto_publicitario: gastoMap.get(v.id) ?? comActual?.gasto_publicitario ?? 0,
                     sueldo: sueldoBase,
                     observaciones_config: v.observaciones_config,
                     ventas_mes_actual: ventas,
