@@ -35,35 +35,7 @@ export default function DetalleVentaModal({ open, onClose, venta }: DetalleVenta
       setPagosError(null);
       return;
     }
-
-    if (Array.isArray(venta.pagos)) {
-      setPagos(venta.pagos);
-      setPagosLoading(false);
-      return;
-    }
-
-    let cancelado = false;
-    setPagosLoading(true);
-    setPagosError(null);
-
-    ventaService
-      .getPagos(venta.id)
-      .then((data) => {
-        if (cancelado) return;
-        setPagos(Array.isArray(data) ? data : []);
-      })
-      .catch(() => {
-        if (cancelado) return;
-        setPagosError('No se pudo cargar el historial de pagos.');
-      })
-      .finally(() => {
-        if (cancelado) return;
-        setPagosLoading(false);
-      });
-
-    return () => {
-      cancelado = true;
-    };
+    setPagos(venta.pagos ?? []);
   }, [open, venta?.id, venta?.pagos]);
 
   if (!venta) return null;

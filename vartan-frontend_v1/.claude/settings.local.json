@@ -3,9 +3,12 @@
     "allow": [
       "Bash(xargs grep -n \"password\\\\|Password\\\\|usuario\\\\|user\")",
       "Bash(find:*)",
-      "Bash(xargs grep *)",
-      "Bash(grep -E \"\\\\.\\(tsx|ts\\)$\")",
-      "Bash(xargs cat *)"
+      "Bash(git -C .. log --oneline -5)",
+      "Bash(git -C .. status --short)",
+      "Bash(git -C .. stash pop)",
+      "Bash(git -C .. checkout -- vartan-frontend_v1/.claude/settings.local.json)",
+      "Bash(git -C .. merge origin/main_v2)",
+      "Bash(git -C .. stash)"
     ]
   }
 }

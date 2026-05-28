@@ -6,7 +6,6 @@ import BaseModal from './BaseModal';
 import { IUser } from '@models/entities/userEntity';
 import { usuarioService } from '@services/usuario.service';
 import { comisionService } from '@services/comision.service';
-import { IComision } from '@models/entities/comisionentity';
 
 interface ConfigurarComisionModalProps {
   open: boolean;
@@ -27,26 +26,37 @@ export default function ConfigurarComisionModal({
 }: ConfigurarComisionModalProps) {
   const [porcentajeComision, setPorcentajeComision] = useState('');
   const [gastoPublicitario, setGastoPublicitario] = useState('');
+  const [gastoNotSet, setGastoNotSet] = useState(false);
+  const [loadingGasto, setLoadingGasto] = useState(false);
   const [sueldo, setSueldo] = useState('');
   const [observaciones, setObservaciones] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [comisiones, setComisiones] = useState<IComision[]>([]);
   const [selectedMes, setSelectedMes] = useState(mesInicial ?? new Date().getMonth() + 1);
   const [selectedAnio, setSelectedAnio] = useState(anioInicial ?? new Date().getFullYear());
+
+  const fetchGastoPublicitario = async (userId: number, mes: number, anio: number) => {
+    setLoadingGasto(true);
+    try {
+      const data = await comisionService.getComisionPublicitaria(userId, mes, anio);
+      setGastoPublicitario(String(data.valor_comision));
+      setGastoNotSet(data.not_set === true || data.valor_comision === 0);
+    } catch {
+      setGastoPublicitario('0');
+      setGastoNotSet(true);
+    } finally {
+      setLoadingGasto(false);
+    }
+  };
 
   useEffect(() => {
     if (vendedor) {
       setPorcentajeComision(vendedor.porcentaje_comision?.toString() || '0');
       setSueldo(vendedor.sueldo?.toString() || '0');
       setObservaciones(vendedor.observaciones_config || '');
-      comisionService.getByUsuario(vendedor.id).then((data) => {
-        setComisiones(data);
-        const mes = mesInicial ?? new Date().getMonth() + 1;
-        const anio = anioInicial ?? new Date().getFullYear();
-        const comision = data.find(c => c.mes === mes && c.anio === anio);
-        setGastoPublicitario(comision && comision.gasto_publicitario !== null ? String(comision.gasto_publicitario) : '0');
-      }).catch(() => setComisiones([]));
+      const mes = mesInicial ?? new Date().getMonth() + 1;
+      const anio = anioInicial ?? new Date().getFullYear();
+      fetchGastoPublicitario(vendedor.id, mes, anio);
     }
   }, [vendedor]);
 
@@ -56,9 +66,10 @@ export default function ConfigurarComisionModal({
   }, [mesInicial, anioInicial]);
 
   useEffect(() => {
-    const comision = comisiones.find(c => c.mes === selectedMes && c.anio === selectedAnio);
-    setGastoPublicitario(comision && comision.gasto_publicitario !== null ? String(comision.gasto_publicitario) : '0');
-  }, [selectedMes, selectedAnio, comisiones]);
+    if (vendedor) {
+      fetchGastoPublicitario(vendedor.id, selectedMes, selectedAnio);
+    }
+  }, [selectedMes, selectedAnio]);
 
   const handleSubmit = async () => {
     if (!vendedor) return;
@@ -82,12 +93,14 @@ export default function ConfigurarComisionModal({
         observaciones: observaciones.trim() || undefined,
       });
 
-      // Guardar gasto del mes si hay registro
-      const comision = comisiones.find(c => c.mes === selectedMes && c.anio === selectedAnio);
-      if (comision) {
-        const parsed = parseFloat(gastoPublicitario);
-        await comisionService.updateGastoPublicitario(comision.id, isNaN(parsed) ? 0 : parsed);
-      }
+      // Guardar gasto publicitario del mes (siempre, crea o actualiza el registro mensual)
+      const parsed = parseFloat(gastoPublicitario);
+      await comisionService.setComisionPublicitaria(
+        vendedor.id,
+        selectedMes,
+        selectedAnio,
+        isNaN(parsed) ? 0 : parsed,
+      );
 
       onSuccess();
       handleClose();
@@ -102,15 +115,15 @@ export default function ConfigurarComisionModal({
   const handleClose = () => {
     setPorcentajeComision('');
     setGastoPublicitario('');
+    setGastoNotSet(false);
     setSueldo('');
     setObservaciones('');
-    setComisiones([]);
     setError(null);
     onClose();
   };
 
-  const comisionSeleccionada = comisiones.find(c => c.mes === selectedMes && c.anio === selectedAnio);
   const mesesNombres = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+  const showGastoWarning = gastoNotSet || parseFloat(gastoPublicitario) === 0;
 
   return (
     <BaseModal
@@ -147,20 +160,24 @@ export default function ConfigurarComisionModal({
           <Box>
             <Typography sx={{ fontSize: '13px', fontWeight: 500, color: '#6B7280', mb: 0.75 }}>
               Gasto pub. {mesesNombres[selectedMes - 1]} {selectedAnio} ($)
-              {!comisionSeleccionada && <span style={{ color: '#9CA3AF', fontSize: '11px', marginLeft: 4 }}>(sin registro)</span>}
             </Typography>
             <input
               type="number"
               value={gastoPublicitario}
-              onChange={(e) => setGastoPublicitario(e.target.value)}
+              onChange={(e) => { setGastoPublicitario(e.target.value); setGastoNotSet(false); }}
               placeholder="Ej: 5000"
               min="0"
               step="0.01"
-              disabled={!comisionSeleccionada}
-              style={{ width: '100%', padding: '10px 12px', fontSize: '14px', border: '1px solid #E5E7EB', borderRadius: '6px', fontFamily: 'inherit', outline: 'none', background: comisionSeleccionada ? 'white' : '#F9FAFB' }}
+              disabled={loadingGasto}
+              style={{ width: '100%', padding: '10px 12px', fontSize: '14px', border: `1px solid ${showGastoWarning ? '#FCD34D' : '#E5E7EB'}`, borderRadius: '6px', fontFamily: 'inherit', outline: 'none', background: loadingGasto ? '#F9FAFB' : 'white' }}
               onFocus={(e) => e.target.style.borderColor = '#3B82F6'}
-              onBlur={(e) => e.target.style.borderColor = '#E5E7EB'}
+              onBlur={(e) => e.target.style.borderColor = showGastoWarning ? '#FCD34D' : '#E5E7EB'}
             />
+            {showGastoWarning && !loadingGasto && (
+              <Typography sx={{ fontSize: '11px', fontWeight: 600, color: '#B45309', mt: 0.5, display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                ⚠️ Requiere asignación para este mes
+              </Typography>
+            )}
           </Box>
         </Grid>
 

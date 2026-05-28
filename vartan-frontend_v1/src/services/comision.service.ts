@@ -2,6 +2,11 @@ import { api } from '@libraries/api';
 import { IComision } from '@models/entities/comisionentity';
 import { IComisionObservacionesRequest } from '@models/request/IComisionRequest';
 
+export interface IComisionPublicitariaResponse {
+    valor_comision: number;
+    not_set?: boolean;
+}
+
 interface ICalcularComisionesResponse {
     message: string;
     comisiones: IComision[];
@@ -92,10 +97,28 @@ export const comisionService = {
         return response.data;
     },
 
-    // Solo dueño: actualizar gasto publicitario de un mes específico
+    // Solo dueño: actualizar gasto publicitario de un mes específico (endpoint legacy)
     updateGastoPublicitario: async (id: number, gasto_publicitario: number): Promise<IComision> => {
         const response = await api.put<IComision>(`/api/owner/comisiones/${id}/gasto-publicitario`, { gasto_publicitario });
         return response.data;
+    },
+
+    // Solo dueño: obtener comisión publicitaria mensual de un usuario
+    getComisionPublicitaria: async (usuarioId: number, mes: number, anio: number): Promise<IComisionPublicitariaResponse> => {
+        const response = await api.get<IComisionPublicitariaResponse>(
+            `/api/owner/comisiones-publicitarias/usuario/${usuarioId}`,
+            { params: { mes, anio } }
+        );
+        return response.data;
+    },
+
+    // Solo dueño: asignar/actualizar comisión publicitaria mensual de un usuario
+    setComisionPublicitaria: async (usuarioId: number, mes: number, anio: number, valor_comision: number): Promise<void> => {
+        await api.post(`/api/owner/comisiones-publicitarias/usuario/${usuarioId}`, {
+            mes,
+            anio,
+            valor_comision,
+        });
     },
 };
 

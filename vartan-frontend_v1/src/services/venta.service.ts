@@ -1,6 +1,5 @@
 import { api } from '@libraries/api';
-import { cache } from '@libraries/cache';
-import { IVenta, IFormaPago } from '@models/entities/ventaEntity';
+import { IVenta, IPagoVenta } from '@models/entities/ventaEntity';
 import { IVentaCreateRequest } from '@models/request/IVentaRequest';
 
 interface IVentaCreateResponse {
@@ -8,23 +7,7 @@ interface IVentaCreateResponse {
     venta: IVenta;
 }
 
-export interface IVentasPaginadas {
-    ventas: IVenta[];
-    total: number;
-    page: number;
-    limit: number;
-    total_pages: number;
-}
-
 export const ventaService = {
-    getFormasPago: async (): Promise<IFormaPago[]> => {
-        const cached = cache.get<IFormaPago[]>('formas-pago');
-        if (cached) return cached;
-        const response = await api.get<IFormaPago[]>('/api/formas-pago');
-        cache.set('formas-pago', response.data);
-        return response.data;
-    },
-
     getMisVentas: async (): Promise<IVenta[]> => {
         const response = await api.get<IVenta[]>('/api/mis-ventas');
         return response.data;
@@ -100,16 +83,6 @@ export const ventaService = {
         return response.data;
     },
 
-    getAllPaginated: async (page: number, limit: number, filters?: Record<string, string>): Promise<IVentasPaginadas> => {
-        const response = await api.get<IVentasPaginadas>('/api/owner/ventas', { params: { page, limit, ...filters } });
-        return response.data;
-    },
-
-    getById: async (id: number): Promise<IVenta> => {
-        const response = await api.get<IVenta>(`/api/owner/venta/${id}`);
-        return response.data;
-    },
-
     getByUsuario: async (usuarioId: number): Promise<IVenta[]> => {
         const response = await api.get<IVenta[]>(`/api/owner/ventas/usuario/${usuarioId}`);
         return response.data;
@@ -129,24 +102,36 @@ export const ventaService = {
         link.remove();
     },
 
-    // Actualizar pago de una venta (seña + comprobante)
-    updatePago: async (ventaId: number, sena: number, formaPagoSaldoId?: number, comprobante?: File): Promise<IVentaCreateResponse> => {
+    // Registrar un pago parcial (nueva API multi-pago)
+    registrarPago: async (ventaId: number, monto: number, formaPagoId?: number, comprobante?: File): Promise<IPagoVenta> => {
         const formData = new FormData();
-        formData.append('sena', sena.toString());
+        formData.append('monto', monto.toString());
 
-        if (formaPagoSaldoId) {
-            formData.append('forma_pago_saldo_id', formaPagoSaldoId.toString());
+        if (formaPagoId) {
+            formData.append('forma_pago_id', formaPagoId.toString());
         }
 
         if (comprobante) {
             formData.append('comprobante', comprobante);
         }
 
-        const response = await api.put<IVentaCreateResponse>(`/api/ventas/${ventaId}/pago`, formData, {
+        const response = await api.post<IPagoVenta>(`/api/ventas/${ventaId}/pagos`, formData, {
             headers: {
                 'Content-Type': 'multipart/form-data',
             },
         });
+        return response.data;
+    },
+
+    // Listar pagos parciales de una venta
+    getPagos: async (ventaId: number): Promise<IPagoVenta[]> => {
+        const response = await api.get<IPagoVenta[]>(`/api/ventas/${ventaId}/pagos`);
+        return response.data;
+    },
+
+    // Obtener el detalle completo de una venta (incluye pagos)
+    getById: async (ventaId: number): Promise<IVenta> => {
+        const response = await api.get<IVenta>(`/api/ventas/${ventaId}`);
         return response.data;
     },
 

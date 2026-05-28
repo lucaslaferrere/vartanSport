@@ -85,18 +85,20 @@ export default function RegistrarPagoModal({ open, onClose, onSuccess, venta }: 
     setLoading(true);
 
     try {
-      const result = await ventaService.updatePago(venta.id, nuevaSenaTotal, formaPagoSaldoId, comprobante || undefined);
+      await ventaService.registrarPago(venta.id, pagoDeHoy, formaPagoSaldoId, comprobante || undefined);
+
+      const ventaActualizada = await ventaService.getById(venta.id);
 
       addNotification('Pago registrado exitosamente', 'success');
 
-      if (result.venta.saldo === 0) {
+      if (ventaActualizada.saldo === 0) {
         addNotification('Venta pagada completamente', 'success');
       } else {
-        addNotification(`Saldo pendiente: $${result.venta.saldo.toLocaleString('es-AR')}`, 'info');
+        addNotification(`Saldo pendiente: $${ventaActualizada.saldo.toLocaleString('es-AR')}`, 'info');
       }
 
       handleClose();
-      onSuccess(result.venta);
+      onSuccess(ventaActualizada);
     } catch (err: unknown) {
       console.error('Error registrando pago:', err);
       const error = err as { response?: { data?: { error?: string } } };
