@@ -129,7 +129,7 @@ export default function VentasPage() {
         setStats(calcularStats(ventasData));
       }
     } catch (err: unknown) {
-      console.error('Error fetching ventas:', err);
+      console.error('Error fetching ventas (filtros:', currentFilters, '):', err);
       const errorMessage = err instanceof Error && err.message.includes('Network')
         ? 'No se puede conectar al servidor'
         : 'Error al cargar las ventas';

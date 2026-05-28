@@ -743,14 +743,30 @@ func GetVentas(c *gin.Context) {
 	}
 	offset := (page - 1) * limit
 
+	clienteFilter := strings.TrimSpace(c.Query("cliente"))
+	productoFilter := strings.TrimSpace(c.Query("producto"))
+	metodoPagoFilter := strings.TrimSpace(c.Query("metodoPago"))
+
+	query := config.DB.Model(&models.Venta{})
+
+	if clienteFilter != "" {
+		query = query.Where("cliente_id IN (SELECT id FROM clientes WHERE nombre ILIKE ?)", "%"+clienteFilter+"%")
+	}
+	if productoFilter != "" {
+		query = query.Where("id IN (SELECT vd.venta_id FROM venta_detalles vd JOIN productos p ON p.id = vd.producto_id WHERE p.nombre ILIKE ?)", "%"+productoFilter+"%")
+	}
+	if metodoPagoFilter != "" {
+		query = query.Where("forma_pago_id IN (SELECT id FROM forma_pagos WHERE nombre ILIKE ?)", "%"+metodoPagoFilter+"%")
+	}
+
 	var total int64
-	if err := config.DB.Model(&models.Venta{}).Count(&total).Error; err != nil {
+	if err := query.Session(&gorm.Session{}).Count(&total).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error al contar ventas"})
 		return
 	}
 
 	var ventas []models.Venta
-	if err := config.DB.
+	if err := query.Session(&gorm.Session{}).
 		Preload("Usuario").
 		Preload("Cliente").
 		Preload("FormaPago").
@@ -767,10 +783,11 @@ func GetVentas(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"ventas": ventas,
-		"total":  total,
-		"page":   page,
-		"limit":  limit,
+		"ventas":      ventas,
+		"total":       total,
+		"page":        page,
+		"limit":       limit,
+		"total_pages": (int(total) + limit - 1) / limit,
 	})
 }
 
