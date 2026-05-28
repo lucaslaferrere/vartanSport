@@ -715,16 +715,34 @@ func GetMisVentas(c *gin.Context) {
 }
 
 // GetVentas godoc
-// @Summary Listar todas las ventas
-// @Description Obtiene todas las ventas (solo dueño)
+// @Summary Listar todas las ventas (paginado)
+// @Description Obtiene las ventas paginadas (solo dueño)
 // @Tags Ventas
 // @Accept json
 // @Produce json
 // @Security BearerAuth
-// @Success 200 {array} models.Venta
+// @Param page query int false "Pagina (default 1)"
+// @Param limit query int false "Tamano de pagina (default 50)"
+// @Success 200 {object} map[string]interface{}
 // @Failure 500 {object} map[string]string "Error interno"
 // @Router /api/owner/ventas [get]
 func GetVentas(c *gin.Context) {
+	page, err := strconv.Atoi(c.Query("page"))
+	if err != nil || page < 1 {
+		page = 1
+	}
+	limit, err := strconv.Atoi(c.Query("limit"))
+	if err != nil || limit < 1 {
+		limit = 50
+	}
+	offset := (page - 1) * limit
+
+	var total int64
+	if err := config.DB.Model(&models.Venta{}).Count(&total).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error al contar ventas"})
+		return
+	}
+
 	var ventas []models.Venta
 	if err := config.DB.
 		Preload("Usuario").
@@ -732,13 +750,22 @@ func GetVentas(c *gin.Context) {
 		Preload("FormaPago").
 		Preload("Detalles").
 		Preload("Detalles.Producto").
+		Preload("Pagos").
+		Preload("Pagos.FormaPago").
 		Order("fecha_venta DESC").
+		Limit(limit).
+		Offset(offset).
 		Find(&ventas).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error al obtener ventas"})
 		return
 	}
 
-	c.JSON(http.StatusOK, ventas)
+	c.JSON(http.StatusOK, gin.H{
+		"ventas": ventas,
+		"total":  total,
+		"page":   page,
+		"limit":  limit,
+	})
 }
 
 // GetVentasByUsuario godoc
