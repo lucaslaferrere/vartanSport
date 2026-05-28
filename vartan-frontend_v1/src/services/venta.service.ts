@@ -86,6 +86,30 @@ export const ventaService = {
         return response.data.ventas;
     },
 
+    getAllUnpaginated: async (): Promise<IVenta[]> => {
+        const userStr = typeof window !== 'undefined' ? localStorage.getItem('user') : null;
+        const user = userStr ? JSON.parse(userStr) : null;
+        const isVendedor = user?.rol === 'vendedor';
+
+        if (isVendedor) {
+            const response = await api.get<IVenta[]>('/api/mis-ventas');
+            return response.data;
+        }
+
+        const limit = 200;
+        let page = 1;
+        let all: IVenta[] = [];
+        let total = Infinity;
+        while (all.length < total) {
+            const { ventas, total: t } = await ventaService.getAllPaginated(page, limit);
+            all = [...all, ...ventas];
+            total = t;
+            page++;
+            if (ventas.length === 0) break;
+        }
+        return all;
+    },
+
     getFormasPago: async (): Promise<IFormaPago[]> => {
         const response = await api.get<IFormaPago[]>('/api/formas-pago');
         return response.data;

@@ -88,7 +88,7 @@ const [miResumen, setMiResumen] = useState<IMiResumenComision | null>(null);
                 comisionService.getAll(),
                 usuarioService.getMe(),
                 comisionService.getMiResumen().catch(() => null),
-                ventaService.getAll(),
+                ventaService.getAllUnpaginated(),
             ]);
 
             const ventasPorUsuario = new Map<number, number>();
