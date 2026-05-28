@@ -25,6 +25,7 @@ export interface IVenta {
     total_final: number;
     usa_financiera: boolean;
     comprobante_url?: string | null;
+    comprobante_saldo_url?: string | null;
     observaciones?: string | null;
     fecha_venta: string;
     usuario?: IUser;
@@ -32,6 +33,7 @@ export interface IVenta {
     forma_pago?: IFormaPago;
     forma_pago_saldo?: IFormaPago;
     detalles?: IVentaDetalle[];
+    pagos?: IPagoVenta[];
 }
 
 export interface IVentaDetalle {
@@ -43,4 +45,18 @@ export interface IVentaDetalle {
     precio_unitario: number;
     subtotal: number;
     producto?: IProducto;
+}
+
+export interface IPagoVenta {
+    id: number;
+    venta_id: number;
+    monto: number;
+    forma_pago_id?: number | null;
+    forma_pago?: IFormaPago | null;
+    comprobante_url?: string | null;
+    fecha?: string;
+    revisado: boolean;
+    revisado_at?: string | null;
+    created_at: string;
+    updated_at?: string;
 }

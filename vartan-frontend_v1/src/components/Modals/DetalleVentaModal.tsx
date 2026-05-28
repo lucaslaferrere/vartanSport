@@ -1,9 +1,10 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Dialog, DialogTitle, DialogContent, DialogActions, Box, Typography, Grid, Divider } from '@mui/material';
-import { IVenta } from '@models/entities/ventaEntity';
+import { Dialog, DialogTitle, DialogContent, DialogActions, Box, Typography, Grid, Divider, CircularProgress, Tabs, Tab } from '@mui/material';
+import { IVenta, IPagoVenta } from '@models/entities/ventaEntity';
 import { ventaService } from '@services/venta.service';
+import TabPanel from '@components/Tabs/TabPanel';
 
 interface DetalleVentaModalProps {
   open: boolean;
@@ -18,13 +19,123 @@ export default function DetalleVentaModal({ open, onClose, venta }: DetalleVenta
   const [transporteEdit, setTransporteEdit] = useState(venta?.transporte || '');
   const [transporteActual, setTransporteActual] = useState(venta?.transporte || '');
   const [guardandoTransporte, setGuardandoTransporte] = useState(false);
+  const [pagos, setPagos] = useState<IPagoVenta[]>([]);
+  const [pagosLoading, setPagosLoading] = useState(false);
+  const [pagosError, setPagosError] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState(0);
 
   useEffect(() => {
     setTransporteEdit(venta?.transporte || '');
     setTransporteActual(venta?.transporte || '');
   }, [venta]);
 
+  useEffect(() => {
+    if (!open || !venta?.id) {
+      setPagos([]);
+      setPagosError(null);
+      return;
+    }
+
+    if (Array.isArray(venta.pagos)) {
+      setPagos(venta.pagos);
+      setPagosLoading(false);
+      return;
+    }
+
+    let cancelado = false;
+    setPagosLoading(true);
+    setPagosError(null);
+
+    ventaService
+      .getPagos(venta.id)
+      .then((data) => {
+        if (cancelado) return;
+        setPagos(Array.isArray(data) ? data : []);
+      })
+      .catch(() => {
+        if (cancelado) return;
+        setPagosError('No se pudo cargar el historial de pagos.');
+      })
+      .finally(() => {
+        if (cancelado) return;
+        setPagosLoading(false);
+      });
+
+    return () => {
+      cancelado = true;
+    };
+  }, [open, venta?.id, venta?.pagos]);
+
   if (!venta) return null;
+
+  const pagosOrdenados = [...pagos].reverse();
+  const ultimoComprobanteUrl =
+    pagosOrdenados.find(p => !!p.comprobante_url)?.comprobante_url ||
+    venta.comprobante_saldo_url ||
+    venta.comprobante_url ||
+    null;
+  const legacyComprobantes: Array<{ label: string; url: string }> =
+    pagos.length === 0
+      ? [
+          ...(venta.comprobante_url ? [{ label: 'Seña', url: venta.comprobante_url }] : []),
+          ...(venta.comprobante_saldo_url ? [{ label: 'Saldo', url: venta.comprobante_saldo_url }] : []),
+        ]
+      : [];
+
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+
+  const buildComprobanteUrl = (comprobanteUrl: string) => {
+    const normalized = comprobanteUrl.replace(/\\/g, '/').replace(/^\/+/, '');
+    return `${apiUrl}/${normalized}`;
+  };
+
+  const formatFechaPago = (iso: string) => {
+    const date = new Date(iso);
+    const fecha = date.toLocaleDateString('es-AR', { day: '2-digit', month: 'short', year: 'numeric' }).replace('.', '');
+    const hora = date.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', hour12: false });
+    return `${fecha} · ${hora} h`;
+  };
+
+  const handleVerPagoComprobante = (comprobanteUrl: string) => {
+    window.open(buildComprobanteUrl(comprobanteUrl), '_blank');
+  };
+
+  const handleDescargarComprobante = async (comprobanteUrl: string, fileName: string) => {
+    try {
+      const response = await fetch(buildComprobanteUrl(comprobanteUrl));
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      const ext = comprobanteUrl.split('.').pop()?.toLowerCase() || 'pdf';
+      link.href = url;
+      link.setAttribute('download', `${fileName}.${ext}`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch {
+      window.open(buildComprobanteUrl(comprobanteUrl), '_blank');
+    }
+  };
+
+  const handleDescargarPagoComprobante = async (pago: IPagoVenta) => {
+    if (!pago.comprobante_url) return;
+    try {
+      const response = await fetch(buildComprobanteUrl(pago.comprobante_url));
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      const ext = pago.comprobante_url.split('.').pop()?.toLowerCase() || 'pdf';
+      link.href = url;
+      link.setAttribute('download', `comprobante_pago_${pago.id}.${ext}`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch {
+      window.open(buildComprobanteUrl(pago.comprobante_url), '_blank');
+    }
+  };
 
   const handleGuardarTransporte = async () => {
     setGuardandoTransporte(true);
@@ -35,20 +146,6 @@ export default function DetalleVentaModal({ open, onClose, venta }: DetalleVenta
       console.error('Error actualizando transporte:', err);
     } finally {
       setGuardandoTransporte(false);
-    }
-  };
-
-  const handleDescargarComprobante = () => {
-    if (venta.comprobante_url) {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
-      window.open(`${apiUrl}/${venta.comprobante_url}`, '_blank');
-    }
-  };
-
-  const handleVerComprobante = () => {
-    if (venta.comprobante_url) {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
-      window.open(`${apiUrl}/${venta.comprobante_url}`, '_blank');
     }
   };
 
@@ -256,60 +353,6 @@ export default function DetalleVentaModal({ open, onClose, venta }: DetalleVenta
               </Box>
             </Grid>
 
-            {/* Resumen de Pagos */}
-            {(venta.sena_inicial !== undefined) && (
-              <Grid size={{ xs: 12 }}>
-                <Divider sx={{ my: 1 }} />
-                <Typography sx={{ fontSize: '13px', fontWeight: 600, mb: 1 }}>
-                  <i className="fa-solid fa-credit-card" style={{ marginRight: '6px' }} />Resumen de Pagos
-                </Typography>
-                <Box sx={{ p: 2, bgcolor: '#F9FAFB', borderRadius: '8px', border: '1px solid #E5E7EB' }}>
-                  {/* Seña inicial */}
-                  {(venta.sena_inicial ?? 0) > 0 && (
-                    <Box sx={{ mb: 1.5 }}>
-                      <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.25 }}>
-                        <Typography sx={{ fontSize: '12px', color: '#6B7280' }}>Seña inicial:</Typography>
-                        <Typography sx={{ fontSize: '13px', fontWeight: 600, color: '#3B82F6' }}>
-                          ${(venta.sena_inicial ?? 0).toLocaleString('es-AR', { minimumFractionDigits: 2 })}
-                        </Typography>
-                      </Box>
-                      <Typography sx={{ fontSize: '11px', color: '#9CA3AF' }}>
-                        Método: {venta.forma_pago?.nombre || 'N/A'}
-                        {venta.forma_pago_id === 1 && (
-                          <Box component="span" sx={{ ml: 1, color: '#D97706' }}>
-                            (comisión 3%: -${((venta.sena_inicial ?? 0) * 0.03).toLocaleString('es-AR', { minimumFractionDigits: 2 })})
-                          </Box>
-                        )}
-                      </Typography>
-                    </Box>
-                  )}
-                  {/* Pago de saldo */}
-                  {(venta.sena - (venta.sena_inicial ?? 0)) > 0 && (
-                    <Box sx={{ mb: 0.5 }}>
-                      <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.25 }}>
-                        <Typography sx={{ fontSize: '12px', color: '#6B7280' }}>Pago de saldo:</Typography>
-                        <Typography sx={{ fontSize: '13px', fontWeight: 600, color: '#059669' }}>
-                          ${(venta.sena - (venta.sena_inicial ?? 0)).toLocaleString('es-AR', { minimumFractionDigits: 2 })}
-                        </Typography>
-                      </Box>
-                      <Typography sx={{ fontSize: '11px', color: '#9CA3AF' }}>
-                        Método: {venta.forma_pago_saldo?.nombre || venta.forma_pago?.nombre || 'N/A'}
-                        {(venta.forma_pago_saldo_id ?? venta.forma_pago_id) === 1 && (
-                          <Box component="span" sx={{ ml: 1, color: '#D97706' }}>
-                            (comisión 3%: -${((venta.sena - (venta.sena_inicial ?? 0)) * 0.03).toLocaleString('es-AR', { minimumFractionDigits: 2 })})
-                          </Box>
-                        )}
-                      </Typography>
-                    </Box>
-                  )}
-                  {/* Sin pagos adicionales */}
-                  {(venta.sena_inicial ?? 0) === 0 && (venta.sena - (venta.sena_inicial ?? 0)) === 0 && (
-                    <Typography sx={{ fontSize: '12px', color: '#9CA3AF' }}>Sin pagos registrados</Typography>
-                  )}
-                </Box>
-              </Grid>
-            )}
-
             {/* Transporte */}
             <Grid size={{ xs: 12 }}>
               <Divider sx={{ my: 1 }} />
@@ -346,37 +389,198 @@ export default function DetalleVentaModal({ open, onClose, venta }: DetalleVenta
               </Grid>
             )}
 
-            {/* Comprobante */}
+            {/* Comprobantes */}
             <Grid size={{ xs: 12 }}>
-              <Box sx={{ p: 2, bgcolor: venta.comprobante_url ? '#EFF6FF' : '#F9FAFB', borderRadius: '8px', border: `1px solid ${venta.comprobante_url ? '#BFDBFE' : '#E5E7EB'}` }}>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
-                  <Box>
-                    <Typography sx={{ fontSize: '13px', fontWeight: 600, color: venta.comprobante_url ? '#1E40AF' : '#6B7280', mb: 0.5 }}>
-                      <i className={`fa-solid ${venta.comprobante_url ? 'fa-file-pdf' : 'fa-file-circle-xmark'}`} style={{ marginRight: '6px' }} />
-                      {venta.comprobante_url ? 'Comprobante Adjunto' : 'Sin Comprobante'}
-                    </Typography>
-                    <Typography sx={{ fontSize: '10px', color: '#6B7280' }}>
-                      {venta.comprobante_url ? 'Click en los botones para ver o descargar el archivo' : 'Esta venta no tiene comprobante adjunto'}
-                    </Typography>
+              <Divider sx={{ my: 1 }} />
+              <Typography sx={{ fontSize: '13px', fontWeight: 600, mb: 1 }}>
+                <i className="fa-solid fa-file-invoice" style={{ marginRight: '6px' }} />
+                Comprobantes
+              </Typography>
+
+              <Box sx={{ borderBottom: '1px solid #E5E7EB' }}>
+                <Tabs
+                  value={activeTab}
+                  onChange={(_, v) => setActiveTab(v as number)}
+                  sx={{
+                    minHeight: '38px',
+                    '& .MuiTabs-indicator': { bgcolor: '#2563EB', height: '2px' },
+                    '& .MuiTab-root': {
+                      textTransform: 'none',
+                      fontSize: '12px',
+                      fontWeight: 500,
+                      color: '#6B7280',
+                      minHeight: '38px',
+                      py: 0.75,
+                      px: 1.5,
+                      '&.Mui-selected': { color: '#2563EB', fontWeight: 600 },
+                    },
+                  }}
+                >
+                  <Tab label="Historial" id="tab-0" aria-controls="tabpanel-0" />
+                  <Tab label="Último Comprobante" id="tab-1" aria-controls="tabpanel-1" />
+                </Tabs>
+              </Box>
+
+              {/* Tab 0: Historial de Comprobantes */}
+              <TabPanel value={activeTab} index={0}>
+                {pagosLoading && (
+                  <Box sx={{ display: 'flex', justifyContent: 'center', py: 3 }}>
+                    <CircularProgress size={22} />
                   </Box>
-                  {venta.comprobante_url && (
+                )}
+
+                {pagosError && !pagosLoading && (
+                  <Box sx={{ p: 2, bgcolor: '#FEF2F2', borderRadius: '8px', border: '1px solid #FECACA' }}>
+                    <Typography sx={{ fontSize: '12px', color: '#B91C1C' }}>{pagosError}</Typography>
+                  </Box>
+                )}
+
+                {!pagosLoading && !pagosError && pagosOrdenados.length > 0 && (
+                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                    {pagosOrdenados.map((pago) => {
+                      const tieneComprobante = !!pago.comprobante_url;
+                      const esPdf = tieneComprobante && pago.comprobante_url!.toLowerCase().endsWith('.pdf');
+                      const fechaPago = pago.fecha || pago.created_at;
+                      return (
+                        <Box
+                          key={pago.id}
+                          sx={{
+                            p: 1.5,
+                            border: '1px solid #E5E7EB',
+                            borderRadius: '8px',
+                            bgcolor: '#FAFAFA',
+                            display: 'flex',
+                            flexDirection: { xs: 'column', sm: 'row' },
+                            alignItems: { xs: 'flex-start', sm: 'center' },
+                            justifyContent: 'space-between',
+                            gap: 1.5,
+                          }}
+                        >
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flex: 1, minWidth: 0 }}>
+                            <Box
+                              sx={{ width: 10, height: 10, borderRadius: '50%', bgcolor: pago.revisado ? '#10B981' : '#F59E0B', flexShrink: 0 }}
+                              title={pago.revisado ? 'Revisado' : 'Pendiente de revisión'}
+                            />
+                            <Box sx={{ minWidth: 0 }}>
+                              <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 1, flexWrap: 'wrap' }}>
+                                <Typography sx={{ fontSize: '14px', fontWeight: 700, color: '#059669' }}>
+                                  {pago.monto > 0 ? `$${pago.monto.toLocaleString('es-AR', { minimumFractionDigits: 2 })}` : 'Sin monto registrado'}
+                                </Typography>
+                                <Typography sx={{ fontSize: '12px', color: '#374151', fontWeight: 500 }}>
+                                  {pago.forma_pago?.nombre || '—'}
+                                </Typography>
+                              </Box>
+                              <Typography sx={{ fontSize: '11px', color: '#6B7280', mt: 0.25 }}>
+                                {formatFechaPago(fechaPago)}
+                              </Typography>
+                            </Box>
+                          </Box>
+
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexShrink: 0 }}>
+                            {tieneComprobante ? (
+                              <>
+                                <Box sx={{ display: 'flex', alignItems: 'center', color: '#1E40AF' }}>
+                                  <i className={`fa-solid ${esPdf ? 'fa-file-pdf' : 'fa-file-image'}`} style={{ fontSize: '14px' }} />
+                                </Box>
+                                <button
+                                  onClick={() => handleVerPagoComprobante(pago.comprobante_url!)}
+                                  style={{ padding: '6px 12px', fontSize: '11px', fontWeight: 500, color: '#2563EB', backgroundColor: 'white', border: '1px solid #2563EB', borderRadius: '6px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
+                                >
+                                  <i className="fa-solid fa-eye" />Ver
+                                </button>
+                                <button
+                                  onClick={() => handleDescargarPagoComprobante(pago)}
+                                  style={{ padding: '6px 12px', fontSize: '11px', fontWeight: 500, color: '#fff', backgroundColor: '#2563EB', border: 'none', borderRadius: '6px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
+                                >
+                                  <i className="fa-solid fa-download" />Descargar
+                                </button>
+                              </>
+                            ) : (
+                              <Typography sx={{ fontSize: '11px', color: '#9CA3AF', fontStyle: 'italic' }}>Sin comprobante</Typography>
+                            )}
+                          </Box>
+                        </Box>
+                      );
+                    })}
+                  </Box>
+                )}
+
+                {!pagosLoading && !pagosError && pagosOrdenados.length === 0 && legacyComprobantes.length > 0 && (
+                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                    {legacyComprobantes.map((item) => {
+                      const esPdf = item.url.toLowerCase().endsWith('.pdf');
+                      return (
+                        <Box
+                          key={item.label}
+                          sx={{ p: 1.5, border: '1px solid #E5E7EB', borderRadius: '8px', bgcolor: '#FAFAFA', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1.5 }}
+                        >
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <i className={`fa-solid ${esPdf ? 'fa-file-pdf' : 'fa-file-image'}`} style={{ color: '#1E40AF', fontSize: '14px' }} />
+                            <Typography sx={{ fontSize: '13px', fontWeight: 500, color: '#374151' }}>{item.label}</Typography>
+                          </Box>
+                          <Box sx={{ display: 'flex', gap: 1 }}>
+                            <button
+                              onClick={() => handleVerPagoComprobante(item.url)}
+                              style={{ padding: '6px 12px', fontSize: '11px', fontWeight: 500, color: '#2563EB', backgroundColor: 'white', border: '1px solid #2563EB', borderRadius: '6px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
+                            >
+                              <i className="fa-solid fa-eye" />Ver
+                            </button>
+                            <button
+                              onClick={() => handleDescargarComprobante(item.url, `comprobante_${item.label.toLowerCase()}`)}
+                              style={{ padding: '6px 12px', fontSize: '11px', fontWeight: 500, color: '#fff', backgroundColor: '#2563EB', border: 'none', borderRadius: '6px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
+                            >
+                              <i className="fa-solid fa-download" />Descargar
+                            </button>
+                          </Box>
+                        </Box>
+                      );
+                    })}
+                  </Box>
+                )}
+
+                {!pagosLoading && !pagosError && pagosOrdenados.length === 0 && legacyComprobantes.length === 0 && (
+                  <Box sx={{ p: 2, bgcolor: '#F9FAFB', borderRadius: '8px', border: '1px solid #E5E7EB', textAlign: 'center' }}>
+                    <i className="fa-solid fa-file-circle-xmark" style={{ color: '#9CA3AF', fontSize: '20px' }} />
+                    <Typography sx={{ fontSize: '12px', color: '#9CA3AF', mt: 0.5 }}>Sin comprobantes registrados</Typography>
+                  </Box>
+                )}
+              </TabPanel>
+
+              {/* Tab 1: Último Comprobante */}
+              <TabPanel value={activeTab} index={1}>
+                {!ultimoComprobanteUrl ? (
+                  <Box sx={{ p: 2, bgcolor: '#F9FAFB', borderRadius: '8px', border: '1px solid #E5E7EB', textAlign: 'center' }}>
+                    <i className="fa-solid fa-file-circle-xmark" style={{ color: '#9CA3AF', fontSize: '20px' }} />
+                    <Typography sx={{ fontSize: '12px', color: '#9CA3AF', mt: 0.5 }}>Sin comprobante registrado</Typography>
+                  </Box>
+                ) : (
+                  <Box sx={{ p: 2, border: '1px solid #E5E7EB', borderRadius: '8px', bgcolor: '#FAFAFA', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <i
+                        className={`fa-solid ${ultimoComprobanteUrl.toLowerCase().endsWith('.pdf') ? 'fa-file-pdf' : 'fa-file-image'}`}
+                        style={{ color: '#1E40AF', fontSize: '16px' }}
+                      />
+                      <Typography sx={{ fontSize: '12px', color: '#374151' }}>
+                        {ultimoComprobanteUrl.toLowerCase().endsWith('.pdf') ? 'Documento PDF' : 'Imagen'}
+                      </Typography>
+                    </Box>
                     <Box sx={{ display: 'flex', gap: 1 }}>
                       <button
-                        onClick={handleVerComprobante}
+                        onClick={() => handleVerPagoComprobante(ultimoComprobanteUrl)}
                         style={{ padding: '6px 12px', fontSize: '11px', fontWeight: 500, color: '#2563EB', backgroundColor: 'white', border: '1px solid #2563EB', borderRadius: '6px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
                       >
                         <i className="fa-solid fa-eye" />Ver
                       </button>
                       <button
-                        onClick={handleDescargarComprobante}
+                        onClick={() => handleDescargarComprobante(ultimoComprobanteUrl, 'comprobante_ultimo')}
                         style={{ padding: '6px 12px', fontSize: '11px', fontWeight: 500, color: '#fff', backgroundColor: '#2563EB', border: 'none', borderRadius: '6px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
                       >
                         <i className="fa-solid fa-download" />Descargar
                       </button>
                     </Box>
-                  )}
-                </Box>
-              </Box>
+                  </Box>
+                )}
+              </TabPanel>
             </Grid>
           </Grid>
         </DialogContent>
