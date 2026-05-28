@@ -24,14 +24,11 @@ import { api } from '@libraries/api';
 interface IProductoDisplay {
   id: number;
   nombre: string;
-  costoUnitario: number;
+  costoUnitario?: number;
   activo: boolean;
   fechaCreacion: string;
   tallesDisponibles: string[];
-  coloresDisponibles: string[];
   stockTotal: number;
-  tipoProducto: string;
-  equipo: string;
 }
 
 interface IProductosStats {
@@ -66,10 +63,7 @@ export default function ProductosPage() {
     activo: producto.activo,
     fechaCreacion: new Date(producto.fecha_creacion).toLocaleDateString('es-AR'),
     tallesDisponibles: producto.talles_disponibles || [],
-    coloresDisponibles: producto.colores_disponibles || [],
     stockTotal: producto.stock_total || 0,
-    tipoProducto: producto.tipo_producto?.nombre || 'Sin tipo',
-    equipo: producto.equipo?.nombre || 'Sin equipo',
   });
 
   const calcularStats = (productosData: IProducto[]): IProductosStats => ({
@@ -172,31 +166,6 @@ export default function ProductosPage() {
       </Box>
   );
 
-  const renderColoresChips = (colores: string[]) => (
-      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-        {colores.length > 0 ? (
-            colores.map((color, index) => (
-                <Chip
-                    key={index}
-                    label={color}
-                    size="small"
-                    sx={{
-                      bgcolor: 'rgba(168, 85, 247, 0.1)',
-                      color: '#7C3AED',
-                      fontWeight: 500,
-                      fontSize: '11px',
-                      height: '20px'
-                    }}
-                />
-            ))
-        ) : (
-            <Typography variant="caption" sx={{ color: '#9CA3AF', fontStyle: 'italic' }}>
-              Sin colores
-            </Typography>
-        )}
-      </Box>
-  );
-
   const renderStockTotal = (stock: number) => (
       <Box sx={{ textAlign: 'center' }}>
         <Typography
@@ -216,6 +185,8 @@ export default function ProductosPage() {
       </Box>
   );
 
+  const isDueno = user?.rol === 'dueño';
+
   const columns: ColumnDef<IProductoDisplay>[] = [
     {
       accessorKey: 'nombre',
@@ -226,63 +197,15 @@ export default function ProductosPage() {
         filterProps: { placeholder: 'Buscar producto...' }
       }
     },
-    {
-      accessorKey: 'tipoProducto',
-      header: 'Tipo',
-      cell: ({ getValue }) => {
-        const tipo = getValue() as string;
-        return tipo === 'Sin tipo' ? (
-            <Typography variant="caption" sx={{ color: '#9CA3AF', fontStyle: 'italic' }}>
-              Sin tipo
-            </Typography>
-        ) : (
-            <Chip
-                label={tipo}
-                size="small"
-                sx={{
-                  bgcolor: 'rgba(34, 197, 94, 0.1)',
-                  color: '#16A34A',
-                  fontWeight: 500,
-                  fontSize: '11px',
-                  height: '20px'
-                }}
-            />
-        );
-      }
-    },
-    {
-      accessorKey: 'equipo',
-      header: 'Equipo',
-      cell: ({ getValue }) => {
-        const equipo = getValue() as string;
-        return equipo === 'Sin equipo' ? (
-            <Typography variant="caption" sx={{ color: '#9CA3AF', fontStyle: 'italic' }}>
-              Sin equipo
-            </Typography>
-        ) : (
-            <Chip
-                label={equipo}
-                size="small"
-                sx={{
-                  bgcolor: 'rgba(239, 68, 68, 0.1)',
-                  color: '#DC2626',
-                  fontWeight: 500,
-                  fontSize: '11px',
-                  height: '20px'
-                }}
-            />
-        );
-      }
-    },
-    {
-      accessorKey: 'costoUnitario',
+    ...(isDueno ? [{
+      accessorKey: 'costoUnitario' as const,
       header: 'Costo',
-      cell: ({ getValue }) => (
-          <Typography sx={{ color: colors.primary, fontWeight: 600, fontSize: '13px' }}>
-            {formatCurrency(getValue() as number)}
-          </Typography>
+      cell: ({ getValue }: { getValue: () => unknown }) => (
+        <Typography sx={{ color: colors.primary, fontWeight: 600, fontSize: '13px' }}>
+          {formatCurrency((getValue() as number) || 0)}
+        </Typography>
       ),
-    },
+    }] : []),
     {
       accessorKey: 'activo',
       header: 'Estado',
@@ -292,11 +215,6 @@ export default function ProductosPage() {
       accessorKey: 'tallesDisponibles',
       header: 'Talles',
       cell: ({ getValue }) => renderTallesChips(getValue() as string[]),
-    },
-    {
-      accessorKey: 'coloresDisponibles',
-      header: 'Colores',
-      cell: ({ getValue }) => renderColoresChips(getValue() as string[]),
     },
     {
       accessorKey: 'stockTotal',
@@ -334,35 +252,39 @@ export default function ProductosPage() {
       </Stack>
   ) : null;
 
-  const actions = user?.rol === 'dueño' ? [
-    {
-      icon: 'fa-solid fa-pen',
-      color: '#6B7280',
-      onClick: handleEdit,
-      tooltip: 'Editar'
-    },
-    {
-      icon: 'fa-solid fa-trash',
-      color: '#DC2626',
-      onClick: handleDelete,
-      tooltip: 'Eliminar'
-    },
+  const handleVerStock = async (row: IProductoDisplay) => {
+    try {
+      const producto = await productoService.getById(row.id);
+      setProductoDetalleStock(producto);
+      setDetalleStockModalOpen(true);
+    } catch (err) {
+      console.error('Error cargando producto para detalle:', err);
+      addNotification('Error al cargar el detalle del producto', 'error');
+    }
+  };
+
+  const actions = [
     {
       icon: 'fa-solid fa-eye',
       color: '#2563EB',
-      onClick: async (row: IProductoDisplay) => {
-        try {
-          const producto = await productoService.getById(row.id);
-          setProductoDetalleStock(producto);
-          setDetalleStockModalOpen(true);
-        } catch (err) {
-          console.error('Error cargando producto para detalle:', err);
-          addNotification('Error al cargar el detalle del producto', 'error');
-        }
+      onClick: handleVerStock,
+      tooltip: 'Ver Stock por Talle',
+    },
+    ...(isDueno ? [
+      {
+        icon: 'fa-solid fa-pen',
+        color: '#6B7280',
+        onClick: handleEdit,
+        tooltip: 'Editar',
       },
-      tooltip: 'Ver Detalle de Stock'
-    }
-  ] : [];
+      {
+        icon: 'fa-solid fa-trash',
+        color: '#DC2626',
+        onClick: handleDelete,
+        tooltip: 'Eliminar',
+      },
+    ] : []),
+  ];
 
   if (loading) {
     return (

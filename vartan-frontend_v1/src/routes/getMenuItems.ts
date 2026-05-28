@@ -21,6 +21,24 @@ export interface MenuGroup {
 }
 
 export const GetMenuItems = (userRole?: string): MenuGroup => {
+  if (userRole === 'repositor') {
+    return {
+      items: [{
+        id: 'navigation',
+        title: 'Navegación',
+        type: 'group',
+        children: [{
+          id: 'pedidos',
+          title: 'Pedidos',
+          type: 'item',
+          url: '/pedidos',
+          icon: 'fa-solid fa-clipboard-list',
+          breadcrumbs: true,
+        }],
+      }],
+    };
+  }
+
   // Dueño y demo ven todo. Solo vendedor ve menos.
   const isOwner = userRole !== 'vendedor';
 

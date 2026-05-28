@@ -1,12 +1,12 @@
 'use client';
 
 import React, { useEffect, useState, useCallback } from 'react';
-import { Box, Typography, Grid, Paper, CircularProgress, Stack, LinearProgress } from '@mui/material';
+import { Box, Typography, Grid, Paper, CircularProgress, Stack } from '@mui/material';
 import StatCard from '@components/Cards/StatCard';
 import { colors } from '@/src/theme/colors';
 import { useAuthStore } from '@libraries/store';
 import { ventaService } from '@services/venta.service';
-import { comisionService } from '@services/comision.service';
+import { comisionService, IMiResumenComision } from '@services/comision.service';
 import { IVenta } from '@models/entities/ventaEntity';
 import { useMounted } from '@hooks/useMounted';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
@@ -26,17 +26,6 @@ interface IStatsVendedor {
   productosVendidos: number;
 }
 
-interface IComisionData {
-  configuracion?: {
-    porcentaje_comision: number;
-    sueldo_base: number;
-  };
-  mes_actual?: {
-    comision_neta: number;
-    total_a_cobrar: number;
-  };
-}
-
 export default function DashboardVendedor() {
   const mounted = useMounted();
   const { user } = useAuthStore();
@@ -44,7 +33,7 @@ export default function DashboardVendedor() {
   const [error, setError] = useState<string | null>(null);
 
   const [misVentas, setMisVentas] = useState<IVenta[]>([]);
-  const [comisionData, setComisionData] = useState<IComisionData | null>(null);
+  const [comisionData, setComisionData] = useState<IMiResumenComision | null>(null);
   const [ventasPorDia, setVentasPorDia] = useState<IChartData[]>([]);
   const [statsVendedor, setStatsVendedor] = useState<IStatsVendedor>({
     ventasHoy: 0,
@@ -150,7 +139,7 @@ export default function DashboardVendedor() {
 
   const porcentajeMeta = comisionData?.configuracion?.porcentaje_comision || 0;
   const sueldoBase = comisionData?.configuracion?.sueldo_base || 0;
-  const totalACobrar = comisionData?.mes_actual?.total_a_cobrar || sueldoBase;
+  const gastoPub = comisionData?.mes_actual?.gasto_publicitario ?? comisionData?.configuracion?.gasto_publicitario ?? 0;
 
   return (
     <Box>
@@ -187,27 +176,49 @@ export default function DashboardVendedor() {
             <Typography sx={{ fontSize: { xs: '14px', sm: '16px' }, fontWeight: 700, color: '#1F2937', mb: 2 }}>
               Mi Comisión Este Mes
             </Typography>
-            <Stack spacing={2}>
-              <Stack direction="row" justifyContent="space-between">
-                <Typography sx={{ fontSize: '12px', color: '#6B7280' }}>Sueldo Base</Typography>
-                <Typography sx={{ fontSize: '14px', fontWeight: 600 }}>{formatCurrency(sueldoBase)}</Typography>
-              </Stack>
-              <Stack direction="row" justifyContent="space-between">
-                <Typography sx={{ fontSize: '12px', color: '#6B7280' }}>Comisión ({porcentajeMeta}%)</Typography>
-                <Typography sx={{ fontSize: '14px', fontWeight: 600, color: '#588a9e' }}>+ {formatCurrency(statsVendedor.comisionEstimada)}</Typography>
-              </Stack>
-              <Box sx={{ borderTop: '1px solid #E5E7EB', pt: 2 }}>
-                <Stack direction="row" justifyContent="space-between">
-                  <Typography sx={{ fontSize: '14px', fontWeight: 700 }}>Total a Cobrar</Typography>
-                  <Typography sx={{ fontSize: '18px', fontWeight: 700, color: '#059669' }}>{formatCurrency(totalACobrar)}</Typography>
-                </Stack>
+
+            {/* Config row */}
+            <Box sx={{ bgcolor: '#F9FAFB', borderRadius: '8px', p: 2, mb: 2 }}>
+              <Grid container spacing={2}>
+                <Grid size={6}>
+                  <Typography sx={{ fontSize: '11px', color: '#6B7280', mb: 0.5 }}>Comisión</Typography>
+                  <Typography sx={{ fontSize: '16px', fontWeight: 600, color: colors.primary }}>
+                    {porcentajeMeta}%
+                  </Typography>
+                </Grid>
+                <Grid size={6}>
+                  <Typography sx={{ fontSize: '11px', color: '#6B7280', mb: 0.5 }}>Bonos</Typography>
+                  <Typography sx={{ fontSize: '13px', fontWeight: 600, color: '#10B981' }}>
+                    {formatCurrency(sueldoBase)}
+                  </Typography>
+                </Grid>
+              </Grid>
+            </Box>
+
+            {/* Mes Actual */}
+            <Box sx={{ borderTop: '1px solid #E5E7EB', pt: 2 }}>
+              <Typography sx={{ fontSize: '11px', color: '#6B7280', mb: 1 }}>Mes Actual</Typography>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                <Typography sx={{ fontSize: '12px', color: '#6B7280' }}>Ventas:</Typography>
+                <Typography sx={{ fontSize: '12px', fontWeight: 600, color: '#1F2937' }}>
+                  {statsVendedor.ventasMes}
+                </Typography>
               </Box>
-              <Box>
-                <Typography sx={{ fontSize: '11px', color: '#6B7280', mb: 0.5 }}>Progreso de Ventas</Typography>
-                <LinearProgress variant="determinate" value={Math.min((statsVendedor.ventasMes / 30) * 100, 100)} sx={{ height: 8, borderRadius: 1, bgcolor: '#E5E7EB', '& .MuiLinearProgress-bar': { bgcolor: '#588a9e' } }} />
-                <Typography sx={{ fontSize: '10px', color: '#9CA3AF', mt: 0.5 }}>{statsVendedor.ventasMes} ventas este mes</Typography>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                <Typography sx={{ fontSize: '12px', color: '#6B7280' }}>Facturado:</Typography>
+                <Typography sx={{ fontSize: '12px', fontWeight: 700, color: '#1F2937' }}>
+                  {formatCurrency(statsVendedor.ingresosGenerados)}
+                </Typography>
               </Box>
-            </Stack>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                <Typography sx={{ fontSize: '12px', color: '#6B7280' }}>
+                  Comisión Vendedor: ({porcentajeMeta}%)
+                </Typography>
+                <Typography sx={{ fontSize: '13px', fontWeight: 600, color: colors.primary }}>
+                  {formatCurrency(statsVendedor.comisionEstimada)}
+                </Typography>
+              </Box>
+            </Box>
           </Paper>
         </Grid>
 

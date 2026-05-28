@@ -1,7 +1,8 @@
 ﻿'use client';
 
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
-import { Box, Typography, Grid, CircularProgress, Card, CardContent, Chip, Divider, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Select, MenuItem, FormControl, InputLabel } from '@mui/material';
+import { Box, Typography, Grid, CircularProgress, Card, CardContent, Chip, Divider, Paper, Select, MenuItem, FormControl, InputLabel } from '@mui/material';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { colors } from '@/src/theme/colors';
 import { comisionService, IMiResumenComision } from '@services/comision.service';
 import { IComision } from '@models/entities/comisionentity';
@@ -18,6 +19,7 @@ import { useMounted } from '@hooks/useMounted';
 import { useNotification } from '@components/Notifications';
 
 const meses = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+const VENDOR_COLORS = ['#588a9e', '#285283', '#10B981', '#F59E0B', '#8B5CF6', '#EF4444', '#06B6D4', '#F97316'];
 
 interface IHistorialRow extends IComision {
     nombre: string;
@@ -58,8 +60,7 @@ export default function ComisionesPage() {
     const [vendedores, setVendedores] = useState<IVendedorDisplay[]>([]);
     const [configurarModalOpen, setConfigurarModalOpen] = useState(false);
     const [vendedorSeleccionado, setVendedorSeleccionado] = useState<IUser | null>(null);
-    const [miConfiguracion, setMiConfiguracion] = useState<IUser | null>(null);
-    const [miResumen, setMiResumen] = useState<IMiResumenComision | null>(null);
+const [miResumen, setMiResumen] = useState<IMiResumenComision | null>(null);
     const [historialCompleto, setHistorialCompleto] = useState<IHistorialRow[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -179,8 +180,8 @@ export default function ComisionesPage() {
         setError(null);
 
         try {
-            const userData = await usuarioService.getMe();
-            setMiConfiguracion(userData);
+            const resumen = await comisionService.getMiResumen().catch(() => null);
+            setMiResumen(resumen);
         } catch (err) {
             console.error('Error:', err);
             setError('Error al cargar datos');
@@ -231,6 +232,31 @@ export default function ComisionesPage() {
             .map(v => ({ nombre: v.nombre, value: v.sueldo_total }));
         return filtrados;
     }, [vendedores]);
+
+    const historialChartData = useMemo(() => {
+        const monthKeys = [...new Set(historialCompleto.map(h => `${h.anio}-${String(h.mes).padStart(2, '0')}`))]
+            .sort();
+        return monthKeys.map(key => {
+            const [anioStr, mesStr] = key.split('-');
+            const mes = Number(mesStr);
+            const anio = Number(anioStr);
+            const point: Record<string, string | number> = {
+                name: meses[mes - 1].slice(0, 3) + ' ' + String(anio).slice(2),
+            };
+            historialCompleto
+                .filter(h => h.mes === mes && h.anio === anio)
+                .forEach(h => {
+                    point[`ventas_${h.nombre}`] = h.total_ventas;
+                    point[`com_${h.nombre}`] = h.total_comision;
+                });
+            return point;
+        });
+    }, [historialCompleto]);
+
+    const vendedoresHistorial = useMemo(() =>
+        [...new Set(historialCompleto.map(h => h.nombre))],
+        [historialCompleto]
+    );
 
 
     if (!mounted) return null;
@@ -287,40 +313,38 @@ export default function ComisionesPage() {
                 </Box>
 
                 {/* Vista VENDEDOR */}
-                {user?.rol === 'vendedor' && miConfiguracion && (
-                    <Box sx={{ bgcolor: 'white', border: '1px solid #E5E7EB', borderRadius: '12px', p: 4 }}>
-                        <Typography sx={{ fontSize: '18px', fontWeight: 600, color: '#1F2937', mb: 3 }}>
-                            Mi Configuración
-                        </Typography>
-                        <Grid container spacing={3}>
-                            <Grid size={{ xs: 12, md: 4 }}>
-                                <Box sx={{ bgcolor: 'rgba(59, 130, 246, 0.05)', border: '1px solid rgba(59, 130, 246, 0.2)', borderRadius: '8px', p: 3, textAlign: 'center' }}>
-                                    <Typography sx={{ fontSize: '12px', color: '#6B7280', mb: 1, textTransform: 'uppercase', fontWeight: 600 }}>Porcentaje</Typography>
-                                    <Typography sx={{ fontSize: '32px', fontWeight: 700, color: colors.primary }}>{miConfiguracion.porcentaje_comision}%</Typography>
-                                </Box>
-                            </Grid>
-                            <Grid size={{ xs: 12, md: 4 }}>
-                                <Box sx={{ bgcolor: 'rgba(239, 68, 68, 0.05)', border: '1px solid rgba(239, 68, 68, 0.2)', borderRadius: '8px', p: 3, textAlign: 'center' }}>
-                                    <Typography sx={{ fontSize: '12px', color: '#6B7280', mb: 1, textTransform: 'uppercase', fontWeight: 600 }}>Gasto Pub.</Typography>
-                                    <Typography sx={{ fontSize: '32px', fontWeight: 700, color: '#DC2626' }}>{formatCurrency(miConfiguracion.gasto_publicitario)}</Typography>
-                                </Box>
-                            </Grid>
-                            <Grid size={{ xs: 12, md: 4 }}>
-                                <Box sx={{ bgcolor: 'rgba(16, 185, 129, 0.05)', border: '1px solid rgba(16, 185, 129, 0.2)', borderRadius: '8px', p: 3 }}>
-                                    <Typography sx={{ fontSize: '12px', color: '#6B7280', mb: 1, textTransform: 'uppercase', fontWeight: 600 }}>Cálculo</Typography>
-                                    <Typography sx={{ fontSize: '13px', color: '#059669', fontWeight: 500 }}>(Ventas - Gasto) x {miConfiguracion.porcentaje_comision}%</Typography>
-                                </Box>
-                            </Grid>
-                            {miConfiguracion.observaciones_config && (
-                                <Grid size={{ xs: 12 }}>
-                                    <Box sx={{ bgcolor: '#F9FAFB', border: '1px solid #E5E7EB', borderRadius: '8px', p: 3 }}>
-                                        <Typography sx={{ fontSize: '12px', color: '#6B7280', mb: 1.5, textTransform: 'uppercase', fontWeight: 600 }}>Observaciones</Typography>
-                                        <Typography sx={{ fontSize: '14px', color: '#374151', fontStyle: 'italic' }}>{miConfiguracion.observaciones_config}</Typography>
+                {user?.rol === 'vendedor' && miResumen && (
+                    <Paper elevation={0} sx={{ borderRadius: '12px', border: '1px solid #E5E7EB', overflow: 'hidden', maxWidth: 420 }}>
+                        <Box sx={{ px: 3, py: 2, bgcolor: '#F9FAFB', borderBottom: '1px solid #E5E7EB', display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                            <Box sx={{ width: 32, height: 32, borderRadius: '50%', bgcolor: colors.primary, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                <Typography sx={{ color: '#fff', fontSize: '13px', fontWeight: 700 }}>{user.nombre?.charAt(0).toUpperCase()}</Typography>
+                            </Box>
+                            <Box>
+                                <Typography sx={{ fontSize: '14px', fontWeight: 700, color: '#1F2937', lineHeight: 1.2 }}>{user.nombre}</Typography>
+                                <Typography sx={{ fontSize: '11px', color: '#6B7280' }}>{new Date().toLocaleString('es-AR', { month: 'long', year: 'numeric' })}</Typography>
+                            </Box>
+                        </Box>
+                        <Box sx={{ px: 3, py: 1.5, display: 'flex', flexDirection: 'column' }}>
+                            {[
+                                { label: 'Facturación', value: formatCurrency(miResumen.mes_actual.total_ventas), color: '#1F2937' },
+                                { label: 'Cantidad de ventas', value: String(miResumen.mes_actual.cantidad_ventas), color: '#1F2937' },
+                                { label: 'Comisión vendedor', value: formatCurrency(miResumen.mes_actual.comision_neta), color: '#059669' },
+                                { label: 'Bonos', value: formatCurrency(miResumen.configuracion.sueldo_base), color: '#1F2937' },
+                            ].map((row, i, arr) => (
+                                <Box key={i}>
+                                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', py: 1.25 }}>
+                                        <Typography sx={{ fontSize: '13px', color: '#374151', fontWeight: 500 }}>{row.label}</Typography>
+                                        <Typography sx={{ fontSize: '13px', fontWeight: 600, color: row.color, ml: 1 }}>{row.value}</Typography>
                                     </Box>
-                                </Grid>
-                            )}
-                        </Grid>
-                    </Box>
+                                    {i < arr.length - 1 && <Divider />}
+                                </Box>
+                            ))}
+                        </Box>
+                        <Box sx={{ mx: 3, mb: 2.5, mt: 0.5, p: 2, bgcolor: `${colors.primary}10`, borderRadius: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <Typography sx={{ fontSize: '14px', fontWeight: 700, color: '#1F2937' }}>TOTAL A COBRAR</Typography>
+                            <Typography sx={{ fontSize: '16px', fontWeight: 700, color: colors.primary }}>{formatCurrency(miResumen.mes_actual.total_a_cobrar)}</Typography>
+                        </Box>
+                    </Paper>
                 )}
 
                 {/* Vista DUEÃ‘O */}
@@ -359,7 +383,7 @@ export default function ComisionesPage() {
                                             subtitle={`${miResumen.configuracion.porcentaje_comision}% sobre ganancia`}
                                         />
                                         <Box sx={{ mt: 1, p: 1.5, bgcolor: '#F0FDF4', borderRadius: '8px', border: '1px solid #A7F3D0' }}>
-                                            <Typography sx={{ fontSize: '11px', color: '#6B7280' }}>Sueldo base:</Typography>
+                                            <Typography sx={{ fontSize: '11px', color: '#6B7280' }}>Bonos:</Typography>
                                             <Typography sx={{ fontSize: '13px', fontWeight: 700, color: '#059669' }}>
                                                 {formatCurrency(miResumen.mes_actual.sueldo_base)}
                                             </Typography>
@@ -392,12 +416,8 @@ export default function ComisionesPage() {
                                                         <Chip label={`${miResumen.configuracion.porcentaje_comision}%`} size="small" sx={{ bgcolor: 'rgba(59, 130, 246, 0.1)', color: '#1D4ED8', fontWeight: 600 }} />
                                                     </Box>
                                                     <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                                        <Typography sx={{ color: colors.textSecondary, fontSize: 14 }}>Sueldo base:</Typography>
+                                                        <Typography sx={{ color: colors.textSecondary, fontSize: 14 }}>Bonos:</Typography>
                                                         <Typography sx={{ fontWeight: 600, color: colors.textPrimary }}>{formatCurrency(miResumen.configuracion.sueldo_base)}</Typography>
-                                                    </Box>
-                                                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                                        <Typography sx={{ color: colors.textSecondary, fontSize: 14 }}>Gasto publicitario:</Typography>
-                                                        <Typography sx={{ fontWeight: 600, color: colors.error }}>-{formatCurrency(miResumen.configuracion.gasto_publicitario)}</Typography>
                                                     </Box>
                                                 </Box>
                                             </CardContent>
@@ -427,14 +447,6 @@ export default function ComisionesPage() {
                                                     <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
                                                         <Typography sx={{ color: colors.textSecondary, fontSize: 14 }}>Ganancias:</Typography>
                                                         <Typography sx={{ fontWeight: 600 }}>{formatCurrency(miResumen.mes_actual.total_ganancia ?? 0)}</Typography>
-                                                    </Box>
-                                                    <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                                                        <Typography sx={{ color: colors.textSecondary, fontSize: 14 }}>Gasto publicitario:</Typography>
-                                                        <Typography sx={{ fontWeight: 600, color: colors.error }}>-{formatCurrency(miResumen.mes_actual.gasto_publicitario ?? 0)}</Typography>
-                                                    </Box>
-                                                    <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                                                        <Typography sx={{ color: colors.textSecondary, fontSize: 14, fontWeight: 600 }}>Ganancia Neta:</Typography>
-                                                        <Typography sx={{ fontWeight: 700 }}>{formatCurrency((miResumen.mes_actual.total_ganancia ?? 0) - (miResumen.mes_actual.gasto_publicitario ?? 0))}</Typography>
                                                     </Box>
                                                     <Divider />
                                                     <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
@@ -522,49 +534,58 @@ export default function ComisionesPage() {
                             ))}
                         </Grid>
 
-                        {/* Historial completo */}
+                        {/* Análisis histórico */}
                         {historialCompleto.length > 0 && (
                             <Box sx={{ mt: 5 }}>
                                 <Typography sx={{ fontSize: '16px', fontWeight: 600, color: '#1F2937', mb: 3 }}>
-                                    Historial de Comisiones
+                                    Análisis Histórico
                                 </Typography>
-                                <TableContainer component={Paper} elevation={0} sx={{ border: '1px solid #E5E7EB', borderRadius: 2 }}>
-                                    <Table>
-                                        <TableHead>
-                                            <TableRow sx={{ bgcolor: '#F9FAFB' }}>
-                                                <TableCell sx={{ fontWeight: 600, fontSize: 13 }}>Mes</TableCell>
-                                                <TableCell sx={{ fontWeight: 600, fontSize: 13 }}>Vendedor</TableCell>
-                                                <TableCell align="right" sx={{ fontWeight: 600, fontSize: 13 }}>Ventas</TableCell>
-                                                <TableCell align="right" sx={{ fontWeight: 600, fontSize: 13 }}>Comisión</TableCell>
-                                                <TableCell align="right" sx={{ fontWeight: 600, fontSize: 13 }}>Sueldo</TableCell>
-                                                <TableCell align="right" sx={{ fontWeight: 600, fontSize: 13 }}>Total</TableCell>
-                                                <TableCell sx={{ fontWeight: 600, fontSize: 13 }}>Observaciones</TableCell>
-                                            </TableRow>
-                                        </TableHead>
-                                        <TableBody>
-                                            {historialCompleto.map((h) => (
-                                                <TableRow key={h.id} hover>
-                                                    <TableCell sx={{ fontSize: 13 }}>
-                                                        {meses[h.mes - 1]} {h.anio}
-                                                    </TableCell>
-                                                    <TableCell>
-                                                        <Box>
-                                                            <Typography sx={{ fontSize: 13, fontWeight: 500 }}>{h.nombre}</Typography>
-                                                            {h.rol === 'dueño' && (
-                                                                <Chip label="Dueño" size="small" sx={{ fontSize: 10, height: 18, bgcolor: 'rgba(139, 92, 246, 0.1)', color: '#6D28D9' }} />
-                                                            )}
-                                                        </Box>
-                                                    </TableCell>
-                                                    <TableCell align="right" sx={{ fontSize: 13 }}>{formatCurrency(h.total_ventas)}</TableCell>
-                                                    <TableCell align="right" sx={{ fontSize: 13, color: colors.success, fontWeight: 600 }}>{formatCurrency(h.total_comision)}</TableCell>
-                                                    <TableCell align="right" sx={{ fontSize: 13 }}>{formatCurrency(h.sueldo)}</TableCell>
-                                                    <TableCell align="right" sx={{ fontSize: 14, fontWeight: 700, color: colors.primary }}>{formatCurrency(h.sueldo + h.total_comision)}</TableCell>
-                                                    <TableCell sx={{ fontSize: 13, color: '#6B7280' }}>{h.observaciones || '-'}</TableCell>
-                                                </TableRow>
-                                            ))}
-                                        </TableBody>
-                                    </Table>
-                                </TableContainer>
+                                <Grid container spacing={3}>
+                                    <Grid size={{ xs: 12, lg: 6 }}>
+                                        <Paper elevation={0} sx={{ p: 3, borderRadius: '12px', border: '1px solid #E5E7EB' }}>
+                                            <Typography sx={{ fontSize: '14px', fontWeight: 700, color: '#1F2937', mb: 2 }}>
+                                                Facturación por Vendedor
+                                            </Typography>
+                                            <ResponsiveContainer width="100%" height={280}>
+                                                <BarChart data={historialChartData} margin={{ top: 5, right: 10, bottom: 5, left: 10 }}>
+                                                    <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
+                                                    <XAxis dataKey="name" stroke="#6B7280" style={{ fontSize: '11px' }} />
+                                                    <YAxis stroke="#6B7280" style={{ fontSize: '11px' }} tickFormatter={(v: number) => '$' + (v / 1000).toFixed(0) + 'k'} />
+                                                    <Tooltip
+                                                        formatter={(value, name) => [formatCurrency(value as number ?? 0), String(name ?? '').replace('ventas_', '')]}
+                                                        contentStyle={{ borderRadius: '8px', border: '1px solid #E5E7EB', fontSize: '12px' }}
+                                                    />
+                                                    <Legend wrapperStyle={{ fontSize: '11px' }} formatter={(name: string) => name.replace('ventas_', '')} />
+                                                    {vendedoresHistorial.map((nombre, i) => (
+                                                        <Bar key={nombre} dataKey={`ventas_${nombre}`} fill={VENDOR_COLORS[i % VENDOR_COLORS.length]} radius={[3, 3, 0, 0]} />
+                                                    ))}
+                                                </BarChart>
+                                            </ResponsiveContainer>
+                                        </Paper>
+                                    </Grid>
+                                    <Grid size={{ xs: 12, lg: 6 }}>
+                                        <Paper elevation={0} sx={{ p: 3, borderRadius: '12px', border: '1px solid #E5E7EB' }}>
+                                            <Typography sx={{ fontSize: '14px', fontWeight: 700, color: '#1F2937', mb: 2 }}>
+                                                Comisión por Vendedor
+                                            </Typography>
+                                            <ResponsiveContainer width="100%" height={280}>
+                                                <BarChart data={historialChartData} margin={{ top: 5, right: 10, bottom: 5, left: 10 }}>
+                                                    <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
+                                                    <XAxis dataKey="name" stroke="#6B7280" style={{ fontSize: '11px' }} />
+                                                    <YAxis stroke="#6B7280" style={{ fontSize: '11px' }} tickFormatter={(v: number) => '$' + (v / 1000).toFixed(0) + 'k'} />
+                                                    <Tooltip
+                                                        formatter={((value: number | undefined, name: string | number | undefined) => [formatCurrency(value ?? 0), String(name ?? '').replace('com_', '')]) as never}
+                                                        contentStyle={{ borderRadius: '8px', border: '1px solid #E5E7EB', fontSize: '12px' }}
+                                                    />
+                                                    <Legend wrapperStyle={{ fontSize: '11px' }} formatter={(name: string) => name.replace('com_', '')} />
+                                                    {vendedoresHistorial.map((nombre, i) => (
+                                                        <Bar key={nombre} dataKey={`com_${nombre}`} fill={VENDOR_COLORS[i % VENDOR_COLORS.length]} radius={[3, 3, 0, 0]} />
+                                                    ))}
+                                                </BarChart>
+                                            </ResponsiveContainer>
+                                        </Paper>
+                                    </Grid>
+                                </Grid>
                             </Box>
                         )}
                     </>

@@ -145,7 +145,7 @@ export default function EditarVentaModal({ open, onClose, onSuccess, venta }: Ed
     let costo = 0;
     productosSeleccionados.forEach(item => {
       item.talles.forEach(t => {
-        costo += item.producto.costo_unitario * t.cantidad;
+        costo += (item.producto.costo_unitario ?? 0) * t.cantidad;
       });
     });
     return costo;
@@ -156,7 +156,7 @@ export default function EditarVentaModal({ open, onClose, onSuccess, venta }: Ed
   const costo = calcularCosto();
   const precio = parseFloat(precioVenta) || 0;
   // Si es financiera, descontar el 3% de la ganancia
-  const descuentoFinanciera = (venta?.forma_pago_id === 1) ? precio * 0.03 : 0;
+  const descuentoFinanciera = (venta?.forma_pago?.nombre?.toLowerCase().includes('financiera')) ? precio * 0.025 : 0;
   return precio - costo - descuentoFinanciera;
 };
 
@@ -183,7 +183,7 @@ const handleSubmit = async () => {
         producto_id: item.producto.id,
         talle: t.talle,
         cantidad: t.cantidad,
-        precio_unitario: item.producto.costo_unitario
+        precio_unitario: item.producto.costo_unitario ?? 0
       }))
     );
 
@@ -255,7 +255,7 @@ const handleSubmit = async () => {
               <Typography sx={{ fontSize: '12px', fontWeight: 500, color: '#6B7280', mb: 0.5 }}>Agregar/Modificar Producto</Typography>
               <select value="" onChange={(e) => handleProductoSelect(Number(e.target.value))} style={{ width: '100%', padding: '8px 12px', fontSize: '13px', border: '1px solid #E5E7EB', borderRadius: '6px', outline: 'none', backgroundColor: 'white', color: '#111827' }}>
                 <option value="">Seleccione un producto...</option>
-                {productos.map(p => <option key={p.id} value={p.id}>{p.nombre} - ${p.costo_unitario.toLocaleString('es-AR')}</option>)}
+                {productos.map(p => <option key={p.id} value={p.id}>{p.nombre}{p.costo_unitario ? ` - $${p.costo_unitario.toLocaleString('es-AR')}` : ''}</option>)}
               </select>
             </Box>
 
@@ -318,7 +318,7 @@ const handleSubmit = async () => {
               Resumen de Venta
             </Typography>
 
-            {/* Costo (Calculado) */}
+            {/* Costo (Calculado)
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1.5 }}>
               <Typography sx={{ fontSize: '12px', color: '#6B7280', fontWeight: 500 }}>
                 Costo (Productos):
@@ -326,7 +326,7 @@ const handleSubmit = async () => {
               <Typography sx={{ fontSize: '16px', fontWeight: 600, color: '#DC2626' }}>
                 ${calcularCosto().toLocaleString('es-AR', { minimumFractionDigits: 2 })}
               </Typography>
-            </Box>
+            </Box> */}
 
             {/* Precio de Venta (Input) */}
             <Box sx={{ mb: 1.5 }}>
@@ -355,7 +355,7 @@ const handleSubmit = async () => {
               />
             </Box>
 
-            {/* Ganancia (Calculada) */}
+            {/* Ganancia (Calculada)  
             <Box sx={{
               display: 'flex',
               justifyContent: 'space-between',
@@ -372,18 +372,18 @@ const handleSubmit = async () => {
               <Typography sx={{ fontSize: '18px', fontWeight: 700, color: calcularGanancia() >= 0 ? '#059669' : '#DC2626' }}>
                 ${calcularGanancia().toLocaleString('es-AR', { minimumFractionDigits: 2 })}
               </Typography>
-            </Box>
+            </Box> */}
 
             
-            {/* Mensaje informativo de financiera */}
+            {/* Mensaje informativo de financiera 
             {venta?.forma_pago_id === 1 && (
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.5 }}>
             <i className="fa-solid fa-circle-info" style={{ color: '#D97706', fontSize: '12px' }} />
-            <Typography sx={{ fontSize: '12px', color: '#D97706', fontWeight: 500 }}>
+            {/*<Typography sx={{ fontSize: '12px', color: '#D97706', fontWeight: 500 }}>
             Comisión financiera (3%) aplicada automáticamente a la ganancia
             </Typography>
               </Box>
-)}
+)}  */}
           </Box>
         </Grid>
 

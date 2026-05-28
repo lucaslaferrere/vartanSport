@@ -1,15 +1,15 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { Typography, Box } from '@mui/material';
+import {
+  Box, Typography, Grid, TextField, Chip,
+} from '@mui/material';
 import BaseModal from './BaseModal';
 import FormField from '@components/Forms/FormField';
-import { IStockCreateRequest } from '@models/request/IProductoRequest';
-import { TALLES_OPTIONS } from '@models/enums/TalleEnum';
-import { COLORES_OPTIONS } from '@models/enums/ColorEnum';
 import { IProducto } from '@models/entities/productoEntity';
 import { productoService } from '@services/producto.service';
 import { useNotification } from '@components/Notifications';
+import { TALLES_OPTIONS } from '@models/enums/TalleEnum';
 
 interface AgregarStockModalProps {
   open: boolean;
@@ -19,14 +19,9 @@ interface AgregarStockModalProps {
 
 export default function AgregarStockModal({ open, onClose, onSuccess }: AgregarStockModalProps) {
   const { addNotification } = useNotification();
-  const [formData, setFormData] = useState<IStockCreateRequest>({
-    producto_id: 0,
-    talles: [],
-    colores: [],
-    cantidad: 0
-  });
   const [productos, setProductos] = useState<IProducto[]>([]);
   const [selectedProducto, setSelectedProducto] = useState<IProducto | null>(null);
+  const [cantidades, setCantidades] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(false);
   const [loadingProductos, setLoadingProductos] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -34,10 +29,9 @@ export default function AgregarStockModal({ open, onClose, onSuccess }: AgregarS
   const loadProductos = useCallback(async () => {
     setLoadingProductos(true);
     try {
-      const productosData = await productoService.getAll();
-      setProductos(productosData.filter(p => p.activo));
-    } catch (err) {
-      console.error('Error cargando productos:', err);
+      const data = await productoService.getAll();
+      setProductos(data.filter(p => p.activo));
+    } catch {
       addNotification('Error al cargar los productos', 'error');
     } finally {
       setLoadingProductos(false);
@@ -47,49 +41,42 @@ export default function AgregarStockModal({ open, onClose, onSuccess }: AgregarS
   useEffect(() => {
     if (open) {
       loadProductos();
+      setCantidades({});
     }
   }, [open, loadProductos]);
 
-  const handleProductoChange = (newValue: IProducto | null) => {
-    setSelectedProducto(newValue);
-    setFormData(prev => ({
-      ...prev,
-      producto_id: newValue ? newValue.id : 0
-    }));
+  const handleCantidadChange = (talle: string, value: string) => {
+    const num = parseInt(value, 10);
+    setCantidades(prev => ({ ...prev, [talle]: isNaN(num) || num < 0 ? 0 : num }));
     if (error) setError(null);
   };
+
+  const totalUnidades = Object.values(cantidades).reduce((sum, v) => sum + v, 0);
+  const tallesConCantidad = TALLES_OPTIONS.filter(t => (cantidades[t] || 0) > 0);
 
   const handleSubmit = async () => {
     setError(null);
 
-    if (!formData.producto_id) {
+    if (!selectedProducto) {
       setError('Debe seleccionar un producto');
       return;
     }
 
-    if (!formData.talles || formData.talles.length === 0) {
-      setError('Debe seleccionar al menos un talle');
+    if (totalUnidades === 0) {
+      setError('Debe ingresar al menos una unidad en algún talle');
       return;
     }
 
-    if (!formData.colores || formData.colores.length === 0) {
-      setError('Debe seleccionar al menos un color');
-      return;
-    }
-
-    if (formData.cantidad <= 0) {
-      setError('La cantidad debe ser mayor a 0');
-      return;
-    }
+    const cantidades_por_talle = TALLES_OPTIONS
+      .filter(t => (cantidades[t] || 0) > 0)
+      .map(t => ({ talle: t, cantidad: cantidades[t] }));
 
     setLoading(true);
-
     try {
-      await productoService.addStock(formData);
+      await productoService.addStock({ producto_id: selectedProducto.id, cantidades_por_talle });
       handleClose();
       onSuccess();
-    } catch (err) {
-      console.error('Error agregando stock:', err);
+    } catch {
       addNotification('Error al agregar el stock', 'error');
       setError('Error al agregar el stock. Inténtelo nuevamente.');
     } finally {
@@ -98,13 +85,8 @@ export default function AgregarStockModal({ open, onClose, onSuccess }: AgregarS
   };
 
   const handleClose = () => {
-    setFormData({
-      producto_id: 0,
-      talles: [],
-      colores: [],
-      cantidad: 0
-    });
     setSelectedProducto(null);
+    setCantidades({});
     setError(null);
     onClose();
   };
@@ -115,7 +97,7 @@ export default function AgregarStockModal({ open, onClose, onSuccess }: AgregarS
       open={open}
       onClose={handleClose}
       onSubmit={handleSubmit}
-      submitText="Agregar"
+      submitText="Guardar"
       isLoading={loading}
       error={error}
     >
@@ -125,78 +107,49 @@ export default function AgregarStockModal({ open, onClose, onSuccess }: AgregarS
         type="autocomplete"
         placeholder="Seleccione un producto"
         value={selectedProducto}
-        onChange={handleProductoChange}
+        onChange={(v) => {
+          setSelectedProducto(v);
+          if (error) setError(null);
+        }}
         options={productos}
-        getOptionLabel={(option) => option.nombre}
+        getOptionLabel={(o) => o.nombre}
         loading={loadingProductos}
-        error={!!error && !formData.producto_id}
+        error={!!error && !selectedProducto}
       />
 
-      <FormField
-        label="Talles"
-        required
-        type="multiselect"
-        placeholder="Seleccione los talles"
-        value={formData.talles}
-        onChange={(value) => {
-          setFormData(prev => ({ ...prev, talles: value || [] }));
-          if (error) setError(null);
-        }}
-        options={TALLES_OPTIONS}
-        getOptionLabel={(option) => option}
-        error={!!error && (!formData.talles || formData.talles.length === 0)}
-      />
+      <Box sx={{ mt: 1, mb: 2 }}>
+        <Typography sx={{ fontSize: '13px', fontWeight: 600, color: '#374151', mb: 1.5 }}>
+          Cantidades por talle
+        </Typography>
+        <Grid container spacing={1.5}>
+          {TALLES_OPTIONS.map(talle => (
+            <Grid key={talle} size={{ xs: 4, sm: 3 }}>
+              <Box sx={{ textAlign: 'center' }}>
+                <Chip
+                  label={talle}
+                  size="small"
+                  sx={{ mb: 0.5, bgcolor: 'rgba(59,130,246,0.1)', color: '#1D4ED8', fontWeight: 600, fontSize: '11px' }}
+                />
+                <TextField
+                  size="small"
+                  type="number"
+                  value={cantidades[talle] || ''}
+                  onChange={e => handleCantidadChange(talle, e.target.value)}
+                  placeholder="0"
+                  slotProps={{ htmlInput: { min: 0, step: 1, style: { textAlign: 'center', fontSize: '13px', padding: '6px 4px' } } }}
+                  sx={{ width: '100%' }}
+                />
+              </Box>
+            </Grid>
+          ))}
+        </Grid>
+      </Box>
 
-      <FormField
-        label="Colores"
-        required
-        type="multiselect"
-        placeholder="Seleccione los colores"
-        value={formData.colores}
-        onChange={(value) => {
-          setFormData(prev => ({ ...prev, colores: value || [] }));
-          if (error) setError(null);
-        }}
-        options={COLORES_OPTIONS}
-        getOptionLabel={(option) => option}
-        error={!!error && (!formData.colores || formData.colores.length === 0)}
-      />
-
-      <FormField
-        label="Cantidad por talle"
-        required
-        type="number"
-        placeholder="0"
-        value={formData.cantidad || ''}
-        onChange={(value) => {
-          setFormData(prev => ({ ...prev, cantidad: value }));
-          if (error) setError(null);
-        }}
-        error={!!error && formData.cantidad <= 0}
-        inputProps={{ min: 1, step: 1 }}
-      />
-
-      {formData.talles && formData.talles.length > 0 && formData.colores && formData.colores.length > 0 && formData.cantidad > 0 && (
-        <Box sx={{
-          mt: -2,
-          mb: 2,
-          p: 2,
-          backgroundColor: '#F0F9FF',
-          border: '1px solid #BAE6FD',
-          borderRadius: '6px'
-        }}>
-          <Typography variant="body2" sx={{ fontSize: '13px', color: '#0369A1' }}>
-            💡 Se agregarán <strong>{formData.cantidad}</strong> unidades para cada combinación de:
-          </Typography>
-          <Typography variant="body2" sx={{ fontSize: '12px', color: '#0369A1', mt: 0.5 }}>
-            • <strong>{formData.talles.length}</strong> talle{formData.talles.length > 1 ? 's' : ''}: {formData.talles.join(', ')}
-          </Typography>
-          <Typography variant="body2" sx={{ fontSize: '12px', color: '#0369A1' }}>
-            • <strong>{formData.colores.length}</strong> color{formData.colores.length > 1 ? 'es' : ''}: {formData.colores.join(', ')}
-          </Typography>
-          <Typography variant="body2" sx={{ fontSize: '12px', color: '#0369A1', mt: 0.5, fontWeight: 600 }}>
-            Total de combinaciones: <strong>{formData.talles.length * formData.colores.length}</strong> |
-            Total de unidades: <strong>{formData.cantidad * formData.talles.length * formData.colores.length}</strong>
+      {totalUnidades > 0 && (
+        <Box sx={{ p: 2, bgcolor: '#F0F9FF', border: '1px solid #BAE6FD', borderRadius: '6px' }}>
+          <Typography sx={{ fontSize: '13px', color: '#0369A1' }}>
+            <strong>{totalUnidades}</strong> unidades en {tallesConCantidad.length} talle{tallesConCantidad.length !== 1 ? 's' : ''}:{' '}
+            {tallesConCantidad.join(', ')}
           </Typography>
         </Box>
       )}

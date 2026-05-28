@@ -140,11 +140,25 @@ func SeedEquipos() {
 }
 
 func SeedFormasPago() {
+	renombres := map[string]string{
+		"Transferencia Financiera": "Financiera",
+		"Transferencia a Cero":     "Cuenta 0",
+		"Transferencia Bancaria":   "Valu Tahiel",
+	}
+	for anterior, nuevo := range renombres {
+		var destinoCount int64
+		config.DB.Model(&models.FormaPago{}).Where("nombre = ?", nuevo).Count(&destinoCount)
+		if destinoCount == 0 {
+			config.DB.Model(&models.FormaPago{}).Where("nombre = ?", anterior).Update("nombre", nuevo)
+		}
+	}
+
 	formasPago := []string{
-		"Transferencia Financiera", // ID 1 - Aplica 3% descuento
-		"Transferencia a Cero",     // ID 2
-		"Transferencia Bancaria",   // ID 3
-		"Efectivo",                 // ID 4
+		"Señas",
+		"Financiera",
+		"Valu Tahiel",
+		"Cuenta 0",
+		"Efectivo",
 	}
 
 	for _, nombre := range formasPago {

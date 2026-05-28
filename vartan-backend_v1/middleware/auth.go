@@ -19,6 +19,12 @@ func normalizeRole(raw string) string {
 		"ó", "o",
 		"ú", "u",
 		"ñ", "n",
+		"á", "a",
+		"é", "e",
+		"í", "i",
+		"ó", "o",
+		"ú", "u",
+		"ñ", "n",
 		"ã±", "n",
 	)
 	role = replacer.Replace(role)
@@ -28,6 +34,8 @@ func normalizeRole(raw string) string {
 		return "dueno"
 	case "empleado", "vendedor", "seller":
 		return "empleado"
+	case "repositor", "repositores":
+		return "repositor"
 	default:
 		return role
 	}
@@ -161,6 +169,49 @@ func RequireWrite() gin.HandlerFunc {
 			c.JSON(http.StatusForbidden, gin.H{"error": "No tenés permisos para realizar esta acción"})
 			c.Abort()
 			return
+		}
+	}
+}
+
+// RestrictRepositorToPedidos limits repositor users to their operational surface.
+func RestrictRepositorToPedidos() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		if normalizeRole(c.GetString("rol")) != "repositor" {
+			c.Next()
+			return
+		}
+
+		if c.Request.Method == http.MethodOptions {
+			c.Next()
+			return
+		}
+
+		path := c.FullPath()
+		if path == "/api/profile" || path == "/api/me" {
+			c.Next()
+			return
+		}
+
+		if path == "/api/mis-pedidos" || path == "/api/pedidos" || path == "/api/pedidos/:id" {
+			c.Next()
+			return
+		}
+
+		c.JSON(http.StatusForbidden, gin.H{"error": "No tenes permisos para acceder a este recurso"})
+		c.Abort()
+	}
+}
+
+// RequirePedidosRead allows users that can see the pedidos module.
+func RequirePedidosRead() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		switch normalizeRole(c.GetString("rol")) {
+		case "dueno", "repositor":
+			c.Next()
+			return
+		default:
+			c.JSON(http.StatusForbidden, gin.H{"error": "No tenes permisos para ver pedidos"})
+			c.Abort()
 		}
 	}
 }

@@ -9,6 +9,7 @@ interface ComprobantePreviewModalProps {
   onClose: () => void;
   ventaId: number | null;
   comprobanteUrl: string;
+  esSaldo?: boolean;
   onRevisar?: () => void;
   revisado?: boolean;
 }
@@ -18,6 +19,7 @@ export default function ComprobantePreviewModal({
   onClose,
   ventaId,
   comprobanteUrl,
+  esSaldo = false,
   onRevisar,
   revisado,
 }: ComprobantePreviewModalProps) {
@@ -36,7 +38,11 @@ export default function ComprobantePreviewModal({
     setError(false);
     setObjectUrl(null);
 
-    comprobanteService.getArchivoBlob(ventaId)
+    const fetchBlob = esSaldo
+      ? comprobanteService.getArchivoBlobSaldo(ventaId)
+      : comprobanteService.getArchivoBlob(ventaId);
+
+    fetchBlob
       .then(blob => {
         if (!revoked) {
           const url = window.URL.createObjectURL(blob);
@@ -53,19 +59,24 @@ export default function ComprobantePreviewModal({
         return null;
       });
     };
-  }, [open, ventaId]);
+  }, [open, ventaId, esSaldo]);
 
   const handleDescargar = () => {
     if (!ventaId) return;
-    const nombre = `comprobante_venta_${ventaId}.${ext}`;
-    comprobanteService.descargar(ventaId, nombre);
+    if (esSaldo) {
+      const nombre = `comprobante_saldo_venta_${ventaId}.${ext}`;
+      comprobanteService.descargarSaldo(ventaId, nombre);
+    } else {
+      const nombre = `comprobante_sena_venta_${ventaId}.${ext}`;
+      comprobanteService.descargar(ventaId, nombre);
+    }
   };
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth PaperProps={{ sx: { borderRadius: '12px' } }}>
       <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', pb: 1 }}>
         <Typography sx={{ fontWeight: 700, fontSize: '15px' }}>
-          Comprobante — Venta #{ventaId}
+          Comprobante {esSaldo ? 'saldo' : 'seña'} — Venta #{ventaId}
         </Typography>
         <Box sx={{ display: 'flex', gap: 1 }}>
           {onRevisar && (

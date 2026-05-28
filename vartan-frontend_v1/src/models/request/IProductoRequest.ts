@@ -1,32 +1,26 @@
-import { TalleEnum } from '@models/enums/TalleEnum';
-import { ColorEnum } from '@models/enums/ColorEnum';
-
 export interface IProductoCreateRequest {
-    nombre: string;
-    costo_unitario: number;
-    talles?: TalleEnum[];
-    colores?: ColorEnum[];
-    tipo_producto_id?: number;
-    equipo_id?: number;
+  nombre: string;
+  costo_unitario: number;
+  talles?: string[];
 }
 
 export interface IProductoUpdateRequest {
-    nombre: string;
-    costo_unitario: number;
-    talles?: TalleEnum[];
-    colores?: ColorEnum[];
-    activo?: boolean;
-    tipo_producto_id?: number;
-    equipo_id?: number;
+  nombre: string;
+  costo_unitario: number;
+  talles?: string[];
+  activo?: boolean;
+}
+
+export interface IStockCantidadPorTalle {
+  talle: string;
+  cantidad: number;
 }
 
 export interface IStockCreateRequest {
-    producto_id: number;
-    talles: TalleEnum[];
-    colores: ColorEnum[];
-    cantidad: number;
+  producto_id: number;
+  cantidades_por_talle: IStockCantidadPorTalle[];
 }
 
 export interface IStockUpdateRequest {
-    cantidad: number;
+  cantidad: number;
 }

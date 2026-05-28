@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useEffect, useState, useCallback } from 'react';
-import { Box, Typography, Chip, Grid, CircularProgress, IconButton, Tooltip } from '@mui/material';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
+import { Box, Typography, Chip, Grid, CircularProgress, IconButton, Tooltip, Select, MenuItem, FormControl, InputLabel } from '@mui/material';
 import { ColumnDef } from '@tanstack/react-table';
 import TableClientSide from '@components/Tables/TableClientSide';
 import StatCard from '@components/Cards/StatCard';
@@ -85,6 +85,8 @@ const getChipStyle = (key: string, _type: 'categoria' | 'metodoPago') => {
 
 const formatCurrency = (value: number) => `$${value.toLocaleString('es-AR')}`;
 
+const meses = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+
 export default function GastosPage() {
   const mounted = useMounted();
   const { addNotification } = useNotification();
@@ -97,6 +99,15 @@ export default function GastosPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
   const [gastoToDelete, setGastoToDelete] = useState<IGastoDisplay | null>(null);
+  const [selectedMes, setSelectedMes] = useState(new Date().getMonth() + 1);
+  const [selectedAnio, setSelectedAnio] = useState(new Date().getFullYear());
+
+  const { fechaDesde, fechaHasta } = useMemo(() => {
+    const desde = `${selectedAnio}-${String(selectedMes).padStart(2, '0')}-01`;
+    const ultimoDia = new Date(selectedAnio, selectedMes, 0).getDate();
+    const hasta = `${selectedAnio}-${String(selectedMes).padStart(2, '0')}-${ultimoDia}`;
+    return { fechaDesde: desde, fechaHasta: hasta };
+  }, [selectedMes, selectedAnio]);
 
   const tabs = gastosConfig.tabs.map((tab) => ({
     ...tab,
@@ -108,15 +119,14 @@ export default function GastosPage() {
     setLoading(true);
     setError(null);
     try {
-      const response = await gastoService.getAll();
+      const response = await gastoService.getAll({ fecha_desde: fechaDesde, fecha_hasta: fechaHasta });
       const transformed = response.gastos.map(transformGasto);
       setAllGastos(transformed);
       setGastos(transformed);
 
       // Intentar obtener resumen del servidor
       try {
-        const resumen = await gastoService.getResumen();
-        console.log('✅ Resumen obtenido del servidor:', resumen);
+        const resumen = await gastoService.getResumen(fechaDesde, fechaHasta);
 
         // Validar que el resumen tenga la estructura esperada
         if (resumen && typeof resumen.total !== 'undefined' && typeof resumen.cantidad !== 'undefined') {
@@ -159,7 +169,7 @@ export default function GastosPage() {
     } finally {
       setLoading(false);
     }
-  }, [mounted]);
+  }, [mounted, fechaDesde, fechaHasta]);
 
   useEffect(() => {
     if (mounted) fetchGastos();
@@ -317,12 +327,26 @@ export default function GastosPage() {
 
   return (
       <Box>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 3 }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 3, flexWrap: 'wrap', gap: 2 }}>
           <Box>
             <Typography variant="h4" sx={{ fontWeight: 700, color: colors.textPrimary, fontSize: 24, mb: 0.5 }}>Gastos</Typography>
-            <Typography variant="body2" sx={{ color: colors.textSecondary, fontSize: 14 }}>Gestiona los gastos de tu negocio</Typography>
+            <Typography variant="body2" sx={{ color: colors.textSecondary, fontSize: 14 }}>
+              {meses[selectedMes - 1]} {selectedAnio}
+            </Typography>
           </Box>
-          <Box sx={{ display: 'flex', gap: 2 }}>
+          <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'center', flexWrap: 'wrap' }}>
+            <FormControl size="small" sx={{ minWidth: 130 }}>
+              <InputLabel>Mes</InputLabel>
+              <Select value={selectedMes} label="Mes" onChange={(e) => setSelectedMes(Number(e.target.value))}>
+                {meses.map((m, i) => <MenuItem key={i + 1} value={i + 1}>{m}</MenuItem>)}
+              </Select>
+            </FormControl>
+            <FormControl size="small" sx={{ minWidth: 90 }}>
+              <InputLabel>Año</InputLabel>
+              <Select value={selectedAnio} label="Año" onChange={(e) => setSelectedAnio(Number(e.target.value))}>
+                {[2024, 2025, 2026].map(a => <MenuItem key={a} value={a}>{a}</MenuItem>)}
+              </Select>
+            </FormControl>
             <PrimaryButton icon="fa-solid fa-plus" onClick={() => setModalOpen(true)}>Nuevo Gasto</PrimaryButton>
           </Box>
         </Box>

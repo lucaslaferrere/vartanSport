@@ -31,7 +31,7 @@ export default function AuthLogin() {
     try {
       const response = await authService.login({ email, password });
       login(response.token, response.usuario);
-      router.push('/dashboard');
+      router.push(response.usuario.rol === 'repositor' ? '/pedidos' : '/dashboard');
     } catch (err: unknown) {
       const errorMessage = err && typeof err === 'object' && 'response' in err
         ? ((err as { response?: { data?: { message?: string } } }).response?.data?.message || 'Error al iniciar sesión')

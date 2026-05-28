@@ -23,7 +23,7 @@ func SetupRoutes(router *gin.Engine) {
 	}
 
 	api := router.Group("/api")
-	api.Use(middleware.AuthMiddleware())
+	api.Use(middleware.AuthMiddleware(), middleware.RestrictRepositorToPedidos())
 	{
 		api.GET("/profile", controllers.GetProfile)
 		api.GET("/me", controllers.GetMe)
@@ -32,6 +32,7 @@ func SetupRoutes(router *gin.Engine) {
 		api.GET("/productos/:id", controllers.GetProducto)
 		api.GET("/stock", controllers.GetStock)
 		api.GET("/stock/producto/:id", controllers.GetStockByProducto)
+		api.GET("/stock/producto/:id/talles", controllers.GetStockPorTalle)
 
 		// Tipos de producto
 		api.GET("/tipos-producto", controllers.GetTiposProducto)
@@ -57,13 +58,17 @@ func SetupRoutes(router *gin.Engine) {
 		api.PUT("/ventas/:id/detalles", middleware.RequireWrite(), controllers.UpdateVentaDetalles)
 		api.DELETE("/ventas/:id", middleware.RequireWrite(), controllers.DeleteVenta)
 		api.GET("/ventas/:id/comprobante", controllers.GetVentaComprobante)
+		api.GET("/ventas/:id/comprobante-saldo", controllers.GetVentaComprobanteSaldo)
+		api.GET("/ventas/:id/comprobantes", controllers.GetVentaComprobantes)
 		api.DELETE("/ventas/:id/comprobante", middleware.RequireWrite(), controllers.DeleteVentaComprobante)
 		api.GET("/ventas/:id/pagos", controllers.GetPagosVenta)
 		api.POST("/ventas/:id/pagos", middleware.RequireWrite(), controllers.CreatePagoVenta)
 		api.GET("/ventas-pendientes", controllers.GetPagosPendientes)
 
 		api.GET("/mis-pedidos", controllers.GetMisPedidos)
-		api.PUT("/pedidos/:id", middleware.RequireWrite(), controllers.UpdatePedidoEstado)
+		api.GET("/pedidos", middleware.RequirePedidosRead(), controllers.GetPedidos)
+		api.GET("/pedidos/:id", controllers.GetPedido)
+		api.PUT("/pedidos/:id", controllers.UpdatePedidoEstado)
 
 		api.GET("/mis-comisiones", controllers.GetMisComisiones)
 		api.GET("/mi-resumen-comision", controllers.GetMiResumenComision) // Resumen completo para empleado/vendedor
@@ -92,6 +97,9 @@ func SetupRoutes(router *gin.Engine) {
 	owner := router.Group("/api/owner")
 	owner.Use(middleware.AuthMiddleware(), middleware.RequireDueno())
 	{
+		// Dashboard
+		owner.GET("/dashboard", controllers.GetDashboardMensual)
+
 		// Usuarios
 		owner.GET("/usuarios/vendedores", controllers.GetVendedores)
 		owner.PUT("/usuarios/:id/comision-config", controllers.UpdateComisionConfig)
@@ -102,7 +110,7 @@ func SetupRoutes(router *gin.Engine) {
 		owner.DELETE("/productos/:id", controllers.DeleteProducto)
 
 		// Stock
-		owner.POST("/stock", controllers.AddStock)
+		owner.POST("/stock", controllers.AddStockPorTalle)
 		owner.PUT("/stock/:id", controllers.UpdateStock)
 
 		// Tipos de producto
@@ -120,6 +128,7 @@ func SetupRoutes(router *gin.Engine) {
 
 		// Ventas (ver todas)
 		owner.GET("/ventas", controllers.GetVentas)
+		owner.GET("/venta/:id", controllers.GetVentaByID)
 		owner.GET("/ventas/usuario/:id", controllers.GetVentasByUsuario)
 
 		// Pedidos (ver todos)
@@ -136,6 +145,9 @@ func SetupRoutes(router *gin.Engine) {
 		// Gasto publicitario mensual (nuevo: el dueño debe setearlo cada mes; default 0)
 		owner.GET("/comisiones-publicitarias/usuario/:id", controllers.GetComisionPublicitariaDelMes)
 		owner.POST("/comisiones-publicitarias/usuario/:id", controllers.SetComisionPublicitariaDelMes)
+
+		// Migraciones
+		owner.POST("/migraciones/recalcular-costos", controllers.RecalcularCostos)
 
 		// Comprobantes
 		owner.GET("/comprobantes", controllers.GetComprobantes)

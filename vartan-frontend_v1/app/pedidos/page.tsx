@@ -6,10 +6,12 @@ import { ColumnDef } from '@tanstack/react-table';
 import TableClientSide from '@components/Tables/TableClientSide';
 import StatusTabs from '@components/Tabs/StatusTabs';
 import ConfirmModal from '@components/Modals/ConfirmModal';
+import DetalleVentaModal from '@components/Modals/DetalleVentaModal';
 import { TableFilterType } from '@components/Tables/Filters/TableFilterType';
 import { colors } from '@/src/theme/colors';
 import { pedidoService } from '@services/pedido.service';
 import { IPedido } from '@models/entities/pedidoEntity';
+import { IVenta } from '@models/entities/ventaEntity';
 import { useAuthStore } from '@libraries/store';
 import { useMounted } from '@hooks/useMounted';
 import { useNotification } from '@components/Notifications';
@@ -39,6 +41,7 @@ function PedidosPage() {
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState('todos');
   const [confirmAction, setConfirmAction] = useState<ConfirmAction | null>(null);
+  const [ventaDetalle, setVentaDetalle] = useState<IVenta | null>(null);
   const { user } = useAuthStore();
 
   const transformPedido = (pedido: IPedido): IPedidoDisplay => {
@@ -73,7 +76,9 @@ function PedidosPage() {
       // console.log('📦 Cargando pedidos - Rol:', user?.rol); // Debug
       const pedidosData = user?.rol === 'dueño'
         ? await pedidoService.getAll()
-        : await pedidoService.getMisPedidos();
+        : user?.rol === 'repositor'
+          ? await pedidoService.getAllRepositor()
+          : await pedidoService.getMisPedidos();
 
       const transformed = pedidosData.map(transformPedido);
       setAllPedidos(transformed);
@@ -119,6 +124,11 @@ function PedidosPage() {
     setActiveTab(tabId);
   };
 
+  const handleVerVenta = (row: IPedidoDisplay) => {
+    const pedido = rawPedidos.get(row.id);
+    setVentaDetalle((pedido?.venta as IVenta) || null);
+  };
+
   const handleImprimirEtiqueta = (row: IPedidoDisplay) => {
     const pedido = rawPedidos.get(row.id);
     const cliente = pedido?.venta?.cliente;
@@ -136,22 +146,24 @@ function PedidosPage() {
           <style>
             * { margin: 0; padding: 0; box-sizing: border-box; }
             body { font-family: Arial, sans-serif; width: 10cm; height: 15cm; padding: 0.5cm; }
-            .etiqueta { border: 2px solid #000; padding: 10px; height: 100%; display: flex; flex-direction: column; justify-content: space-between; }
-            .header { font-size: 18px; font-weight: bold; border-bottom: 1px solid #000; padding-bottom: 5px; margin-bottom: 8px; }
-            .campo { margin-bottom: 4px; }
-            .label { font-size: 9px; text-transform: uppercase; color: #555; font-weight: bold; }
-            .valor { font-size: 13px; font-weight: bold; }
-            .divider { border-top: 1px dashed #000; margin: 6px 0; }
-            .transporte { font-size: 14px; font-weight: bold; text-align: center; border: 1px solid #000; border-radius: 4px; padding: 4px; margin-top: 6px; }
-            .pedido { font-size: 11px; color: #888; text-align: right; margin-top: 4px; }
+            .etiqueta { border: 2px solid #000; padding: 10px; width: 100%; }
+            .header { text-align: center; font-size: 14px; font-weight: bold; letter-spacing: 2px; border-bottom: 1px solid #000; padding-bottom: 6px; margin-bottom: 8px; }
+            .campo { margin-bottom: 4px; font-size: 12px; }
+            .label { font-weight: bold; font-size: 10px; color: #555; display: block; }
+            .valor { font-size: 13px; }
+            .divider { border-top: 1px dashed #999; margin: 8px 0; }
+            .transporte { text-align: center; font-size: 15px; font-weight: bold; border: 1px solid #000; padding: 5px; margin-top: 8px; border-radius: 4px; }
+            .pedido { text-align: right; font-size: 10px; color: #888; margin-top: 6px; }
             @media print { body { margin: 0; } @page { margin: 0; size: 100mm 150mm; } }
           </style>
         </head>
         <body>
           <div class="etiqueta">
-            <div class="header">📦 VARTAN SPORT - Etiqueta de Envío</div>
+            <div class="header">VARTAN SPORTS</div>
             <div class="campo"><span class="label">DESTINATARIO</span><span class="valor">${cliente?.nombre || '-'}</span></div>
+            <div class="campo"><span class="label">DNI</span><span class="valor">${cliente?.dni || '-'}</span></div>
             <div class="campo"><span class="label">TELÉFONO</span><span class="valor">${cliente?.telefono || '-'}</span></div>
+            <div class="campo"><span class="label">EMAIL</span><span class="valor">${cliente?.email || '-'}</span></div>
             <div class="divider"></div>
             <div class="campo"><span class="label">DIRECCIÓN</span><span class="valor">${cliente?.direccion || '-'}</span></div>
             <div class="campo"><span class="label">LOCALIDAD</span><span class="valor">${cliente?.ciudad || '-'}</span></div>
@@ -260,29 +272,48 @@ function PedidosPage() {
     },
   ];
 
+  type Action = {
+    icon: string;
+    color: string;
+    onClick: (row: IPedidoDisplay) => void;
+    tooltip: string;
+    disabled?: (row: IPedidoDisplay) => boolean;
+  };
+
   const getActions = () => {
-    return [
+    const actions: Action[] = [
+      {
+        icon: 'fa-solid fa-eye',
+        color: colors.primary,
+        onClick: handleVerVenta,
+        tooltip: 'Ver venta',
+      },
       {
         icon: 'fa-solid fa-tag',
         color: '#6B7280',
         onClick: handleImprimirEtiqueta,
         tooltip: 'Imprimir etiqueta',
       },
+    ];
+
+    actions.push(
       {
         icon: 'fa-solid fa-truck',
         color: '#059669',
         onClick: handleDespachar,
         tooltip: 'Despachar pedido',
-        disabled: (row: IPedidoDisplay) => row.estado !== 'pendiente'
+        disabled: (row: IPedidoDisplay) => row.estado !== 'pendiente',
       },
       {
         icon: 'fa-solid fa-xmark',
         color: '#DC2626',
         onClick: handleCancelar,
         tooltip: 'Cancelar pedido',
-        disabled: (row: IPedidoDisplay) => row.estado === 'cancelado'
+        disabled: (row: IPedidoDisplay) => row.estado === 'cancelado',
       }
-    ];
+    );
+
+    return actions;
   };
 
   if (loading) {
@@ -321,6 +352,12 @@ function PedidosPage() {
           actions={getActions()}
         />
       </Box>
+
+      <DetalleVentaModal
+        open={!!ventaDetalle}
+        onClose={() => setVentaDetalle(null)}
+        venta={ventaDetalle}
+      />
 
       {/* Modal de confirmación */}
       <ConfirmModal

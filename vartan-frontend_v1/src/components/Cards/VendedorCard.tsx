@@ -103,7 +103,7 @@ export default function VendedorCard({ vendedor, formatCurrency, onConfigurar }:
                         </Typography>
                     </Grid>
                     <Grid size={{ xs: 4 }}>
-                        <Typography sx={{ fontSize: '11px', color: '#6B7280', mb: 0.5 }}>Sueldo Base</Typography>
+                        <Typography sx={{ fontSize: '11px', color: '#6B7280', mb: 0.5 }}>Bonos</Typography>
                         <Typography sx={{ fontSize: '13px', fontWeight: 600, color: '#10B981' }}>
                             {formatCurrency(vendedor.sueldo)}
                         </Typography>

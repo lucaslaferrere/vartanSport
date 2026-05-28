@@ -6,6 +6,8 @@ import { useRouter } from 'next/navigation';
 import { useUserPermissions } from '@components/Validators/UserPermissionsContext';
 import { comprobanteService, IComprobante, IFiltrosComprobantes } from '@services/comprobante.service';
 import { usuarioService } from '@services/usuario.service';
+import { ventaService } from '@services/venta.service';
+import { IFormaPago } from '@models/entities/ventaEntity';
 import { useNotification } from '@components/Notifications';
 import ComprobanteCard from '@components/Cards/ComprobanteCard';
 import ComprobantePreviewModal from '@components/Modals/ComprobantePreviewModal';
@@ -28,13 +30,14 @@ export default function ComprobantesPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [vendedores, setVendedores] = useState<IVendedor[]>([]);
+  const [formasPago, setFormasPago] = useState<IFormaPago[]>([]);
 
   const [periodo, setPeriodo] = useState<Periodo>('hoy');
   const [vendedorId, setVendedorId] = useState<number | ''>('');
   const [soloPendientes, setSoloPendientes] = useState(false);
   const [formaPagoId, setFormaPagoId] = useState<number | ''>('');
 
-  const [previewItem, setPreviewItem] = useState<IComprobante | null>(null);
+  const [previewItem, setPreviewItem] = useState<{ comp: IComprobante; tipo: 'sena' | 'saldo' } | null>(null);
   const [descargandoZip, setDescargandoZip] = useState(false);
   const [marcandoTodos, setMarcandoTodos] = useState(false);
 
@@ -49,6 +52,15 @@ export default function ComprobantesPage() {
     try {
       const data = await usuarioService.getVendedores();
       setVendedores(data);
+    } catch {
+      // No crítico
+    }
+  }, []);
+
+  const fetchFormasPago = useCallback(async () => {
+    try {
+      const data = await ventaService.getFormasPago();
+      setFormasPago(data || []);
     } catch {
       // No crítico
     }
@@ -77,7 +89,8 @@ export default function ComprobantesPage() {
 
   useEffect(() => {
     fetchVendedores();
-  }, [fetchVendedores]);
+    fetchFormasPago();
+  }, [fetchVendedores, fetchFormasPago]);
 
   useEffect(() => {
     fetchComprobantes();
@@ -105,11 +118,21 @@ export default function ComprobantesPage() {
 
   const handleDescargar = async (comp: IComprobante) => {
     const ext = comp.comprobante_url.split('.').pop()?.toLowerCase() ?? 'pdf';
-    const nombre = `comprobante_venta_${comp.venta_id}.${ext}`;
+    const nombre = `comprobante_sena_venta_${comp.venta_id}.${ext}`;
     try {
       await comprobanteService.descargar(comp.venta_id, nombre);
     } catch {
       addNotification('Error al descargar el comprobante', 'error');
+    }
+  };
+
+  const handleDescargarSaldo = async (comp: IComprobante) => {
+    const ext = comp.comprobante_saldo_url?.split('.').pop()?.toLowerCase() ?? 'pdf';
+    const nombre = `comprobante_saldo_venta_${comp.venta_id}.${ext}`;
+    try {
+      await comprobanteService.descargarSaldo(comp.venta_id, nombre);
+    } catch {
+      addNotification('Error al descargar el comprobante de saldo', 'error');
     }
   };
 
@@ -203,9 +226,9 @@ export default function ComprobantesPage() {
           sx={{ fontSize: '13px', minWidth: 180, bgcolor: 'white' }}
         >
           <MenuItem value=""><em>Todas las formas de pago</em></MenuItem>
-          <MenuItem value={1}>Financiera</MenuItem>
-          <MenuItem value={2}>Transferencia a Cuenta 0</MenuItem>
-          <MenuItem value={3}>Efectivo</MenuItem>
+          {formasPago.map(fp => (
+            <MenuItem key={fp.id} value={fp.id}>{fp.nombre}</MenuItem>
+          ))}
         </Select>
 
         {/* Solo pendientes */}
@@ -283,8 +306,10 @@ export default function ComprobantesPage() {
             <Grid key={comp.venta_id} size={{ xs: 6, sm: 4, md: 3 }}>
               <ComprobanteCard
                 comprobante={comp}
-                onVer={() => setPreviewItem(comp)}
+                onVer={() => setPreviewItem({ comp, tipo: 'sena' })}
                 onDescargar={() => handleDescargar(comp)}
+                onVerSaldo={comp.comprobante_saldo_url ? () => setPreviewItem({ comp, tipo: 'saldo' }) : undefined}
+                onDescargarSaldo={comp.comprobante_saldo_url ? () => handleDescargarSaldo(comp) : undefined}
                 onRevisar={() => handleRevisar(comp)}
               />
             </Grid>
@@ -297,12 +322,13 @@ export default function ComprobantesPage() {
         <ComprobantePreviewModal
           open={!!previewItem}
           onClose={() => setPreviewItem(null)}
-          ventaId={previewItem.venta_id}
-          comprobanteUrl={previewItem.comprobante_url}
-          revisado={previewItem.revisado}
+          ventaId={previewItem.comp.venta_id}
+          comprobanteUrl={previewItem.tipo === 'saldo' ? (previewItem.comp.comprobante_saldo_url ?? '') : previewItem.comp.comprobante_url}
+          esSaldo={previewItem.tipo === 'saldo'}
+          revisado={previewItem.comp.revisado}
           onRevisar={() => {
-            handleRevisar(previewItem);
-            setPreviewItem(prev => prev ? { ...prev, revisado: !prev.revisado } : null);
+            handleRevisar(previewItem.comp);
+            setPreviewItem(prev => prev ? { ...prev, comp: { ...prev.comp, revisado: !prev.comp.revisado } } : null);
           }}
         />
       )}

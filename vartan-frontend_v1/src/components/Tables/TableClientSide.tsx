@@ -1,4 +1,4 @@
-import React, {useState} from "react";
+import React, {useState, useEffect, useRef} from "react";
 import {
     ColumnDef,
     flexRender,
@@ -21,6 +21,15 @@ import {formatFilterDate} from "@utils/formatDate";
 export const DEFAULT_PAGE_INDEX = 0;
 export const DEFAULT_PAGE_SIZE = 10;
 
+interface ServerSidePagination {
+    total: number;
+    page: number;
+    pageSize: number;
+    onPageChange: (page: number) => void;
+    onPageSizeChange: (pageSize: number) => void;
+    onFiltersChange?: (filters: Record<string, string>) => void;
+}
+
 interface ReactTableProps<TData> {
     data: TData[];
     columns: ColumnDef<TData>[];
@@ -35,6 +44,7 @@ interface ReactTableProps<TData> {
     }[];
     headerActions?: React.ReactNode;
     showFilters?: boolean;
+    serverSide?: ServerSidePagination;
 }
 
 export default function TableClientSide<TData>({
@@ -44,13 +54,31 @@ export default function TableClientSide<TData>({
     actions = [],
     headerActions,
     showFilters = true,
+    serverSide,
 }: ReactTableProps<TData>) {
     const [pagination, setPagination] = useState({
-        pageIndex: DEFAULT_PAGE_INDEX,
-        pageSize: DEFAULT_PAGE_SIZE,
+        pageIndex: serverSide ? serverSide.page - 1 : DEFAULT_PAGE_INDEX,
+        pageSize: serverSide ? serverSide.pageSize : DEFAULT_PAGE_SIZE,
     });
 
     const [filters, setFilters] = useState<ColumnFiltersState>([])
+    const isFirstFilterRender = useRef(true);
+
+    useEffect(() => {
+        if (!serverSide?.onFiltersChange) return;
+        if (isFirstFilterRender.current) {
+            isFirstFilterRender.current = false;
+            return;
+        }
+        const timer = setTimeout(() => {
+            const record: Record<string, string> = {};
+            filters.forEach(f => {
+                if (f.value !== undefined && f.value !== '') record[f.id] = String(f.value);
+            });
+            serverSide.onFiltersChange!(record);
+        }, 400);
+        return () => clearTimeout(timer);
+    }, [filters]);
 
     const handleFiltersChange = (filter: Updater<ColumnFiltersState>) => {
         setFilters(prev => {
@@ -62,14 +90,22 @@ export default function TableClientSide<TData>({
         data: data,
         columns,
         state: {
-            pagination,
+            pagination: serverSide ? { pageIndex: serverSide.page - 1, pageSize: serverSide.pageSize } : pagination,
             columnFilters: filters
         },
-        onPaginationChange: setPagination,
+        onPaginationChange: serverSide
+            ? (updater) => {
+                const next = typeof updater === 'function' ? updater({ pageIndex: serverSide.page - 1, pageSize: serverSide.pageSize }) : updater;
+                if (next.pageIndex !== serverSide.page - 1) serverSide.onPageChange(next.pageIndex + 1);
+                if (next.pageSize !== serverSide.pageSize) serverSide.onPageSizeChange(next.pageSize);
+            }
+            : setPagination,
         onColumnFiltersChange: handleFiltersChange,
         getCoreRowModel: getCoreRowModel(),
         getFilteredRowModel: getFilteredRowModel(),
         getPaginationRowModel: getPaginationRowModel(),
+        manualPagination: !!serverSide,
+        rowCount: serverSide?.total,
     });
 
     // Verificar si hay columnas con filtros

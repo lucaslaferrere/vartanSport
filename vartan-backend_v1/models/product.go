@@ -126,18 +126,19 @@ type Producto struct {
 
 // ProductoResponse - Response con stock total calculado
 type ProductoResponse struct {
-	ID                 int           `json:"id"`
-	Nombre             string        `json:"nombre"`
-	CostoUnitario      float64       `json:"costo_unitario"`
-	Activo             bool          `json:"activo"`
-	FechaCreacion      time.Time     `json:"fecha_creacion"`
-	TallesDisponibles  TalleArray    `json:"talles_disponibles"`
-	ColoresDisponibles ColorArray    `json:"colores_disponibles"`
-	StockTotal         int           `json:"stock_total"`
-	TipoProductoID     *int          `json:"tipo_producto_id"`
-	TipoProducto       *TipoProducto `json:"tipo_producto,omitempty"`
-	EquipoID           *int          `json:"equipo_id"`
-	Equipo             *Equipo       `json:"equipo,omitempty"`
+	ID                int                 `json:"id"`
+	Nombre            string              `json:"nombre"`
+	CostoUnitario     *float64            `json:"costo_unitario,omitempty"`
+	Activo            bool                `json:"activo"`
+	FechaCreacion     time.Time           `json:"fecha_creacion"`
+	TallesDisponibles TalleArray          `json:"talles_disponibles"`
+	StockTotal        int                 `json:"stock_total"`
+	StockPorTalle     []StockPorTalleItem `json:"stock_por_talle"`
+}
+
+type StockPorTalleItem struct {
+	Talle    TalleEnum `json:"talle"`
+	Cantidad int       `json:"cantidad"`
 }
 
 // tabla productos_stock (stock por talle y color)
@@ -173,10 +174,16 @@ type ProductoUpdateRequest struct {
 
 // agregar stock a un producto (nuevo: múltiples registros)
 type StockCreateRequest struct {
-	ProductoID int         `json:"producto_id" binding:"required"`
-	Talles     []TalleEnum `json:"talles" binding:"required"`
-	Colores    []ColorEnum `json:"colores" binding:"required"`
-	Cantidad   int         `json:"cantidad" binding:"required"`
+	ProductoID         int                  `json:"producto_id" binding:"required"`
+	Talles             []TalleEnum          `json:"talles"`
+	Colores            []ColorEnum          `json:"colores"`
+	Cantidad           int                  `json:"cantidad"`
+	CantidadesPorTalle []StockPorTalleInput `json:"cantidades_por_talle"`
+}
+
+type StockPorTalleInput struct {
+	Talle    TalleEnum `json:"talle" binding:"required"`
+	Cantidad int       `json:"cantidad" binding:"required"`
 }
 
 // StockCreateResponse - Response al crear múltiples stocks
