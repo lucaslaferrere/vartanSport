@@ -1,5 +1,5 @@
 import { api } from '@libraries/api';
-import { IVenta, IPagoVenta } from '@models/entities/ventaEntity';
+import { IVenta, IPagoVenta, IFormaPago } from '@models/entities/ventaEntity';
 import { IVentaCreateRequest } from '@models/request/IVentaRequest';
 
 interface IVentaCreateResponse {
@@ -80,6 +80,11 @@ export const ventaService = {
 
         const endpoint = isVendedor ? '/api/mis-ventas' : '/api/owner/ventas';
         const response = await api.get<IVenta[]>(endpoint);
+        return response.data;
+    },
+
+    getFormasPago: async (): Promise<IFormaPago[]> => {
+        const response = await api.get<IFormaPago[]>('/api/formas-pago');
         return response.data;
     },
 
