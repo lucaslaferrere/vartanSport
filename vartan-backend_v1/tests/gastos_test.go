@@ -74,7 +74,6 @@ func seedGasto(t *testing.T) models.Gasto {
 		Categoria:   "Otros",
 		Proveedor:   "Seed",
 		MetodoPago:  "Efectivo",
-		ClienteID:   1,
 		UsuarioID:   1,
 	}
 
