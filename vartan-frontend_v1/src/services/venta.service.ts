@@ -78,9 +78,12 @@ export const ventaService = {
         const user = userStr ? JSON.parse(userStr) : null;
         const isVendedor = user?.rol === 'vendedor';
 
-        const endpoint = isVendedor ? '/api/mis-ventas' : '/api/owner/ventas';
-        const response = await api.get<IVenta[]>(endpoint);
-        return response.data;
+        if (isVendedor) {
+            const response = await api.get<IVenta[]>('/api/mis-ventas');
+            return response.data;
+        }
+        const response = await api.get<{ ventas: IVenta[]; total: number }>('/api/owner/ventas');
+        return response.data.ventas;
     },
 
     getFormasPago: async (): Promise<IFormaPago[]> => {
@@ -88,9 +91,10 @@ export const ventaService = {
         return response.data;
     },
 
-    getAllPaginated: async (_page: number, _pageSize: number, _filters: Record<string, string> = {}): Promise<{ ventas: IVenta[]; total: number }> => {
-        const response = await api.get<IVenta[]>('/api/owner/ventas');
-        return { ventas: response.data, total: response.data.length };
+    getAllPaginated: async (page: number, pageSize: number, _filters: Record<string, string> = {}): Promise<{ ventas: IVenta[]; total: number }> => {
+        const params = new URLSearchParams({ page: String(page), limit: String(pageSize) });
+        const response = await api.get<{ ventas: IVenta[]; total: number }>(`/api/owner/ventas?${params.toString()}`);
+        return { ventas: response.data.ventas, total: response.data.total };
     },
 
     getByUsuario: async (usuarioId: number): Promise<IVenta[]> => {
