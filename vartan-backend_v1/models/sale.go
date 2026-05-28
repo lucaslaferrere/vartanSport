@@ -35,6 +35,7 @@ type Venta struct {
 	FormaPago FormaPago      `gorm:"foreignKey:FormaPagoID" json:"forma_pago,omitempty"`
 	FormaPagoSaldo *FormaPago `gorm:"foreignKey:FormaPagoSaldoID" json:"forma_pago_saldo,omitempty"`
 	Detalles  []VentaDetalle `gorm:"foreignKey:VentaID" json:"detalles,omitempty"`
+	Pagos     []PagoVenta    `gorm:"foreignKey:VentaID" json:"pagos,omitempty"`
 }
 
 func (Venta) TableName() string {

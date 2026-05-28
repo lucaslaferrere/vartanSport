@@ -14,6 +14,7 @@ import (
 	"vartan-backend/models"
 
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 )
 
 // CreateVenta godoc
@@ -116,8 +117,13 @@ func GetVenta(c *gin.Context) {
 		Preload("Usuario").
 		Preload("Cliente").
 		Preload("FormaPago").
+		Preload("FormaPagoSaldo").
 		Preload("Detalles").
 		Preload("Detalles.Producto").
+		Preload("Pagos", func(db *gorm.DB) *gorm.DB {
+			return db.Order("pago_venta.created_at ASC")
+		}).
+		Preload("Pagos.FormaPago").
 		First(&venta, ventaID).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Venta no encontrada"})
 		return

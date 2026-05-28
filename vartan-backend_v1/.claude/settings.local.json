@@ -5,7 +5,10 @@
       "Bash(curl:*)",
       "Bash(find:*)",
       "Bash(ls:*)",
-      "Bash(go build:*)"
+      "Bash(go build:*)",
+      "Bash(dir D:LyRSolutionsvartanSportvartan-backend_v1 *)",
+      "Bash(go vet *)",
+      "Bash(./bin/vartan-backend.exe *)"
     ]
   }
 }

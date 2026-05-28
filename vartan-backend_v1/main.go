@@ -44,6 +44,7 @@ func main() {
 		&models.FormaPago{},
 		&models.Venta{},
 		&models.VentaDetalle{},
+		&models.PagoVenta{},
 		&models.Pedido{},
 		&models.Comision{},
 		&models.ComisionPublicitariaMensual{},
