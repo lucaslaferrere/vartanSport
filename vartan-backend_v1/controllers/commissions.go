@@ -185,16 +185,17 @@ func CalcularComisionesMesActual(c *gin.Context) {
 		// 1. Buscar en la tabla comisiones_publicitarias_mensuales (seteo explícito del dueño); si no existe → 0
 		// 2. Si el registro de comisión mensual ya tiene un override explícito (no nil), respetarlo
 		gastoPublicitario := getGastoPublicitarioMensual(usuario.ID, mes, anio)
-		if result.Error == nil && comisionExistente.GastoPublicitario != nil {
-			gastoPublicitario = *comisionExistente.GastoPublicitario
-		}
 
 		// Usar el porcentaje actual configurado para el vendedor.
 		porcentajeComision := usuario.PorcentajeComision
 
-		// Calcular comisión como porcentaje de la facturación mensual del vendedor.
+		// Bug 1 fix: base de comisión = ventas - gasto publicitario (mínimo 0)
 		porcentaje := porcentajeComision / 100.0
-		comisionNeta := totalVentas * porcentaje
+		base := totalVentas - gastoPublicitario
+		if base < 0 {
+			base = 0
+		}
+		comisionNeta := base * porcentaje
 
 		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 			// No existe, crear nueva — snapshot de sueldo, porcentaje y gasto del mes actual
@@ -214,11 +215,13 @@ func CalcularComisionesMesActual(c *gin.Context) {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error al verificar comisión existente"})
 			return
 		} else {
-			// Ya existe, actualizar totales (no tocar gasto_publicitario)
+			// Ya existe, actualizar totales incluyendo gasto_publicitario desde comisiones_publicitarias_mensuales
+			gastoSnapshot := gastoPublicitario
 			comisionExistente.TotalVentas = totalVentas
 			comisionExistente.TotalComision = comisionNeta
 			comisionExistente.PorcentajeComision = usuario.PorcentajeComision
-			config.DB.Model(&comisionExistente).Omit("gasto_publicitario").Updates(&comisionExistente)
+			comisionExistente.GastoPublicitario = &gastoSnapshot
+			config.DB.Model(&comisionExistente).Updates(&comisionExistente)
 		}
 	}
 
