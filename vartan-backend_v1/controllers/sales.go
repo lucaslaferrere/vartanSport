@@ -17,6 +17,8 @@ import (
 	"gorm.io/gorm"
 )
 
+const financieraRate = 0.025
+
 // CreateVenta godoc
 // @Summary Crear venta
 // @Description Crea una nueva venta con descuentos automáticos y opcionalmente un comprobante
@@ -800,6 +802,106 @@ func GetVentaComprobante(c *gin.Context) {
 	}
 
 	c.File(*venta.ComprobanteURL)
+}
+
+// GetVentaByID godoc
+// @Summary Obtener venta por ID (dueño)
+// @Description Igual que GetVenta pero accesible bajo /api/owner/venta/:id.
+// @Tags Ventas
+// @Produce json
+// @Security BearerAuth
+// @Param id path int true "ID de la venta"
+// @Success 200 {object} models.Venta
+// @Failure 404 {object} map[string]string "Venta no encontrada"
+// @Router /api/owner/venta/{id} [get]
+func GetVentaByID(c *gin.Context) {
+	ventaID := c.Param("id")
+
+	var venta models.Venta
+	if err := config.DB.
+		Preload("Usuario").
+		Preload("Cliente").
+		Preload("FormaPago").
+		Preload("FormaPagoSaldo").
+		Preload("Detalles").
+		Preload("Detalles.Producto").
+		Preload("Pagos", func(db *gorm.DB) *gorm.DB {
+			return db.Order("pago_venta.created_at ASC")
+		}).
+		Preload("Pagos.FormaPago").
+		First(&venta, ventaID).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Venta no encontrada"})
+		return
+	}
+
+	c.JSON(http.StatusOK, venta)
+}
+
+// GetVentaComprobanteSaldo godoc
+// @Summary Descargar comprobante del saldo (legacy)
+// @Description Devuelve el archivo guardado en comprobante_saldo_url (campo legacy).
+// @Tags Ventas
+// @Produce octet-stream
+// @Security BearerAuth
+// @Param id path int true "ID de la venta"
+// @Success 200 {file} file "Archivo del comprobante de saldo"
+// @Failure 404 {object} map[string]string "Comprobante de saldo no encontrado"
+// @Router /api/ventas/{id}/comprobante-saldo [get]
+func GetVentaComprobanteSaldo(c *gin.Context) {
+	ventaID := c.Param("id")
+
+	var venta models.Venta
+	if err := config.DB.First(&venta, ventaID).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Venta no encontrada"})
+		return
+	}
+
+	if venta.ComprobanteSaldoURL == nil || *venta.ComprobanteSaldoURL == "" {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Esta venta no tiene comprobante de saldo adjunto"})
+		return
+	}
+
+	if _, err := os.Stat(*venta.ComprobanteSaldoURL); os.IsNotExist(err) {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Archivo de comprobante de saldo no encontrado"})
+		return
+	}
+
+	c.File(*venta.ComprobanteSaldoURL)
+}
+
+// GetVentaComprobantes godoc
+// @Summary Listar comprobantes de una venta
+// @Description Devuelve todos los comprobantes registrados para la venta (uno por cada pago).
+// @Tags Ventas
+// @Produce json
+// @Security BearerAuth
+// @Param id path int true "ID de la venta"
+// @Success 200 {object} map[string]interface{}
+// @Failure 404 {object} map[string]string "Venta no encontrada"
+// @Router /api/ventas/{id}/comprobantes [get]
+func GetVentaComprobantes(c *gin.Context) {
+	ventaID := c.Param("id")
+
+	var venta models.Venta
+	if err := config.DB.First(&venta, ventaID).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Venta no encontrada"})
+		return
+	}
+
+	var pagos []models.PagoVenta
+	if err := config.DB.
+		Where("venta_id = ?", venta.ID).
+		Preload("FormaPago").
+		Order("created_at ASC").
+		Find(&pagos).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error al obtener pagos"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"venta_id": venta.ID,
+		"pagos":    pagos,
+	})
 }
 
 // DeleteVentaComprobante godoc

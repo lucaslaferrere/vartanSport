@@ -44,21 +44,6 @@ func (Venta) TableName() string {
 	return "venta"
 }
 
-type PagoVenta struct {
-	ID             int       `gorm:"primaryKey;autoIncrement" json:"id"`
-	VentaID        int       `gorm:"not null;index" json:"venta_id"`
-	Monto          float64   `gorm:"type:decimal(10,2);not null;default:0" json:"monto"`
-	ComprobanteURL *string   `gorm:"type:varchar(255)" json:"comprobante_url,omitempty"`
-	FormaPagoID    *int      `gorm:"default:null" json:"forma_pago_id,omitempty"`
-	Fecha          time.Time `gorm:"default:CURRENT_TIMESTAMP" json:"fecha"`
-
-	FormaPago *FormaPago `gorm:"foreignKey:FormaPagoID" json:"forma_pago,omitempty"`
-}
-
-func (PagoVenta) TableName() string {
-	return "pagos_venta"
-}
-
 type VentaDetalle struct {
 	ID             int     `gorm:"primaryKey;autoIncrement" json:"id"`
 	VentaID        int     `gorm:"not null" json:"venta_id"`
