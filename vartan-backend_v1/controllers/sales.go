@@ -14,6 +14,7 @@ import (
 	"vartan-backend/models"
 
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 )
 
 const financieraRate = 0.025
@@ -100,6 +101,20 @@ func DeleteVenta(c *gin.Context) {
 		os.Remove(*venta.ComprobanteSaldoURL)
 	}
 
+	var pagosVenta []models.PagoVenta
+	if err := tx.Where("venta_id = ?", venta.ID).Find(&pagosVenta).Error; err == nil {
+		for _, pago := range pagosVenta {
+			if pago.ComprobanteURL != nil && *pago.ComprobanteURL != "" {
+				os.Remove(*pago.ComprobanteURL)
+			}
+		}
+		if err := tx.Where("venta_id = ?", venta.ID).Delete(&models.PagoVenta{}).Error; err != nil {
+			tx.Rollback()
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error al eliminar pagos de venta"})
+			return
+		}
+	}
+
 	if err := tx.Where("venta_id = ?", venta.ID).Delete(&models.Pedido{}).Error; err != nil {
 		tx.Rollback()
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error al eliminar pedido"})
@@ -149,6 +164,10 @@ func GetVenta(c *gin.Context) {
 		Preload("FormaPagoSaldo").
 		Preload("Detalles").
 		Preload("Detalles.Producto").
+		Preload("Pagos", func(db *gorm.DB) *gorm.DB {
+			return db.Order("pagos_venta.fecha ASC")
+		}).
+		Preload("Pagos.FormaPago").
 		First(&venta, ventaID).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Venta no encontrada"})
 		return
@@ -419,6 +438,10 @@ func UpdateVentaDetalles(c *gin.Context) {
 		Preload("FormaPagoSaldo").
 		Preload("Detalles").
 		Preload("Detalles.Producto").
+		Preload("Pagos", func(db *gorm.DB) *gorm.DB {
+			return db.Order("pagos_venta.fecha ASC")
+		}).
+		Preload("Pagos.FormaPago").
 		First(&venta, ventaID).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error al recargar venta"})
 		return
@@ -439,6 +462,10 @@ func GetPagosPendientes(c *gin.Context) {
 		Preload("FormaPagoSaldo").
 		Preload("Detalles").
 		Preload("Detalles.Producto").
+		Preload("Pagos", func(db *gorm.DB) *gorm.DB {
+			return db.Order("pagos_venta.fecha ASC")
+		}).
+		Preload("Pagos.FormaPago").
 		Order("fecha_venta DESC")
 
 	if userRol != "dueño" {
@@ -747,6 +774,26 @@ func processVenta(c *gin.Context, usuarioID *int, clienteID int, formaPagoID int
 		return
 	}
 
+	if comprobanteURL != nil && *comprobanteURL != "" {
+		montoInicial := senaValue
+		if montoInicial == 0 {
+			montoInicial = totalFinal
+		}
+		formaPagoIDCopy := formaPagoID
+		pagoInicial := models.PagoVenta{
+			VentaID:        venta.ID,
+			Monto:          montoInicial,
+			ComprobanteURL: comprobanteURL,
+			FormaPagoID:    &formaPagoIDCopy,
+			Fecha:          time.Now(),
+		}
+		if err := tx.Create(&pagoInicial).Error; err != nil {
+			tx.Rollback()
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error al registrar pago inicial"})
+			return
+		}
+	}
+
 	if err := tx.Commit().Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error al confirmar venta"})
 		return
@@ -759,6 +806,8 @@ func processVenta(c *gin.Context, usuarioID *int, clienteID int, formaPagoID int
 		Preload("FormaPagoSaldo").
 		Preload("Detalles").
 		Preload("Detalles.Producto").
+		Preload("Pagos").
+		Preload("Pagos.FormaPago").
 		First(&venta, venta.ID)
 
 	c.JSON(http.StatusCreated, venta)
@@ -785,6 +834,10 @@ func GetMisVentas(c *gin.Context) {
 		Preload("FormaPagoSaldo").
 		Preload("Detalles").
 		Preload("Detalles.Producto").
+		Preload("Pagos", func(db *gorm.DB) *gorm.DB {
+			return db.Order("pagos_venta.fecha ASC")
+		}).
+		Preload("Pagos.FormaPago").
 		Order("fecha_venta DESC").
 		Find(&ventas).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error al obtener ventas"})
@@ -836,6 +889,10 @@ func GetVentas(c *gin.Context) {
 			Preload("FormaPagoSaldo").
 			Preload("Detalles").
 			Preload("Detalles.Producto").
+			Preload("Pagos", func(db *gorm.DB) *gorm.DB {
+				return db.Order("pagos_venta.fecha ASC")
+			}).
+			Preload("Pagos.FormaPago").
 			Order("venta.fecha_venta DESC").
 			Find(&ventas).Error; err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error al obtener ventas"})
@@ -869,6 +926,10 @@ func GetVentas(c *gin.Context) {
 		Preload("FormaPagoSaldo").
 		Preload("Detalles").
 		Preload("Detalles.Producto").
+		Preload("Pagos", func(db *gorm.DB) *gorm.DB {
+			return db.Order("pagos_venta.fecha ASC")
+		}).
+		Preload("Pagos.FormaPago").
 		Order("venta.fecha_venta DESC").
 		Limit(limit).
 		Offset(offset).
@@ -902,6 +963,10 @@ func GetVentaByID(c *gin.Context) {
 		Preload("FormaPagoSaldo").
 		Preload("Detalles").
 		Preload("Detalles.Producto").
+		Preload("Pagos", func(db *gorm.DB) *gorm.DB {
+			return db.Order("pagos_venta.fecha ASC")
+		}).
+		Preload("Pagos.FormaPago").
 		First(&venta, ventaID).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Venta no encontrada"})
 		return
@@ -933,6 +998,10 @@ func GetVentasByUsuario(c *gin.Context) {
 		Preload("FormaPagoSaldo").
 		Preload("Detalles").
 		Preload("Detalles.Producto").
+		Preload("Pagos", func(db *gorm.DB) *gorm.DB {
+			return db.Order("pagos_venta.fecha ASC")
+		}).
+		Preload("Pagos.FormaPago").
 		Order("fecha_venta DESC").
 		Find(&ventas).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error al obtener ventas"})
@@ -984,6 +1053,41 @@ func GetVentaComprobante(c *gin.Context) {
 // @Success 200 {object} map[string]string "Comprobante eliminado"
 // @Failure 404 {object} map[string]string "Venta o comprobante no encontrado"
 // @Router /api/ventas/{id}/comprobante [delete]
+// GetVentaComprobantes godoc
+// @Summary Listar comprobantes de una venta
+// @Description Devuelve todos los comprobantes registrados para la venta (uno por cada pago).
+// @Tags Ventas
+// @Produce json
+// @Security BearerAuth
+// @Param id path int true "ID de la venta"
+// @Success 200 {object} map[string]interface{}
+// @Failure 404 {object} map[string]string "Venta no encontrada"
+// @Router /api/ventas/{id}/comprobantes [get]
+func GetVentaComprobantes(c *gin.Context) {
+	ventaID := c.Param("id")
+
+	var venta models.Venta
+	if err := config.DB.First(&venta, ventaID).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Venta no encontrada"})
+		return
+	}
+
+	var pagos []models.PagoVenta
+	if err := config.DB.
+		Where("venta_id = ?", venta.ID).
+		Preload("FormaPago").
+		Order("fecha ASC").
+		Find(&pagos).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error al obtener pagos"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"venta_id": venta.ID,
+		"pagos":    pagos,
+	})
+}
+
 func GetVentaComprobanteSaldo(c *gin.Context) {
 	ventaID := c.Param("id")
 
@@ -1166,8 +1270,13 @@ func UpdateVenta(c *gin.Context) {
 		Preload("Usuario").
 		Preload("Cliente").
 		Preload("FormaPago").
+		Preload("FormaPagoSaldo").
 		Preload("Detalles").
 		Preload("Detalles.Producto").
+		Preload("Pagos", func(db *gorm.DB) *gorm.DB {
+			return db.Order("pagos_venta.fecha ASC")
+		}).
+		Preload("Pagos.FormaPago").
 		First(&venta, venta.ID)
 
 	c.JSON(http.StatusOK, venta)
@@ -1274,6 +1383,7 @@ func UpdateVentaPago(c *gin.Context) {
 	}
 	venta.Ganancia = ganancia
 
+	var nuevoComprobantePath *string
 	file, err := c.FormFile("comprobante")
 	if err == nil && file != nil {
 		ext := strings.ToLower(filepath.Ext(file.Filename))
@@ -1289,7 +1399,7 @@ func UpdateVentaPago(c *gin.Context) {
 		}
 
 		uploadDir := "uploads/comprobantes"
-		filename := fmt.Sprintf("comprobante_saldo_%d%s", time.Now().UnixNano(), ext)
+		filename := fmt.Sprintf("comprobante_pago_%d%s", time.Now().UnixNano(), ext)
 		filePath := filepath.Join(uploadDir, filename)
 
 		src, err := file.Open()
@@ -1311,10 +1421,10 @@ func UpdateVentaPago(c *gin.Context) {
 			return
 		}
 
-		// Guardar en el campo de saldo para preservar el comprobante de la seña
-		if venta.ComprobanteSaldoURL != nil && *venta.ComprobanteSaldoURL != "" {
-			os.Remove(*venta.ComprobanteSaldoURL)
-		}
+		nuevoComprobantePath = &filePath
+		// Espejo en el campo legacy: queda apuntando al último comprobante
+		// para no romper endpoints existentes que aún leen comprobante_saldo_url.
+		// NO se borra el archivo anterior: cada pago conserva su comprobante en pagos_venta.
 		venta.ComprobanteSaldoURL = &filePath
 	}
 
@@ -1328,6 +1438,20 @@ func UpdateVentaPago(c *gin.Context) {
 		return
 	}
 
+	if pagoDeHoy > 0 || nuevoComprobantePath != nil {
+		pago := models.PagoVenta{
+			VentaID:        venta.ID,
+			Monto:          pagoDeHoy,
+			ComprobanteURL: nuevoComprobantePath,
+			FormaPagoID:    venta.FormaPagoSaldoID,
+			Fecha:          time.Now(),
+		}
+		if err := config.DB.Create(&pago).Error; err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error al registrar el pago"})
+			return
+		}
+	}
+
 	config.DB.
 		Preload("Usuario").
 		Preload("Cliente").
@@ -1335,6 +1459,8 @@ func UpdateVentaPago(c *gin.Context) {
 		Preload("FormaPagoSaldo").
 		Preload("Detalles").
 		Preload("Detalles.Producto").
+		Preload("Pagos").
+		Preload("Pagos.FormaPago").
 		First(&venta, venta.ID)
 
 	c.JSON(http.StatusOK, gin.H{

@@ -59,6 +59,7 @@ func SetupRoutes(router *gin.Engine) {
 		api.DELETE("/ventas/:id", middleware.RequireWrite(), controllers.DeleteVenta)
 		api.GET("/ventas/:id/comprobante", controllers.GetVentaComprobante)
 		api.GET("/ventas/:id/comprobante-saldo", controllers.GetVentaComprobanteSaldo)
+		api.GET("/ventas/:id/comprobantes", controllers.GetVentaComprobantes)
 		api.DELETE("/ventas/:id/comprobante", middleware.RequireWrite(), controllers.DeleteVentaComprobante)
 		api.GET("/ventas-pendientes", controllers.GetPagosPendientes)
 
