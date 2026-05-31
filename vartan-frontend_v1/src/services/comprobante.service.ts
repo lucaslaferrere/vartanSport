@@ -47,12 +47,19 @@ export const comprobanteService = {
     return response.data;
   },
 
-  marcarRevisado: async (ventaId: number, revisado: boolean): Promise<void> => {
-    await api.put(`/api/owner/comprobantes/${ventaId}/revisar`, { revisado });
+  marcarRevisado: async (ventaId: number, revisado: boolean, pagoId?: number): Promise<void> => {
+    await api.put(`/api/owner/comprobantes/${ventaId}/revisar`, {
+      revisado,
+      pago_id: pagoId ?? null,
+    });
   },
 
-  marcarTodosRevisados: async (ventaIds: number[], revisado: boolean): Promise<void> => {
-    await api.put('/api/owner/comprobantes/revisar-todos', { venta_ids: ventaIds, revisado });
+  marcarTodosRevisados: async (ventaIds: number[], revisado: boolean, pagoIds?: number[]): Promise<void> => {
+    await api.put('/api/owner/comprobantes/revisar-todos', {
+      venta_ids: ventaIds,
+      revisado,
+      pago_ids: pagoIds ?? null,
+    });
   },
 
   getArchivoBlob: async (ventaId: number): Promise<Blob> => {

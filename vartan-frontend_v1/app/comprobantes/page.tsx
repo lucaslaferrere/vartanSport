@@ -77,9 +77,20 @@ export default function ComprobantesPage() {
         forma_pago_id: formaPagoId || undefined,
       };
       const data = await comprobanteService.getAll(filtros);
-      setComprobantes(data.comprobantes);
-      setTotal(data.total);
-      setPendientes(data.pendientes);
+
+      // Dedup: misma venta_id puede venir como entrada legacy (sin pago_id) y como
+      // entrada de pagos_venta (con pago_id). Preferir la de pagos_venta.
+      const seen = new Map<number, IComprobante>();
+      for (const comp of data.comprobantes) {
+        const existing = seen.get(comp.venta_id);
+        if (!existing || (comp.pago_id != null && existing.pago_id == null)) {
+          seen.set(comp.venta_id, comp);
+        }
+      }
+      const comprobantesFinales = Array.from(seen.values());
+      setComprobantes(comprobantesFinales);
+      setTotal(comprobantesFinales.length);
+      setPendientes(comprobantesFinales.filter(c => !c.revisado).length);
     } catch {
       setError('No se pudieron cargar los comprobantes.');
     } finally {
@@ -104,7 +115,7 @@ export default function ComprobantesPage() {
     );
     setPendientes(prev => nuevoEstado ? prev - 1 : prev + 1);
     try {
-      await comprobanteService.marcarRevisado(comp.venta_id, nuevoEstado);
+      await comprobanteService.marcarRevisado(comp.venta_id, nuevoEstado, comp.pago_id);
       addNotification(nuevoEstado ? 'Comprobante marcado como revisado' : 'Comprobante marcado como pendiente', 'success');
     } catch {
       // Revertir
@@ -161,10 +172,13 @@ export default function ComprobantesPage() {
     setMarcandoTodos(true);
     try {
       const ids = pendientesVisibles.map(c => c.venta_id);
-      await comprobanteService.marcarTodosRevisados(ids, true);
-      setComprobantes(prev => prev.map(c => ({ ...c, revisado: true })));
-      setPendientes(0);
+      const pagoIds = pendientesVisibles
+        .map(c => c.pago_id)
+        .filter((id): id is number => id != null);
+      await comprobanteService.marcarTodosRevisados(ids, true, pagoIds.length > 0 ? pagoIds : undefined);
       addNotification(`${ids.length} comprobantes marcados como revisados`, 'success');
+      // Refrescar desde el servidor para confirmar el estado persistido
+      await fetchComprobantes();
     } catch {
       addNotification('Error al marcar los comprobantes', 'error');
     } finally {

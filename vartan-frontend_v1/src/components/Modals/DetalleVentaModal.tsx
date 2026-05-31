@@ -35,8 +35,16 @@ export default function DetalleVentaModal({ open, onClose, venta }: DetalleVenta
       setPagosError(null);
       return;
     }
-    setPagos(venta.pagos ?? []);
-  }, [open, venta?.id, venta?.pagos]);
+    // Capturar valores actuales para evitar closures obsoletos
+    const ventaId = venta.id;
+    const fallback = venta.pagos ?? [];
+    setPagosLoading(true);
+    setPagosError(null);
+    ventaService.getPagos(ventaId)
+      .then(data => setPagos(data))
+      .catch(() => setPagos(fallback))
+      .finally(() => setPagosLoading(false));
+  }, [open, venta?.id]);
 
   if (!venta) return null;
 
