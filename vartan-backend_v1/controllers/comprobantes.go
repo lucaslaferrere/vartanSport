@@ -96,8 +96,13 @@ func buildComprobantesQuery(c *gin.Context) (*gorm.DB, error) {
 	vendedorID := strings.TrimSpace(c.Query("vendedor_id"))
 	formaPagoID := strings.TrimSpace(c.Query("forma_pago_id"))
 
-	query := config.DB.Model(&models.Venta{}).
+	subqPagos := config.DB.Model(&models.PagoVenta{}).
+		Select("venta_id").
 		Where("comprobante_url IS NOT NULL AND comprobante_url <> ''")
+
+	query := config.DB.Model(&models.Venta{}).
+		Where("comprobante_url IS NOT NULL AND comprobante_url <> ''").
+		Where("id NOT IN (?)", subqPagos)
 
 	if vendedorID != "" {
 		id, err := strconv.Atoi(vendedorID)

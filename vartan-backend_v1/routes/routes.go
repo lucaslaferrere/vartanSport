@@ -148,6 +148,7 @@ func SetupRoutes(router *gin.Engine) {
 
 		// Migraciones
 		owner.POST("/migraciones/recalcular-costos", controllers.RecalcularCostos)
+		owner.GET("/migraciones/backfill-pagos", controllers.BackfillPagosFromVentas)
 
 		// Comprobantes
 		owner.GET("/comprobantes", controllers.GetComprobantes)

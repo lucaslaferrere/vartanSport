@@ -624,6 +624,26 @@ func processVenta(c *gin.Context, usuarioID *int, clienteID int, formaPagoID int
 		return
 	}
 
+	if comprobanteURL != nil {
+		pagoMonto := senaValue
+		if pagoMonto == 0 {
+			pagoMonto = totalFinal
+		}
+		fpID := uint(formaPagoID)
+		pagoInicial := models.PagoVenta{
+			VentaID:        uint(venta.ID),
+			Monto:          pagoMonto,
+			FormaPagoID:    &fpID,
+			ComprobanteURL: comprobanteURL,
+			CreatedAt:      venta.FechaVenta,
+		}
+		if err := tx.Create(&pagoInicial).Error; err != nil {
+			tx.Rollback()
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error al registrar pago inicial"})
+			return
+		}
+	}
+
 	for _, detalleReq := range detalles {
 		subtotal := detalleReq.PrecioUnitario * float64(detalleReq.Cantidad)
 
@@ -948,6 +968,23 @@ func GetVentaComprobantes(c *gin.Context) {
 		return
 	}
 
+	// Fallback legacy: ventas anteriores al fix tienen comprobante_url en la venta
+	// pero ninguna fila en pago_venta — retornarla como entrada sintética.
+	if len(pagos) == 0 && venta.ComprobanteURL != nil && *venta.ComprobanteURL != "" {
+		fpID := uint(venta.FormaPagoID)
+		monto := venta.SenaInicial
+		if monto == 0 {
+			monto = venta.TotalFinal
+		}
+		pagos = append(pagos, models.PagoVenta{
+			VentaID:        uint(venta.ID),
+			Monto:          monto,
+			FormaPagoID:    &fpID,
+			ComprobanteURL: venta.ComprobanteURL,
+			CreatedAt:      venta.FechaVenta,
+		})
+	}
+
 	c.JSON(http.StatusOK, gin.H{
 		"venta_id": venta.ID,
 		"pagos":    pagos,
@@ -1229,6 +1266,8 @@ func UpdateVentaPago(c *gin.Context) {
 	}
 	venta.Ganancia = ganancia
 
+	var newComprobanteURL *string
+
 	file, err := c.FormFile("comprobante")
 	if err == nil && file != nil {
 		ext := strings.ToLower(filepath.Ext(file.Filename))
@@ -1271,11 +1310,33 @@ func UpdateVentaPago(c *gin.Context) {
 		}
 
 		venta.ComprobanteURL = &filePath
+		newComprobanteURL = &filePath
 	}
 
 	if err := config.DB.Save(&venta).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error al actualizar venta"})
 		return
+	}
+
+	if newComprobanteURL != nil {
+		pagoMonto := pagoDeHoy
+		if pagoMonto <= 0 {
+			pagoMonto = nuevaSena
+		}
+		var fpIDPtr *uint
+		if venta.FormaPagoSaldoID != nil {
+			fpID := uint(*venta.FormaPagoSaldoID)
+			fpIDPtr = &fpID
+		}
+		nuevoPago := models.PagoVenta{
+			VentaID:        uint(venta.ID),
+			Monto:          pagoMonto,
+			FormaPagoID:    fpIDPtr,
+			ComprobanteURL: newComprobanteURL,
+		}
+		if err := config.DB.Create(&nuevoPago).Error; err != nil {
+			fmt.Printf("advertencia: pago_venta no pudo insertarse para venta %d: %v\n", venta.ID, err)
+		}
 	}
 
 	config.DB.
