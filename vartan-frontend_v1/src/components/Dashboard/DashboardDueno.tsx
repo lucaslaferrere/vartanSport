@@ -29,18 +29,14 @@ const CHART_COLORS = ['#588a9e', '#10B981', '#7C3AED', '#D97706', '#DC2626', '#2
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-const fmtPesos = (v: number) =>
-  '$' + Math.round(v).toLocaleString('es-AR');
-
+const fmtPesos = (v: number) => '$' + Math.round(v).toLocaleString('es-AR');
 const fmtShort = (v: number) => {
   if (v >= 1_000_000) return '$' + (v / 1_000_000).toFixed(1) + 'M';
   if (v >= 1_000) return '$' + Math.round(v / 1_000) + 'k';
   return '$' + Math.round(v);
 };
-
 const fmtDate = (iso: string) =>
   new Date(iso).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: '2-digit' });
-
 const prevMesInfo = (mes: number, anio: number) => ({
   mes: mes === 1 ? 12 : mes - 1,
   anio: mes === 1 ? anio - 1 : anio,
@@ -56,9 +52,7 @@ function useCountUp(target: number, duration = 1200): number {
     let raf: number;
     const tick = (now: number) => {
       const t = Math.min((now - start) / duration, 1);
-      if (t >= 1) {
-        setVal(target);
-      } else {
+      if (t >= 1) { setVal(target); } else {
         setVal(target * (1 - (1 - t) ** 3));
         raf = requestAnimationFrame(tick);
       }
@@ -71,21 +65,12 @@ function useCountUp(target: number, duration = 1200): number {
 
 // ─── Data derivation ─────────────────────────────────────────────────────────
 
-function calcDailyData(
-  ventasMes: IVenta[],
-  ventasPrev: IVenta[],
-  mes: number,
-  anio: number,
-) {
+function calcDailyData(ventasMes: IVenta[], ventasPrev: IVenta[], mes: number, anio: number) {
   const days = new Date(anio, mes, 0).getDate();
   return Array.from({ length: days }, (_, i) => {
     const day = i + 1;
-    const actual = ventasMes
-      .filter(v => new Date(v.fecha_venta).getDate() === day)
-      .reduce((s, v) => s + v.total, 0);
-    const anterior = ventasPrev
-      .filter(v => new Date(v.fecha_venta).getDate() === day)
-      .reduce((s, v) => s + v.total, 0);
+    const actual = ventasMes.filter(v => new Date(v.fecha_venta).getDate() === day).reduce((s, v) => s + v.total, 0);
+    const anterior = ventasPrev.filter(v => new Date(v.fecha_venta).getDate() === day).reduce((s, v) => s + v.total, 0);
     return { dia: String(day), actual, anterior };
   });
 }
@@ -96,16 +81,12 @@ function calcTopProductos(ventas: IVenta[]) {
     v.detalles?.forEach(d => {
       const key = d.producto?.nombre || 'Desconocido';
       const cur = map.get(key) || { cantidad: 0, facturacion: 0, nombreFull: key };
-      map.set(key, {
-        cantidad: cur.cantidad + d.cantidad,
-        facturacion: cur.facturacion + d.subtotal,
-        nombreFull: key,
-      });
+      map.set(key, { cantidad: cur.cantidad + d.cantidad, facturacion: cur.facturacion + d.subtotal, nombreFull: key });
     })
   );
   return Array.from(map.entries())
     .map(([k, d]) => ({
-      nombre: k.length > 18 ? k.substring(0, 16) + '…' : k,
+      nombre: k.length > 16 ? k.substring(0, 14) + '…' : k,
       nombreFull: d.nombreFull,
       cantidad: d.cantidad,
       facturacion: d.facturacion,
@@ -124,9 +105,7 @@ function calcMetodosPago(ventas: IVenta[]) {
   });
   const totalCount = [...map.values()].reduce((s, d) => s + d.count, 0);
   return Array.from(map.entries()).map(([name, d]) => ({
-    name,
-    value: d.count,
-    amount: d.total,
+    name, value: d.count, amount: d.total,
     pct: totalCount > 0 ? Math.round((d.count / totalCount) * 100) : 0,
   }));
 }
@@ -138,12 +117,12 @@ function calcVendedores(ventas: IVenta[]) {
     const cur = map.get(nombre) || { ventas: 0, facturacion: 0 };
     map.set(nombre, { ventas: cur.ventas + 1, facturacion: cur.facturacion + v.total });
   });
-  return Array.from(map.entries())
-    .map(([nombre, d]) => ({ nombre, ...d }))
-    .sort((a, b) => b.facturacion - a.facturacion);
+  return Array.from(map.entries()).map(([nombre, d]) => ({ nombre, ...d })).sort((a, b) => b.facturacion - a.facturacion);
 }
 
 // ─── Types ────────────────────────────────────────────────────────────────────
+
+interface PrevMetrics { cantidad_ventas: number; facturacion: number; ticket_promedio: number; }
 
 interface DerivedData {
   dailyData: ReturnType<typeof calcDailyData>;
@@ -151,92 +130,69 @@ interface DerivedData {
   metodosPago: ReturnType<typeof calcMetodosPago>;
   vendedores: ReturnType<typeof calcVendedores>;
   ventasRecientes: IVenta[];
+  prevMetrics: PrevMetrics;
 }
 
 type SortField = 'fecha_venta' | 'total' | 'cliente';
 
-// ─── Sub-components ───────────────────────────────────────────────────────────
+// ─── KPICard — compact, sin icono, con variación ──────────────────────────────
 
 interface KPICardProps {
   title: string;
   value: number;
   formatter: (v: number) => string;
-  icon: string;
-  iconBg: string;
-  iconColor: string;
-  subtitle?: string;
+  prevValue?: number;
   delay?: number;
 }
 
-function KPICard({ title, value, formatter, icon, iconBg, iconColor, subtitle, delay = 0 }: KPICardProps) {
+function KPICard({ title, value, formatter, prevValue, delay = 0 }: KPICardProps) {
   const animated = useCountUp(value);
+  const variation = prevValue != null && prevValue !== 0
+    ? ((value - prevValue) / Math.abs(prevValue)) * 100
+    : null;
+  const isUp = variation != null && variation >= 0;
+
   return (
-    <Paper
-      elevation={0}
-      sx={{
-        p: { xs: '14px 16px', sm: '18px 20px' },
-        borderRadius: '14px',
-        border: '1px solid #E5E7EB',
-        bgcolor: '#FFFFFF',
-        height: '100%',
-        cursor: 'default',
-        '@keyframes kpiIn': {
-          from: { opacity: 0, transform: 'translateY(14px)' },
-          to: { opacity: 1, transform: 'translateY(0)' },
-        },
-        animation: 'kpiIn 0.4s ease-out both',
-        animationDelay: `${delay}ms`,
-        transition: 'transform 0.2s ease, box-shadow 0.2s ease',
-        '&:hover': {
-          transform: 'translateY(-2px)',
-          boxShadow: '0 8px 24px rgba(0,0,0,0.07)',
-          borderColor: 'rgba(88,138,158,0.3)',
-        },
-      }}
-    >
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 1 }}>
-        <Box sx={{ minWidth: 0 }}>
-          <Typography sx={{
-            color: '#9CA3AF', fontSize: '10px', fontWeight: 600,
-            letterSpacing: '0.08em', textTransform: 'uppercase', mb: 1,
-          }}>
-            {title}
+    <Paper elevation={0} sx={{
+      p: '10px 14px',
+      borderRadius: '12px',
+      border: '1px solid #E5E7EB',
+      bgcolor: '#FFFFFF',
+      height: '100%',
+      minHeight: '78px',
+      cursor: 'default',
+      overflow: 'hidden',
+      '@keyframes kpiIn': { from: { opacity: 0, transform: 'translateY(12px)' }, to: { opacity: 1, transform: 'translateY(0)' } },
+      animation: 'kpiIn 0.35s ease-out both',
+      animationDelay: `${delay}ms`,
+      transition: 'transform 0.18s ease, box-shadow 0.18s ease',
+      '&:hover': { transform: 'translateY(-2px)', boxShadow: '0 6px 20px rgba(0,0,0,0.07)', borderColor: 'rgba(88,138,158,0.3)' },
+    }}>
+      <Typography sx={{ color: '#9CA3AF', fontSize: '10px', fontWeight: 600, letterSpacing: '0.07em', textTransform: 'uppercase', mb: '4px', lineHeight: 1 }}>
+        {title}
+      </Typography>
+      <Typography sx={{ color: '#1F2937', fontSize: '20px', fontWeight: 700, lineHeight: 1, fontVariantNumeric: 'tabular-nums', mb: '4px' }}>
+        {formatter(animated)}
+      </Typography>
+      {variation !== null && (
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
+          <i className={`fa-solid fa-arrow-${isUp ? 'up' : 'down'}`} style={{ fontSize: '8px', color: isUp ? '#059669' : '#DC2626' }} />
+          <Typography sx={{ fontSize: '10px', fontWeight: 700, color: isUp ? '#059669' : '#DC2626', lineHeight: 1 }}>
+            {Math.abs(variation).toFixed(1)}%
           </Typography>
-          <Typography sx={{
-            color: '#1F2937',
-            fontSize: { xs: '18px', sm: '22px' },
-            fontWeight: 700,
-            lineHeight: 1.1,
-            fontVariantNumeric: 'tabular-nums',
-          }}>
-            {formatter(animated)}
-          </Typography>
-          {subtitle && (
-            <Typography sx={{ fontSize: '11px', color: '#9CA3AF', mt: 0.5 }}>{subtitle}</Typography>
-          )}
+          <Typography sx={{ fontSize: '10px', color: '#9CA3AF', lineHeight: 1 }}>vs ant.</Typography>
         </Box>
-        <Box sx={{
-          width: 38, height: 38, flexShrink: 0,
-          borderRadius: '10px', bgcolor: iconBg,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          color: iconColor, fontSize: '15px',
-        }}>
-          <i className={icon} />
-        </Box>
-      </Box>
+      )}
     </Paper>
   );
 }
 
+// ─── PanelCard ────────────────────────────────────────────────────────────────
+
 function PanelCard({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <Paper elevation={0} sx={{
-      p: { xs: 2, sm: 3 },
-      borderRadius: '14px',
-      border: '1px solid #E5E7EB',
-      height: '100%',
-    }}>
-      <Typography sx={{ fontSize: '14px', fontWeight: 700, color: '#1F2937', mb: 2.5, letterSpacing: '-0.01em' }}>
+    <Paper elevation={0} sx={{ p: '16px', borderRadius: '14px', border: '1px solid #E5E7EB', height: '100%' }}>
+      <Typography sx={{ fontSize: '13px', fontWeight: 700, color: '#1F2937', mb: 1.5, letterSpacing: '-0.01em' }}>
         {title}
       </Typography>
       {children}
@@ -246,41 +202,35 @@ function PanelCard({ title, children }: { title: string; children: React.ReactNo
 
 function EmptyState({ message = 'Sin datos para este período' }: { message?: string }) {
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', py: 5, gap: 1 }}>
-      <Box sx={{ fontSize: '26px', color: '#D1D5DB' }}><i className="fa-regular fa-chart-bar" /></Box>
+    <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', py: 4, gap: 1 }}>
+      <Box sx={{ fontSize: '22px', color: '#D1D5DB' }}><i className="fa-regular fa-chart-bar" /></Box>
       <Typography sx={{ fontSize: '12px', color: '#9CA3AF' }}>{message}</Typography>
     </Box>
   );
 }
 
-function FinRow({ label, value, color, bold, isDeduction }: {
-  label: string; value: string; color?: string; bold?: boolean; isDeduction?: boolean;
-}) {
+// ─── Desglose helpers ─────────────────────────────────────────────────────────
+
+function FinRow({ label, value, color, bold, isDeduction }: { label: string; value: string; color?: string; bold?: boolean; isDeduction?: boolean }) {
   return (
     <Stack direction="row" justifyContent="space-between" alignItems="center">
-      <Typography sx={{ fontSize: '13px', color: isDeduction ? '#6B7280' : '#374151', fontWeight: bold ? 600 : 400 }}>
-        {label}
-      </Typography>
-      <Typography sx={{
-        fontSize: '13px', fontWeight: bold ? 700 : 500,
-        color: color || (isDeduction ? '#DC2626' : '#1F2937'),
-        fontVariantNumeric: 'tabular-nums',
-      }}>
+      <Typography sx={{ fontSize: '12px', color: isDeduction ? '#6B7280' : '#374151', fontWeight: bold ? 600 : 400 }}>{label}</Typography>
+      <Typography sx={{ fontSize: '12px', fontWeight: bold ? 700 : 500, color: color || (isDeduction ? '#DC2626' : '#1F2937'), fontVariantNumeric: 'tabular-nums' }}>
         {value}
       </Typography>
     </Stack>
   );
 }
-
 const FinDivider = () => <Box sx={{ borderTop: '1px dashed #E5E7EB' }} />;
 
-// Custom tooltips
+// ─── Tooltips ─────────────────────────────────────────────────────────────────
+
 function TooltipDonut({ active, payload }: { active?: boolean; payload?: Array<{ payload: ReturnType<typeof calcMetodosPago>[number] }> }) {
   if (!active || !payload?.length) return null;
   const d = payload[0].payload;
   return (
     <Paper elevation={3} sx={{ p: '8px 12px', borderRadius: '8px' }}>
-      <Typography sx={{ fontSize: '12px', fontWeight: 700, color: '#1F2937' }}>{d.name}</Typography>
+      <Typography sx={{ fontSize: '12px', fontWeight: 700 }}>{d.name}</Typography>
       <Typography sx={{ fontSize: '11px', color: '#6B7280' }}>{d.pct}% · {d.value} ventas</Typography>
       <Typography sx={{ fontSize: '11px', color: colors.success, fontWeight: 600 }}>{fmtPesos(d.amount)}</Typography>
     </Paper>
@@ -293,9 +243,7 @@ function TooltipArea({ active, payload, label }: { active?: boolean; payload?: A
     <Paper elevation={3} sx={{ p: '8px 12px', borderRadius: '8px' }}>
       <Typography sx={{ fontSize: '11px', color: '#9CA3AF', mb: 0.5 }}>Día {label}</Typography>
       {payload.map(p => (
-        <Typography key={p.name} sx={{ fontSize: '12px', color: p.color, fontWeight: 600 }}>
-          {p.name}: {fmtPesos(p.value)}
-        </Typography>
+        <Typography key={p.name} sx={{ fontSize: '12px', color: p.color, fontWeight: 600 }}>{p.name}: {fmtPesos(p.value)}</Typography>
       ))}
     </Paper>
   );
@@ -326,31 +274,28 @@ function TooltipVendedor({ active, payload }: { active?: boolean; payload?: Arra
   );
 }
 
-// Skeleton
+// ─── Skeleton ─────────────────────────────────────────────────────────────────
+
 function DashboardSkeleton() {
   return (
     <Box>
-      <Box sx={{ mb: 4, display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: 2 }}>
-        <Box><Skeleton width={260} height={32} sx={{ mb: 1 }} /><Skeleton width={160} height={18} /></Box>
-        <Box sx={{ display: 'flex', gap: 1 }}><Skeleton width={130} height={40} sx={{ borderRadius: '8px' }} /><Skeleton width={90} height={40} sx={{ borderRadius: '8px' }} /></Box>
+      <Box sx={{ mb: 3, display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: 2 }}>
+        <Box><Skeleton width={240} height={28} sx={{ mb: 0.5 }} /><Skeleton width={140} height={16} /></Box>
+        <Box sx={{ display: 'flex', gap: 1 }}><Skeleton width={120} height={36} sx={{ borderRadius: '8px' }} /><Skeleton width={80} height={36} sx={{ borderRadius: '8px' }} /></Box>
       </Box>
-      <Grid container spacing={2} sx={{ mb: 3 }}>
-        {[...Array(6)].map((_, i) => (
-          <Grid key={i} size={{ xs: 12, sm: 6, md: 4, lg: 2 }}>
-            <Skeleton height={100} sx={{ borderRadius: '14px', transform: 'none' }} />
-          </Grid>
-        ))}
+      <Grid container spacing={1.5} sx={{ mb: 2 }}>
+        {[...Array(6)].map((_, i) => <Grid key={i} size={{ xs: 6, sm: 4, md: 2 }}><Skeleton height={80} sx={{ borderRadius: '12px', transform: 'none' }} /></Grid>)}
       </Grid>
-      <Skeleton height={300} sx={{ borderRadius: '14px', transform: 'none', mb: 3 }} />
-      <Grid container spacing={3} sx={{ mb: 3 }}>
-        <Grid size={{ xs: 12, md: 7 }}><Skeleton height={360} sx={{ borderRadius: '14px', transform: 'none' }} /></Grid>
-        <Grid size={{ xs: 12, md: 5 }}><Skeleton height={360} sx={{ borderRadius: '14px', transform: 'none' }} /></Grid>
-      </Grid>
-      <Grid container spacing={3} sx={{ mb: 3 }}>
-        <Grid size={{ xs: 12, md: 6 }}><Skeleton height={260} sx={{ borderRadius: '14px', transform: 'none' }} /></Grid>
-        <Grid size={{ xs: 12, md: 6 }}><Skeleton height={260} sx={{ borderRadius: '14px', transform: 'none' }} /></Grid>
-      </Grid>
-      <Skeleton height={380} sx={{ borderRadius: '14px', transform: 'none' }} />
+      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '6fr 4fr' }, gap: 2, mb: 2 }}>
+        <Skeleton height={260} sx={{ borderRadius: '14px', transform: 'none' }} />
+        <Skeleton height={260} sx={{ borderRadius: '14px', transform: 'none' }} />
+      </Box>
+      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr', md: '40fr 25fr 35fr' }, gap: 2, mb: 2 }}>
+        <Skeleton height={300} sx={{ borderRadius: '14px', transform: 'none' }} />
+        <Skeleton height={300} sx={{ borderRadius: '14px', transform: 'none' }} />
+        <Skeleton height={300} sx={{ borderRadius: '14px', transform: 'none' }} />
+      </Box>
+      <Skeleton height={360} sx={{ borderRadius: '14px', transform: 'none' }} />
     </Box>
   );
 }
@@ -392,6 +337,9 @@ export default function DashboardDueno() {
         return f.getMonth() + 1 === pMes && f.getFullYear() === pAnio;
       });
 
+      const prevFacturacion = ventasPrev.reduce((s, v) => s + v.total, 0);
+      const prevCantidad = ventasPrev.length;
+
       setData(kpis);
       setDerived({
         dailyData: calcDailyData(ventasMes, ventasPrev, mes, anio),
@@ -401,6 +349,11 @@ export default function DashboardDueno() {
         ventasRecientes: [...ventasMes]
           .sort((a, b) => new Date(b.fecha_venta).getTime() - new Date(a.fecha_venta).getTime())
           .slice(0, 15),
+        prevMetrics: {
+          cantidad_ventas: prevCantidad,
+          facturacion: prevFacturacion,
+          ticket_promedio: prevCantidad > 0 ? prevFacturacion / prevCantidad : 0,
+        },
       });
     } catch {
       setError('Error al cargar los datos del dashboard');
@@ -409,31 +362,22 @@ export default function DashboardDueno() {
     }
   }, [mounted, mes, anio]);
 
-  useEffect(() => {
-    if (mounted) fetchData();
-  }, [mounted, fetchData]);
+  useEffect(() => { if (mounted) fetchData(); }, [mounted, fetchData]);
 
   if (loading) return <DashboardSkeleton />;
-
   if (error || !data || !derived) {
-    return (
-      <Box sx={{ p: 4, textAlign: 'center' }}>
-        <Typography color="error">{error || 'Sin datos'}</Typography>
-      </Box>
-    );
+    return <Box sx={{ p: 4, textAlign: 'center' }}><Typography color="error">{error || 'Sin datos'}</Typography></Box>;
   }
 
   const ticketPromedio = data.cantidad_ventas > 0 ? data.facturacion / data.cantidad_ventas : 0;
   const margenColor = data.margen_porcentaje >= 0 ? colors.success : colors.error;
   const { mes: pMes } = prevMesInfo(mes, anio);
+  const prevMesLabel = MESES[pMes - 1];
+  const mesLabel = MESES[mes - 1];
 
   const handleSort = (field: SortField) => {
-    if (sortField === field) {
-      setSortDir(d => d === 'asc' ? 'desc' : 'asc');
-    } else {
-      setSortField(field);
-      setSortDir('desc');
-    }
+    if (sortField === field) setSortDir(d => d === 'asc' ? 'desc' : 'asc');
+    else { setSortField(field); setSortDir('desc'); }
   };
 
   const ventasOrdenadas = [...derived.ventasRecientes].sort((a, b) => {
@@ -447,399 +391,220 @@ export default function DashboardDueno() {
   }).slice(0, 10);
 
   const kpis: KPICardProps[] = [
-    {
-      title: 'Ventas del Mes',
-      value: data.cantidad_ventas,
-      formatter: v => String(Math.round(v)),
-      icon: 'fa-solid fa-cart-shopping',
-      iconBg: colors.primaryLight,
-      iconColor: colors.primary,
-    },
-    {
-      title: 'Facturación',
-      value: data.facturacion,
-      formatter: fmtPesos,
-      icon: 'fa-solid fa-dollar-sign',
-      iconBg: colors.infoLight,
-      iconColor: colors.info,
-    },
-    {
-      title: 'Ganancia Neta',
-      value: data.ganancia_neta,
-      formatter: fmtPesos,
-      icon: 'fa-solid fa-chart-line',
-      iconBg: colors.successLight,
-      iconColor: colors.success,
-    },
-    {
-      title: 'Margen',
-      value: data.margen_porcentaje,
-      formatter: v => `${v.toFixed(1)}%`,
-      icon: 'fa-solid fa-percent',
-      iconBg: data.margen_porcentaje >= 0 ? colors.successLight : colors.errorLight,
-      iconColor: margenColor,
-    },
-    {
-      title: 'Ticket Promedio',
-      value: ticketPromedio,
-      formatter: fmtPesos,
-      icon: 'fa-solid fa-receipt',
-      iconBg: colors.purpleLight,
-      iconColor: colors.purple,
-    },
-    {
-      title: 'Costo de Productos',
-      value: data.costo_productos,
-      formatter: fmtPesos,
-      icon: 'fa-solid fa-boxes-stacked',
-      iconBg: colors.errorLight,
-      iconColor: colors.error,
-    },
+    { title: 'Ventas del Mes', value: data.cantidad_ventas, formatter: v => String(Math.round(v)), prevValue: derived.prevMetrics.cantidad_ventas },
+    { title: 'Facturación', value: data.facturacion, formatter: fmtPesos, prevValue: derived.prevMetrics.facturacion },
+    { title: 'Ganancia Neta', value: data.ganancia_neta, formatter: fmtPesos },
+    { title: 'Margen', value: data.margen_porcentaje, formatter: v => `${v.toFixed(1)}%` },
+    { title: 'Ticket Promedio', value: ticketPromedio, formatter: fmtPesos, prevValue: derived.prevMetrics.ticket_promedio },
+    { title: 'Costo Productos', value: data.costo_productos, formatter: fmtPesos },
   ];
 
-  const prevMesLabel = MESES[pMes - 1];
-  const mesLabel = MESES[mes - 1];
-  const topHeight = Math.max(derived.topProductos.length * 36 + 32, 180);
-  const vendHeight = Math.max(derived.vendedores.length * 40 + 32, 180);
+  const vendHeight = Math.min(Math.max(derived.vendedores.length * 28 + 20, 100), 240);
 
   return (
     <Box>
-      {/* Header */}
-      <Box sx={{ mb: 4, display: 'flex', flexWrap: 'wrap', alignItems: 'flex-start', justifyContent: 'space-between', gap: 2 }}>
+      {/* ── Header ── */}
+      <Box sx={{ mb: 3, display: 'flex', flexWrap: 'wrap', alignItems: 'flex-start', justifyContent: 'space-between', gap: 2 }}>
         <Box>
-          <Typography variant="h4" sx={{ fontWeight: 700, color: colors.textPrimary, fontSize: { xs: '20px', sm: '26px' }, mb: 0.5 }}>
+          <Typography variant="h4" sx={{ fontWeight: 700, color: colors.textPrimary, fontSize: { xs: '18px', sm: '22px' }, mb: 0.25 }}>
             Dashboard{user ? ` — ${user.nombre}` : ''}
           </Typography>
-          <Typography sx={{ color: colors.textSecondary, fontSize: '13px' }}>
-            {mesLabel} {anio} · Resumen ejecutivo
-          </Typography>
+          <Typography sx={{ color: colors.textSecondary, fontSize: '12px' }}>{mesLabel} {anio} · Resumen ejecutivo</Typography>
         </Box>
         <Stack direction="row" spacing={1}>
           <FormControl size="small">
-            <Select value={mes} onChange={e => setMes(Number(e.target.value))} sx={{ fontSize: '14px', minWidth: 130 }}>
+            <Select value={mes} onChange={e => setMes(Number(e.target.value))} sx={{ fontSize: '13px', minWidth: 120 }}>
               {MESES.map((n, i) => <MenuItem key={i + 1} value={i + 1}>{n}</MenuItem>)}
             </Select>
           </FormControl>
           <FormControl size="small">
-            <Select value={anio} onChange={e => setAnio(Number(e.target.value))} sx={{ fontSize: '14px', minWidth: 90 }}>
+            <Select value={anio} onChange={e => setAnio(Number(e.target.value))} sx={{ fontSize: '13px', minWidth: 85 }}>
               {ANIOS.map(a => <MenuItem key={a} value={a}>{a}</MenuItem>)}
             </Select>
           </FormControl>
         </Stack>
       </Box>
 
-      {/* KPI Cards */}
-      <Grid container spacing={2} sx={{ mb: 3 }}>
+      {/* ── Fila 1: KPI Cards ── */}
+      <Grid container spacing={1.5} sx={{ mb: 2 }}>
         {kpis.map((kpi, i) => (
-          <Grid key={kpi.title} size={{ xs: 12, sm: 6, md: 4, lg: 2 }}>
-            <KPICard {...kpi} delay={i * 60} />
+          <Grid key={kpi.title} size={{ xs: 6, sm: 4, md: 2 }}>
+            <KPICard {...kpi} delay={i * 55} />
           </Grid>
         ))}
       </Grid>
 
-      {/* Area chart — Evolución diaria */}
-      <Box sx={{ mb: 3 }}>
+      {/* ── Fila 2: Area chart (60%) + Desglose Financiero (40%) ── */}
+      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '6fr 4fr' }, gap: 2, mb: 2 }}>
+        {/* Area chart */}
         <PanelCard title={`Evolución de Facturación — ${mesLabel} vs ${prevMesLabel}`}>
-          {derived.dailyData.every(d => d.actual === 0 && d.anterior === 0) ? (
-            <EmptyState />
-          ) : (
+          {derived.dailyData.every(d => d.actual === 0 && d.anterior === 0) ? <EmptyState /> : (
             <Box>
-              {/* Legend manual */}
-              <Stack direction="row" spacing={2.5} sx={{ mb: 1.5 }}>
+              <Stack direction="row" spacing={2} sx={{ mb: 1 }}>
                 <Stack direction="row" alignItems="center" spacing={0.75}>
-                  <Box sx={{ width: 24, height: 2, bgcolor: '#588a9e', borderRadius: 1 }} />
-                  <Typography sx={{ fontSize: '12px', color: '#374151' }}>{mesLabel}</Typography>
+                  <Box sx={{ width: 20, height: 2, bgcolor: '#588a9e', borderRadius: 1 }} />
+                  <Typography sx={{ fontSize: '11px', color: '#374151' }}>{mesLabel}</Typography>
                 </Stack>
                 <Stack direction="row" alignItems="center" spacing={0.75}>
-                  <Box sx={{ width: 24, height: 2, bgcolor: '#D97706', borderRadius: 1, opacity: 0.7 }} />
-                  <Typography sx={{ fontSize: '12px', color: '#374151' }}>{prevMesLabel}</Typography>
+                  <Box sx={{ width: 20, height: 2, bgcolor: '#D97706', borderRadius: 1, opacity: 0.7 }} />
+                  <Typography sx={{ fontSize: '11px', color: '#374151' }}>{prevMesLabel}</Typography>
                 </Stack>
               </Stack>
-              <ResponsiveContainer width="100%" height={260}>
-                <AreaChart data={derived.dailyData} margin={{ top: 5, right: 16, left: 8, bottom: 0 }}>
+              <ResponsiveContainer width="100%" height={185}>
+                <AreaChart data={derived.dailyData} margin={{ top: 4, right: 12, left: 4, bottom: 0 }}>
                   <defs>
                     <linearGradient id="gradActual" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#588a9e" stopOpacity={0.25} />
-                      <stop offset="95%" stopColor="#588a9e" stopOpacity={0.02} />
+                      <stop offset="5%" stopColor="#588a9e" stopOpacity={0.25} /><stop offset="95%" stopColor="#588a9e" stopOpacity={0.02} />
                     </linearGradient>
                     <linearGradient id="gradAnterior" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#D97706" stopOpacity={0.15} />
-                      <stop offset="95%" stopColor="#D97706" stopOpacity={0.02} />
+                      <stop offset="5%" stopColor="#D97706" stopOpacity={0.15} /><stop offset="95%" stopColor="#D97706" stopOpacity={0.02} />
                     </linearGradient>
                   </defs>
                   <CartesianGrid strokeDasharray="3 3" stroke="#F3F4F6" vertical={false} />
-                  <XAxis
-                    dataKey="dia"
-                    tick={{ fontSize: 11, fill: '#9CA3AF' }}
-                    axisLine={false} tickLine={false}
-                    interval={3}
-                  />
-                  <YAxis
-                    tick={{ fontSize: 11, fill: '#9CA3AF' }}
-                    axisLine={false} tickLine={false}
-                    tickFormatter={fmtShort}
-                    width={58}
-                  />
+                  <XAxis dataKey="dia" tick={{ fontSize: 10, fill: '#9CA3AF' }} axisLine={false} tickLine={false} interval={4} />
+                  <YAxis tick={{ fontSize: 10, fill: '#9CA3AF' }} axisLine={false} tickLine={false} tickFormatter={fmtShort} width={52} />
                   <Tooltip content={<TooltipArea />} />
-                  <Area
-                    type="monotone" dataKey="anterior"
-                    stroke="#D97706" strokeWidth={1.5} strokeDasharray="4 2"
-                    fill="url(#gradAnterior)"
-                    name={prevMesLabel}
-                    dot={false}
-                    isAnimationActive
-                  />
-                  <Area
-                    type="monotone" dataKey="actual"
-                    stroke="#588a9e" strokeWidth={2}
-                    fill="url(#gradActual)"
-                    name={mesLabel}
-                    dot={false}
-                    isAnimationActive
-                  />
+                  <Area type="monotone" dataKey="anterior" stroke="#D97706" strokeWidth={1.5} strokeDasharray="4 2" fill="url(#gradAnterior)" name={prevMesLabel} dot={false} isAnimationActive />
+                  <Area type="monotone" dataKey="actual" stroke="#588a9e" strokeWidth={2} fill="url(#gradActual)" name={mesLabel} dot={false} isAnimationActive />
                 </AreaChart>
               </ResponsiveContainer>
             </Box>
           )}
         </PanelCard>
+
+        {/* Desglose Financiero */}
+        <PanelCard title="Desglose Financiero">
+          <Stack spacing={1}>
+            <FinRow label="Facturación total" value={fmtPesos(data.facturacion)} bold />
+            <FinRow label="— Costo de productos" value={`- ${fmtPesos(data.costo_productos)}`} isDeduction />
+            <FinDivider />
+            <FinRow label="Ganancia bruta" value={fmtPesos(data.ganancia_real)} color={colors.primary} bold />
+            <FinRow label="— Publicidad" value={`- ${fmtPesos(data.publicidad)}`} isDeduction />
+            <FinRow label="— Comisiones" value={`- ${fmtPesos(data.comision_vendedores)}`} isDeduction />
+            <FinRow label="— Gastos fijos" value={`- ${fmtPesos(data.gastos_fijos)}`} isDeduction />
+            <FinDivider />
+            <FinRow label="Ganancia neta" value={fmtPesos(data.ganancia_neta)} color={margenColor} bold />
+            <Box sx={{ pt: 0.5 }}>
+              <Stack direction="row" justifyContent="space-between" sx={{ mb: 0.5 }}>
+                <Typography sx={{ fontSize: '11px', color: '#9CA3AF' }}>Margen</Typography>
+                <Typography sx={{ fontSize: '12px', fontWeight: 700, color: margenColor, fontVariantNumeric: 'tabular-nums' }}>
+                  {data.margen_porcentaje.toFixed(1)}%
+                </Typography>
+              </Stack>
+              <Box sx={{ height: 5, bgcolor: '#E5E7EB', borderRadius: '3px', overflow: 'hidden' }}>
+                <Box sx={{ width: `${Math.min(Math.max(data.margen_porcentaje, 0), 100)}%`, height: '100%', bgcolor: margenColor, borderRadius: '3px', transition: 'width 1.2s cubic-bezier(0.4,0,0.2,1)' }} />
+              </Box>
+            </Box>
+          </Stack>
+        </PanelCard>
       </Box>
 
-      {/* Top productos + Métodos de pago */}
-      <Grid container spacing={3} sx={{ mb: 3 }}>
-        {/* Top 10 productos */}
-        <Grid size={{ xs: 12, md: 7 }} sx={{ display: 'flex', flexDirection: 'column' }}>
-          <PanelCard title="Top Productos — Unidades Vendidas">
-            {derived.topProductos.length === 0 ? (
-              <EmptyState />
-            ) : (
-              <ResponsiveContainer width="100%" height={topHeight}>
-                <BarChart
-                  data={derived.topProductos}
-                  layout="vertical"
-                  margin={{ left: 0, right: 16, top: 0, bottom: 0 }}
-                >
-                  <CartesianGrid strokeDasharray="3 3" stroke="#F3F4F6" horizontal={false} />
-                  <XAxis type="number" tick={{ fontSize: 11, fill: '#9CA3AF' }} axisLine={false} tickLine={false} />
-                  <YAxis
-                    type="category" dataKey="nombre"
-                    tick={{ fontSize: 11, fill: '#374151' }}
-                    width={120} axisLine={false} tickLine={false}
-                  />
-                  <Tooltip content={<TooltipBar />} />
-                  <Bar dataKey="cantidad" fill="#588a9e" name="Unidades" radius={[0, 4, 4, 0]} isAnimationActive />
-                </BarChart>
-              </ResponsiveContainer>
-            )}
-          </PanelCard>
-        </Grid>
+      {/* ── Fila 3: Top Productos (40%) + Métodos Pago (25%) + Vendedores (35%) ── */}
+      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr', md: '40fr 25fr 35fr' }, gap: 2, mb: 2 }}>
+        {/* Top Productos */}
+        <PanelCard title="Top Productos — Unidades">
+          {derived.topProductos.length === 0 ? <EmptyState /> : (
+            <ResponsiveContainer width="100%" height={240}>
+              <BarChart data={derived.topProductos} layout="vertical" margin={{ left: 0, right: 12, top: 0, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#F3F4F6" horizontal={false} />
+                <XAxis type="number" tick={{ fontSize: 10, fill: '#9CA3AF' }} axisLine={false} tickLine={false} />
+                <YAxis type="category" dataKey="nombre" tick={{ fontSize: 10, fill: '#374151' }} width={108} axisLine={false} tickLine={false} />
+                <Tooltip content={<TooltipBar />} />
+                <Bar dataKey="cantidad" fill="#588a9e" name="Unidades" radius={[0, 3, 3, 0]} isAnimationActive />
+              </BarChart>
+            </ResponsiveContainer>
+          )}
+        </PanelCard>
 
-        {/* Métodos de pago */}
-        <Grid size={{ xs: 12, md: 5 }} sx={{ display: 'flex', flexDirection: 'column' }}>
-          <PanelCard title="Métodos de Pago">
-            {derived.metodosPago.length === 0 ? (
-              <EmptyState />
-            ) : (
-              <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, alignItems: 'center', gap: 2 }}>
-                <Box sx={{ flexShrink: 0 }}>
-                  <ResponsiveContainer width={190} height={190}>
-                    <PieChart>
-                      <Pie
-                        data={derived.metodosPago}
-                        cx="50%" cy="50%"
-                        innerRadius={55} outerRadius={88}
-                        dataKey="value"
-                        paddingAngle={3}
-                        isAnimationActive
-                      >
-                        {derived.metodosPago.map((_, i) => (
-                          <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
-                        ))}
-                      </Pie>
-                      <Tooltip content={<TooltipDonut />} />
-                    </PieChart>
-                  </ResponsiveContainer>
-                </Box>
-                <Box sx={{ flex: 1, minWidth: 0 }}>
-                  {derived.metodosPago.map((m, i) => (
-                    <Box key={m.name} sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 1.5 }}>
-                      <Box sx={{ width: 9, height: 9, borderRadius: '50%', bgcolor: CHART_COLORS[i % CHART_COLORS.length], flexShrink: 0 }} />
-                      <Box sx={{ flex: 1, minWidth: 0 }}>
-                        <Typography sx={{ fontSize: '12px', fontWeight: 600, color: '#374151' }}>{m.name}</Typography>
-                        <Typography sx={{ fontSize: '10px', color: '#9CA3AF' }}>{m.pct}% · {m.value} ventas</Typography>
-                      </Box>
-                      <Typography sx={{ fontSize: '12px', fontWeight: 700, color: '#1F2937', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>
-                        {fmtShort(m.amount)}
-                      </Typography>
+        {/* Métodos de Pago — donut + leyenda vertical */}
+        <PanelCard title="Métodos de Pago">
+          {derived.metodosPago.length === 0 ? <EmptyState /> : (
+            <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1.5 }}>
+              <ResponsiveContainer width="100%" height={130}>
+                <PieChart>
+                  <Pie data={derived.metodosPago} cx="50%" cy="50%" innerRadius={38} outerRadius={60} dataKey="value" paddingAngle={3} isAnimationActive>
+                    {derived.metodosPago.map((_, i) => <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />)}
+                  </Pie>
+                  <Tooltip content={<TooltipDonut />} />
+                </PieChart>
+              </ResponsiveContainer>
+              <Box sx={{ width: '100%' }}>
+                {derived.metodosPago.map((m, i) => (
+                  <Box key={m.name} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 0.75 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minWidth: 0 }}>
+                      <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: CHART_COLORS[i % CHART_COLORS.length], flexShrink: 0 }} />
+                      <Typography sx={{ fontSize: '11px', color: '#374151', fontWeight: 500 }} noWrap>{m.name}</Typography>
                     </Box>
-                  ))}
-                </Box>
+                    <Typography sx={{ fontSize: '11px', fontWeight: 700, color: '#1F2937', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap', ml: 1 }}>
+                      {m.pct}%
+                    </Typography>
+                  </Box>
+                ))}
               </Box>
-            )}
-          </PanelCard>
-        </Grid>
-      </Grid>
+            </Box>
+          )}
+        </PanelCard>
 
-      {/* Vendedores + Desglose financiero */}
-      <Grid container spacing={3} sx={{ mb: 3 }}>
-        {/* Vendedores */}
-        <Grid size={{ xs: 12, md: 6 }} sx={{ display: 'flex', flexDirection: 'column' }}>
-          <PanelCard title="Facturación por Vendedor">
-            {derived.vendedores.length === 0 ? (
-              <EmptyState />
-            ) : (
-              <ResponsiveContainer width="100%" height={vendHeight}>
-                <BarChart
-                  data={derived.vendedores}
-                  layout="vertical"
-                  margin={{ left: 0, right: 16, top: 0, bottom: 0 }}
-                >
-                  <CartesianGrid strokeDasharray="3 3" stroke="#F3F4F6" horizontal={false} />
-                  <XAxis type="number" tick={{ fontSize: 11, fill: '#9CA3AF' }} axisLine={false} tickLine={false} tickFormatter={fmtShort} />
-                  <YAxis
-                    type="category" dataKey="nombre"
-                    tick={{ fontSize: 11, fill: '#374151' }}
-                    width={110} axisLine={false} tickLine={false}
-                  />
-                  <Tooltip content={<TooltipVendedor />} />
-                  <Bar dataKey="facturacion" fill="#10B981" name="Facturación" radius={[0, 4, 4, 0]} isAnimationActive />
-                </BarChart>
-              </ResponsiveContainer>
-            )}
-          </PanelCard>
-        </Grid>
+        {/* Facturación por Vendedor */}
+        <PanelCard title="Facturación por Vendedor">
+          {derived.vendedores.length === 0 ? <EmptyState /> : (
+            <ResponsiveContainer width="100%" height={vendHeight}>
+              <BarChart data={derived.vendedores} layout="vertical" margin={{ left: 0, right: 12, top: 0, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#F3F4F6" horizontal={false} />
+                <XAxis type="number" tick={{ fontSize: 10, fill: '#9CA3AF' }} axisLine={false} tickLine={false} tickFormatter={fmtShort} />
+                <YAxis type="category" dataKey="nombre" tick={{ fontSize: 10, fill: '#374151' }} width={100} axisLine={false} tickLine={false} />
+                <Tooltip content={<TooltipVendedor />} />
+                <Bar dataKey="facturacion" fill="#10B981" name="Facturación" radius={[0, 3, 3, 0]} isAnimationActive />
+              </BarChart>
+            </ResponsiveContainer>
+          )}
+        </PanelCard>
+      </Box>
 
-        {/* Desglose financiero */}
-        <Grid size={{ xs: 12, md: 6 }} sx={{ display: 'flex', flexDirection: 'column' }}>
-          <PanelCard title="Desglose Financiero">
-            <Stack spacing={1.5}>
-              <FinRow label="Facturación total" value={fmtPesos(data.facturacion)} bold />
-              <FinRow label="— Costo de productos" value={`- ${fmtPesos(data.costo_productos)}`} isDeduction />
-              <FinDivider />
-              <FinRow label="Ganancia bruta" value={fmtPesos(data.ganancia_real)} color={colors.primary} bold />
-              <FinRow label="— Publicidad" value={`- ${fmtPesos(data.publicidad)}`} isDeduction />
-              <FinRow label="— Comisiones vendedores" value={`- ${fmtPesos(data.comision_vendedores)}`} isDeduction />
-              <FinRow label="— Gastos fijos" value={`- ${fmtPesos(data.gastos_fijos)}`} isDeduction />
-              <FinDivider />
-              <FinRow label="Ganancia neta" value={fmtPesos(data.ganancia_neta)} color={margenColor} bold />
-              <Box sx={{ pt: 0.5 }}>
-                <Stack direction="row" justifyContent="space-between" sx={{ mb: 0.75 }}>
-                  <Typography sx={{ fontSize: '11px', color: '#9CA3AF' }}>Margen de ganancia</Typography>
-                  <Typography sx={{ fontSize: '13px', fontWeight: 700, color: margenColor, fontVariantNumeric: 'tabular-nums' }}>
-                    {data.margen_porcentaje.toFixed(1)}%
-                  </Typography>
-                </Stack>
-                <Box sx={{ height: 6, bgcolor: '#E5E7EB', borderRadius: '3px', overflow: 'hidden' }}>
-                  <Box sx={{
-                    width: `${Math.min(Math.max(data.margen_porcentaje, 0), 100)}%`,
-                    height: '100%', bgcolor: margenColor, borderRadius: '3px',
-                    transition: 'width 1.2s cubic-bezier(0.4,0,0.2,1)',
-                  }} />
-                </Box>
-              </Box>
-            </Stack>
-          </PanelCard>
-        </Grid>
-      </Grid>
-
-      {/* Tabla ventas recientes */}
+      {/* ── Fila 4: Tabla Ventas Recientes ── */}
       <PanelCard title={`Ventas Recientes — ${mesLabel} ${anio}`}>
-        {ventasOrdenadas.length === 0 ? (
-          <EmptyState message="No hay ventas registradas en este período" />
-        ) : (
+        {ventasOrdenadas.length === 0 ? <EmptyState message="No hay ventas registradas en este período" /> : (
           <TableContainer>
             <Table size="small">
               <TableHead>
-                <TableRow sx={{ '& .MuiTableCell-head': { borderBottom: '2px solid #F3F4F6', py: 1 } }}>
+                <TableRow sx={{ '& .MuiTableCell-head': { borderBottom: '2px solid #F3F4F6', py: 0.75 } }}>
                   <TableCell>
-                    <TableSortLabel
-                      active={sortField === 'fecha_venta'}
-                      direction={sortField === 'fecha_venta' ? sortDir : 'asc'}
-                      onClick={() => handleSort('fecha_venta')}
-                      sx={{ fontSize: '10px', fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.06em' }}
-                    >
-                      Fecha
-                    </TableSortLabel>
+                    <TableSortLabel active={sortField === 'fecha_venta'} direction={sortField === 'fecha_venta' ? sortDir : 'asc'} onClick={() => handleSort('fecha_venta')} sx={{ fontSize: '10px', fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Fecha</TableSortLabel>
                   </TableCell>
                   <TableCell>
-                    <TableSortLabel
-                      active={sortField === 'cliente'}
-                      direction={sortField === 'cliente' ? sortDir : 'asc'}
-                      onClick={() => handleSort('cliente')}
-                      sx={{ fontSize: '10px', fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.06em' }}
-                    >
-                      Cliente
-                    </TableSortLabel>
+                    <TableSortLabel active={sortField === 'cliente'} direction={sortField === 'cliente' ? sortDir : 'asc'} onClick={() => handleSort('cliente')} sx={{ fontSize: '10px', fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Cliente</TableSortLabel>
                   </TableCell>
-                  <TableCell sx={{ fontSize: '10px', fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                    Productos
-                  </TableCell>
-                  <TableCell sx={{ fontSize: '10px', fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                    Pago
-                  </TableCell>
+                  <TableCell sx={{ fontSize: '10px', fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Productos</TableCell>
+                  <TableCell sx={{ fontSize: '10px', fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Pago</TableCell>
                   <TableCell>
-                    <TableSortLabel
-                      active={sortField === 'total'}
-                      direction={sortField === 'total' ? sortDir : 'asc'}
-                      onClick={() => handleSort('total')}
-                      sx={{ fontSize: '10px', fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.06em' }}
-                    >
-                      Total
-                    </TableSortLabel>
+                    <TableSortLabel active={sortField === 'total'} direction={sortField === 'total' ? sortDir : 'asc'} onClick={() => handleSort('total')} sx={{ fontSize: '10px', fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Total</TableSortLabel>
                   </TableCell>
-                  <TableCell sx={{ fontSize: '10px', fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                    Saldo
-                  </TableCell>
+                  <TableCell sx={{ fontSize: '10px', fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Saldo</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
                 {ventasOrdenadas.map((v, i) => (
-                  <TableRow
-                    key={v.id}
-                    sx={{
-                      '@keyframes rowIn': { from: { opacity: 0 }, to: { opacity: 1 } },
-                      animation: 'rowIn 0.3s ease-out both',
-                      animationDelay: `${i * 25}ms`,
-                      '&:hover': { bgcolor: '#F9FAFB' },
-                      '& .MuiTableCell-root': { borderBottom: '1px solid #F3F4F6', py: 1 },
-                    }}
-                  >
-                    <TableCell sx={{ fontSize: '13px', color: '#374151', whiteSpace: 'nowrap' }}>
-                      {fmtDate(v.fecha_venta)}
-                    </TableCell>
-                    <TableCell sx={{ fontSize: '13px', color: '#1F2937', fontWeight: 500 }}>
-                      {v.cliente?.nombre || '—'}
-                    </TableCell>
-                    <TableCell sx={{ fontSize: '12px', color: '#6B7280' }}>
-                      {v.detalles && v.detalles.length > 0
-                        ? v.detalles.length === 1
-                          ? (v.detalles[0].producto?.nombre?.substring(0, 24) || '1 producto')
-                          : `${v.detalles.length} productos`
-                        : '—'}
+                  <TableRow key={v.id} sx={{
+                    '@keyframes rowIn': { from: { opacity: 0 }, to: { opacity: 1 } },
+                    animation: 'rowIn 0.3s ease-out both',
+                    animationDelay: `${i * 25}ms`,
+                    '&:hover': { bgcolor: '#F9FAFB' },
+                    '& .MuiTableCell-root': { borderBottom: '1px solid #F3F4F6', py: 0.75 },
+                  }}>
+                    <TableCell sx={{ fontSize: '12px', color: '#374151', whiteSpace: 'nowrap' }}>{fmtDate(v.fecha_venta)}</TableCell>
+                    <TableCell sx={{ fontSize: '12px', color: '#1F2937', fontWeight: 500 }}>{v.cliente?.nombre || '—'}</TableCell>
+                    <TableCell sx={{ fontSize: '11px', color: '#6B7280' }}>
+                      {v.detalles && v.detalles.length > 0 ? (v.detalles.length === 1 ? (v.detalles[0].producto?.nombre?.substring(0, 22) || '1 producto') : `${v.detalles.length} productos`) : '—'}
                     </TableCell>
                     <TableCell>
-                      <Chip
-                        label={v.forma_pago?.nombre || 'N/D'}
-                        size="small"
-                        sx={{
-                          fontSize: '11px', height: '22px',
-                          bgcolor: colors.primaryLight, color: colors.primaryDark, fontWeight: 500,
-                        }}
-                      />
+                      <Chip label={v.forma_pago?.nombre || 'N/D'} size="small" sx={{ fontSize: '10px', height: '20px', bgcolor: colors.primaryLight, color: colors.primaryDark, fontWeight: 500 }} />
                     </TableCell>
-                    <TableCell sx={{ fontSize: '13px', fontWeight: 700, color: '#1F2937', fontVariantNumeric: 'tabular-nums' }}>
-                      {fmtPesos(v.total)}
-                    </TableCell>
+                    <TableCell sx={{ fontSize: '12px', fontWeight: 700, color: '#1F2937', fontVariantNumeric: 'tabular-nums' }}>{fmtPesos(v.total)}</TableCell>
                     <TableCell>
-                      {v.saldo > 0 ? (
-                        <Typography sx={{ fontSize: '12px', fontWeight: 600, color: colors.error }}>
-                          {fmtPesos(v.saldo)} pendiente
-                        </Typography>
-                      ) : (
-                        <Typography sx={{ fontSize: '12px', color: colors.success }}>
-                          <i className="fa-solid fa-circle-check" style={{ marginRight: 4 }} />
-                          Pagado
-                        </Typography>
-                      )}
+                      {v.saldo > 0
+                        ? <Typography sx={{ fontSize: '11px', fontWeight: 600, color: colors.error }}>{fmtPesos(v.saldo)} pendiente</Typography>
+                        : <Typography sx={{ fontSize: '11px', color: colors.success }}><i className="fa-solid fa-circle-check" style={{ marginRight: 3 }} />Pagado</Typography>
+                      }
                     </TableCell>
                   </TableRow>
                 ))}

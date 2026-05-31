@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState, useCallback, useRef } from 'react';
+import React, { useEffect, useState, useCallback, useRef, Suspense } from 'react';
 import { Box, Typography, Chip, Grid, CircularProgress } from '@mui/material';
 import { ColumnDef } from '@tanstack/react-table';
 import TableClientSide from '@components/Tables/TableClientSide';
@@ -321,7 +321,9 @@ export default function VentasPage() {
 
         {/* Pagos Pendientes */}
         <Box sx={{ mb: 4 }}>
-          <PagosPendientes onRefresh={(fn) => { refreshPendientes.current = fn; }} />
+          <Suspense fallback={<Box sx={{ p: 3, textAlign: 'center' }}><CircularProgress size={24} /></Box>}>
+            <PagosPendientes onRefresh={(fn) => { refreshPendientes.current = fn; }} />
+          </Suspense>
         </Box>
 
         {/* Tabla con filtros */}

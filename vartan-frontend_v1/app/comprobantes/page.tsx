@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { Box, Grid, Typography, CircularProgress, Alert, Chip, Button, FormControlLabel, Checkbox, MenuItem, Select } from '@mui/material';
+import { Box, Grid, Typography, CircularProgress, Alert, Chip, Button, FormControlLabel, Checkbox, MenuItem, Select, TextField, InputAdornment } from '@mui/material';
 import { useRouter } from 'next/navigation';
 import { useUserPermissions } from '@components/Validators/UserPermissionsContext';
 import { comprobanteService, IComprobante, IFiltrosComprobantes } from '@services/comprobante.service';
@@ -36,6 +36,7 @@ export default function ComprobantesPage() {
   const [vendedorId, setVendedorId] = useState<number | ''>('');
   const [soloPendientes, setSoloPendientes] = useState(false);
   const [formaPagoId, setFormaPagoId] = useState<number | ''>('');
+  const [numeroVenta, setNumeroVenta] = useState<string>('');
 
   const [previewItem, setPreviewItem] = useState<{ comp: IComprobante; tipo: 'sena' | 'saldo' } | null>(null);
   const [descargandoZip, setDescargandoZip] = useState(false);
@@ -75,6 +76,7 @@ export default function ComprobantesPage() {
         vendedor_id: vendedorId || undefined,
         solo_pendientes: soloPendientes || undefined,
         forma_pago_id: formaPagoId || undefined,
+        numero_venta: numeroVenta ? Number(numeroVenta) : undefined,
       };
       const data = await comprobanteService.getAll(filtros);
 
@@ -96,7 +98,7 @@ export default function ComprobantesPage() {
     } finally {
       setLoading(false);
     }
-  }, [periodo, vendedorId, soloPendientes, formaPagoId]);
+  }, [periodo, vendedorId, soloPendientes, formaPagoId, numeroVenta]);
 
   useEffect(() => {
     fetchVendedores();
@@ -244,6 +246,27 @@ export default function ComprobantesPage() {
             <MenuItem key={fp.id} value={fp.id}>{fp.nombre}</MenuItem>
           ))}
         </Select>
+
+        {/* Número de venta */}
+        <TextField
+          size="small"
+          placeholder="Nº venta"
+          value={numeroVenta}
+          onChange={e => {
+            const val = e.target.value.replace(/\D/g, '');
+            setNumeroVenta(val);
+          }}
+          slotProps={{
+            input: {
+              startAdornment: (
+                <InputAdornment position="start">
+                  <i className="fa-solid fa-hashtag" style={{ fontSize: '11px', color: '#9CA3AF' }} />
+                </InputAdornment>
+              ),
+            },
+          }}
+          sx={{ width: 120, '& input': { fontSize: '13px' } }}
+        />
 
         {/* Solo pendientes */}
         <FormControlLabel

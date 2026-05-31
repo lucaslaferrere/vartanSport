@@ -29,6 +29,7 @@ export interface IFiltrosComprobantes {
   vendedor_id?: number;
   solo_pendientes?: boolean;
   forma_pago_id?: number;
+  numero_venta?: number;
 }
 
 const buildParams = (filtros: IFiltrosComprobantes): string => {
@@ -37,6 +38,7 @@ const buildParams = (filtros: IFiltrosComprobantes): string => {
   if (filtros.vendedor_id) params.append('vendedor_id', filtros.vendedor_id.toString());
   if (filtros.solo_pendientes) params.append('solo_pendientes', 'true');
   if (filtros.forma_pago_id) params.append('forma_pago_id', filtros.forma_pago_id.toString());
+  if (filtros.numero_venta) params.append('numero_venta', filtros.numero_venta.toString());
   return params.toString();
 };
 

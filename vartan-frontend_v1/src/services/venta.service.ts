@@ -176,11 +176,23 @@ export const ventaService = {
     delete: async (ventaId: number): Promise<void> => {
         await api.delete(`/api/ventas/${ventaId}`);
     },
-        // Agrego Pagos Pendiente
         getPendientes: async (): Promise<IVenta[]> => {
-    const response = await api.get<IVenta[]>('/api/ventas-pendientes');
-    return response.data;
-},
+        const response = await api.get<IVenta[]>('/api/ventas-pendientes');
+        return response.data;
+    },
+
+    getPendientesPaginated: async (page: number, limit: number): Promise<{ ventas: IVenta[]; total: number }> => {
+        const params = new URLSearchParams({ page: String(page), limit: String(limit) });
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const response = await api.get<any>(`/api/ventas-pendientes?${params.toString()}`);
+        // Soporta respuesta paginada { ventas, total } y respuesta legacy IVenta[]
+        if (Array.isArray(response.data)) {
+            const all: IVenta[] = response.data;
+            const start = (page - 1) * limit;
+            return { ventas: all.slice(start, start + limit), total: all.length };
+        }
+        return response.data as { ventas: IVenta[]; total: number };
+    },
 
 updateTransporte: async (ventaId: number, transporte: string): Promise<void> => {
     await api.put(`/api/ventas/${ventaId}`, { transporte });
