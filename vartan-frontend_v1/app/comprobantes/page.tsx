@@ -71,12 +71,15 @@ export default function ComprobantesPage() {
     setLoading(true);
     setError(null);
     try {
+      const numVentaId = numeroVenta ? Number(numeroVenta) : undefined;
       const filtros: IFiltrosComprobantes = {
-        periodo,
+        // Si se busca por nº venta ignoramos el filtro de período para encontrarlo
+        // sin importar la fecha en que fue registrado
+        periodo: numVentaId ? 'todo' : periodo,
         vendedor_id: vendedorId || undefined,
         solo_pendientes: soloPendientes || undefined,
         forma_pago_id: formaPagoId || undefined,
-        numero_venta: numeroVenta ? Number(numeroVenta) : undefined,
+        numero_venta: numVentaId,
       };
       const data = await comprobanteService.getAll(filtros);
 
@@ -89,7 +92,14 @@ export default function ComprobantesPage() {
           seen.set(comp.venta_id, comp);
         }
       }
-      const comprobantesFinales = Array.from(seen.values());
+
+      // Filtro client-side por nº venta (garantiza el resultado aunque el backend
+      // no soporte el parámetro numero_venta todavía)
+      let comprobantesFinales = Array.from(seen.values());
+      if (numVentaId) {
+        comprobantesFinales = comprobantesFinales.filter(c => c.venta_id === numVentaId);
+      }
+
       setComprobantes(comprobantesFinales);
       setTotal(comprobantesFinales.length);
       setPendientes(comprobantesFinales.filter(c => !c.revisado).length);
