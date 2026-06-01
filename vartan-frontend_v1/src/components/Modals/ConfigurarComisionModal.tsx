@@ -72,6 +72,7 @@ export default function ConfigurarComisionModal({
   }, [selectedMes, selectedAnio]);
 
   const handleSubmit = async () => {
+    console.log('Guardando comisión:', { usuarioId: vendedor?.id, mes: selectedMes, anio: selectedAnio, sueldo });
     if (!vendedor) return;
 
     if (!porcentajeComision || parseFloat(porcentajeComision) < 0 || parseFloat(porcentajeComision) > 100) {
