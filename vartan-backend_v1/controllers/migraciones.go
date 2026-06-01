@@ -70,6 +70,54 @@ func RecalcularCostos(c *gin.Context) {
 	})
 }
 
+// BackfillSueldos godoc
+// @Summary Backfill sueldos mensuales desde comisiones históricas
+// @Description Para cada fila en comisiones, inserta el sueldo en comisiones_publicitarias_mensuales si no existe ya un registro para ese empleado+mes+año.
+// @Tags Migraciones
+// @Produce json
+// @Security BearerAuth
+// @Success 200 {object} map[string]interface{}
+// @Failure 500 {object} map[string]string "Error interno"
+// @Router /api/owner/migraciones/backfill-sueldos [get]
+func BackfillSueldos(c *gin.Context) {
+	var comisiones []models.Comision
+	if err := config.DB.Find(&comisiones).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error al obtener comisiones"})
+		return
+	}
+
+	insertados := 0
+	omitidos := 0
+
+	for _, com := range comisiones {
+		var count int64
+		config.DB.Model(&models.ComisionPublicitariaMensual{}).
+			Where("empleado_id = ? AND mes = ? AND anio = ?", com.UsuarioID, com.Mes, com.Anio).
+			Count(&count)
+		if count > 0 {
+			omitidos++
+			continue
+		}
+		rec := models.ComisionPublicitariaMensual{
+			EmpleadoID: com.UsuarioID,
+			Mes:        com.Mes,
+			Anio:       com.Anio,
+			Sueldo:     com.Sueldo,
+		}
+		if err := config.DB.Session(&gorm.Session{}).Create(&rec).Error; err != nil {
+			continue
+		}
+		insertados++
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"mensaje":    "Backfill de sueldos completado",
+		"insertados": insertados,
+		"omitidos":   omitidos,
+		"total":      len(comisiones),
+	})
+}
+
 // BackfillPagosFromVentas godoc
 // @Summary Backfill pagos_venta desde venta.comprobante_url
 // @Description Para cada venta con comprobante_url y sin filas en pagos_venta, inserta el pago inicial

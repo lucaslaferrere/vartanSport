@@ -43,4 +43,6 @@ type UsuarioComisionConfigRequest struct {
 	GastoPublicitario  float64 `json:"gasto_publicitario"`
 	Sueldo             float64 `json:"sueldo"`
 	Observaciones      string  `json:"observaciones"`
+	Mes                int     `json:"mes"`
+	Anio               int     `json:"anio"`
 }

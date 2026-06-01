@@ -11,6 +11,7 @@ type ComisionPublicitariaMensual struct {
 	Mes           int       `gorm:"not null" json:"mes"`
 	Anio          int       `gorm:"not null" json:"anio"`
 	ValorComision float64   `gorm:"type:decimal(10,2);not null;default:0" json:"valor_comision"`
+	Sueldo        float64   `gorm:"type:decimal(10,2);not null;default:0" json:"sueldo"`
 	CreatedAt     time.Time `json:"created_at"`
 	UpdatedAt     time.Time `json:"updated_at"`
 

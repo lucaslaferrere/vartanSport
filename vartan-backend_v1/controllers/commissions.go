@@ -23,6 +23,17 @@ func getGastoPublicitarioMensual(empleadoID, mes, anio int) float64 {
 	return rec.ValorComision
 }
 
+// getSueldoMensual looks up the sueldo/bono set explicitly for a given employee+month+year
+// in comisiones_publicitarias_mensuales. Returns (value, true) if found, (0, false) if not.
+func getSueldoMensual(empleadoID, mes, anio int) (float64, bool) {
+	var rec models.ComisionPublicitariaMensual
+	if err := config.DB.Where("empleado_id = ? AND mes = ? AND anio = ?", empleadoID, mes, anio).
+		First(&rec).Error; err != nil {
+		return 0, false
+	}
+	return rec.Sueldo, true
+}
+
 func periodIsFuture(mes int, anio int, now time.Time) bool {
 	currentYear := now.Year()
 	currentMonth := int(now.Month())
@@ -348,6 +359,8 @@ func GetMiResumenComision(c *gin.Context) {
 	sueldoBase := usuario.Sueldo
 	if comisionRegistrada && comisionPeriodo.ID != 0 {
 		sueldoBase = comisionPeriodo.Sueldo
+	} else if v, ok := getSueldoMensual(userID, mes, anio); ok {
+		sueldoBase = v
 	}
 
 	comisionNeta := totalVentas * (porcentaje / 100.0)

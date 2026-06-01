@@ -1,11 +1,14 @@
 package controllers
 
 import (
+	"errors"
 	"net/http"
+	"time"
 	"vartan-backend/config"
 	"vartan-backend/models"
 
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 )
 
 // GetMe godoc
@@ -90,6 +93,31 @@ func UpdateComisionConfig(c *gin.Context) {
 	if err := config.DB.Save(&usuario).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error al actualizar configuración"})
 		return
+	}
+
+	// UPSERT sueldo mensual en comisiones_publicitarias_mensuales
+	now := time.Now()
+	mes := req.Mes
+	anio := req.Anio
+	if mes == 0 {
+		mes = int(now.Month())
+	}
+	if anio == 0 {
+		anio = now.Year()
+	}
+	var recSueldo models.ComisionPublicitariaMensual
+	resSueldo := config.DB.Where("empleado_id = ? AND mes = ? AND anio = ?", usuario.ID, mes, anio).First(&recSueldo)
+	if errors.Is(resSueldo.Error, gorm.ErrRecordNotFound) {
+		recSueldo = models.ComisionPublicitariaMensual{
+			EmpleadoID: usuario.ID,
+			Mes:        mes,
+			Anio:       anio,
+			Sueldo:     req.Sueldo,
+		}
+		config.DB.Create(&recSueldo)
+	} else if resSueldo.Error == nil {
+		recSueldo.Sueldo = req.Sueldo
+		config.DB.Save(&recSueldo)
 	}
 
 	c.JSON(http.StatusOK, usuario)
