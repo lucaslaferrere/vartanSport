@@ -54,13 +54,17 @@ export default function DetalleVentaModal({ open, onClose, venta }: DetalleVenta
     venta.comprobante_saldo_url ||
     venta.comprobante_url ||
     null;
-  const legacyComprobantes: Array<{ label: string; url: string }> =
-    pagos.length === 0
-      ? [
-          ...(venta.comprobante_url ? [{ label: 'Seña', url: venta.comprobante_url }] : []),
-          ...(venta.comprobante_saldo_url ? [{ label: 'Saldo', url: venta.comprobante_saldo_url }] : []),
-        ]
-      : [];
+  // Muestra comprobantes legacy (venta.comprobante_url / comprobante_saldo_url)
+  // siempre que su URL no esté ya cubierta por una entrada en pago_venta.
+  const pagoUrls = new Set(pagos.map(p => p.comprobante_url).filter(Boolean));
+  const legacyComprobantes: Array<{ label: string; url: string }> = [
+    ...(venta.comprobante_url && !pagoUrls.has(venta.comprobante_url)
+      ? [{ label: 'Seña', url: venta.comprobante_url }]
+      : []),
+    ...(venta.comprobante_saldo_url && !pagoUrls.has(venta.comprobante_saldo_url)
+      ? [{ label: 'Saldo', url: venta.comprobante_saldo_url }]
+      : []),
+  ];
 
   const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
 
@@ -485,7 +489,7 @@ export default function DetalleVentaModal({ open, onClose, venta }: DetalleVenta
                   </Box>
                 )}
 
-                {!pagosLoading && !pagosError && pagosOrdenados.length === 0 && legacyComprobantes.length > 0 && (
+                {!pagosLoading && !pagosError && legacyComprobantes.length > 0 && (
                   <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
                     {legacyComprobantes.map((item) => {
                       const esPdf = item.url.toLowerCase().endsWith('.pdf');

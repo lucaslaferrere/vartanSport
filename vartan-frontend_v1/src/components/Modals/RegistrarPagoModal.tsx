@@ -57,10 +57,12 @@ export default function RegistrarPagoModal({ open, onClose, onSuccess, venta }: 
 
   const senaActual = venta.sena || 0;
   const precioVenta = venta.precio_venta || venta.total;
-  const saldoPendiente = precioVenta - senaActual;
+  const saldoPendiente = (venta.saldo != null && venta.saldo >= 0)
+    ? venta.saldo
+    : Math.max(0, precioVenta - senaActual);
   const pagoDeHoy = parseFloat(nuevaSena) || 0;
   const nuevaSenaTotal = senaActual + pagoDeHoy;
-  const nuevoSaldo = precioVenta - nuevaSenaTotal;
+  const nuevoSaldo = Math.max(0, saldoPendiente - pagoDeHoy);
   const descuentoFinanciera = isFinanciera(formaPagoSaldoId) ? pagoDeHoy * 0.025 : 0;
 
   const handleSubmit = async () => {
@@ -71,7 +73,7 @@ export default function RegistrarPagoModal({ open, onClose, onSuccess, venta }: 
       return;
     }
 
-    if (nuevaSenaTotal > precioVenta) {
+    if (pagoDeHoy > saldoPendiente) {
       setError(`El pago supera el saldo pendiente ($${saldoPendiente.toLocaleString('es-AR')})`);
       return;
     }

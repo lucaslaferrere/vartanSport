@@ -83,14 +83,12 @@ export default function ComprobantesPage() {
       };
       const data = await comprobanteService.getAll(filtros);
 
-      // Dedup: misma venta_id puede venir como entrada legacy (sin pago_id) y como
-      // entrada de pagos_venta (con pago_id). Preferir la de pagos_venta.
-      const seen = new Map<number, IComprobante>();
+      // Dedup: evita duplicar el mismo pago si aparece como legacy y pago_venta.
+      // Cada pago_id es una entrada única; las legacy se deducan por venta_id.
+      const seen = new Map<string, IComprobante>();
       for (const comp of data.comprobantes) {
-        const existing = seen.get(comp.venta_id);
-        if (!existing || (comp.pago_id != null && existing.pago_id == null)) {
-          seen.set(comp.venta_id, comp);
-        }
+        const key = comp.pago_id != null ? `pago_${comp.pago_id}` : `venta_${comp.venta_id}`;
+        seen.set(key, comp);
       }
 
       // Filtro client-side por nº venta (garantiza el resultado aunque el backend
@@ -350,7 +348,7 @@ export default function ComprobantesPage() {
       {!loading && !error && comprobantes.length > 0 && (
         <Grid container spacing={2}>
           {comprobantes.map(comp => (
-            <Grid key={comp.venta_id} size={{ xs: 6, sm: 4, md: 3 }}>
+            <Grid key={comp.pago_id != null ? `pago_${comp.pago_id}` : `venta_${comp.venta_id}`} size={{ xs: 6, sm: 4, md: 3 }}>
               <ComprobanteCard
                 comprobante={comp}
                 onVer={() => setPreviewItem({ comp, tipo: 'sena' })}

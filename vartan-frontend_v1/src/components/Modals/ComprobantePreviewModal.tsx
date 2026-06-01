@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { Dialog, DialogTitle, DialogContent, Box, IconButton, Typography, CircularProgress } from '@mui/material';
+import { Dialog, DialogTitle, DialogContent, Box, IconButton, Typography } from '@mui/material';
 import { comprobanteService } from '@services/comprobante.service';
 
 interface ComprobantePreviewModalProps {
@@ -23,43 +23,24 @@ export default function ComprobantePreviewModal({
   onRevisar,
   revisado,
 }: ComprobantePreviewModalProps) {
-  const [objectUrl, setObjectUrl] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [displayUrl, setDisplayUrl] = useState<string | null>(null);
   const [error, setError] = useState(false);
 
   const ext = comprobanteUrl?.split('.').pop()?.toLowerCase() ?? '';
   const isPdf = ext === 'pdf';
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
 
   useEffect(() => {
-    if (!open || !ventaId) return;
-
-    let revoked = false;
-    setLoading(true);
+    if (!open) return;
     setError(false);
-    setObjectUrl(null);
 
-    const fetchBlob = esSaldo
-      ? comprobanteService.getArchivoBlobSaldo(ventaId)
-      : comprobanteService.getArchivoBlob(ventaId);
-
-    fetchBlob
-      .then(blob => {
-        if (!revoked) {
-          const url = window.URL.createObjectURL(blob);
-          setObjectUrl(url);
-        }
-      })
-      .catch(() => setError(true))
-      .finally(() => setLoading(false));
-
-    return () => {
-      revoked = true;
-      setObjectUrl(prev => {
-        if (prev) window.URL.revokeObjectURL(prev);
-        return null;
-      });
-    };
-  }, [open, ventaId, esSaldo]);
+    if (comprobanteUrl) {
+      const normalized = comprobanteUrl.replace(/\\/g, '/').replace(/^\/+/, '');
+      setDisplayUrl(`${apiUrl}/${normalized}`);
+    } else {
+      setDisplayUrl(null);
+    }
+  }, [open, comprobanteUrl, apiUrl]);
 
   const handleDescargar = () => {
     if (!ventaId) return;
@@ -100,25 +81,28 @@ export default function ComprobantePreviewModal({
       </DialogTitle>
 
       <DialogContent sx={{ p: 2, minHeight: 400, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        {loading && <CircularProgress size={40} />}
         {error && (
           <Typography sx={{ color: '#EF4444', fontSize: '13px' }}>
             No se pudo cargar el archivo.
           </Typography>
         )}
-        {objectUrl && !loading && (
+        {displayUrl && !error && (
           isPdf ? (
             <Box component="iframe"
-              src={objectUrl}
+              src={displayUrl}
               sx={{ width: '100%', height: '600px', border: 'none', borderRadius: '6px' }}
             />
           ) : (
             <Box component="img"
-              src={objectUrl}
+              src={displayUrl}
               alt={`Comprobante venta #${ventaId}`}
+              onError={() => setError(true)}
               sx={{ maxWidth: '100%', maxHeight: '600px', borderRadius: '6px', objectFit: 'contain' }}
             />
           )
+        )}
+        {!displayUrl && !error && (
+          <Typography sx={{ color: '#9CA3AF', fontSize: '13px' }}>Sin comprobante</Typography>
         )}
       </DialogContent>
     </Dialog>
