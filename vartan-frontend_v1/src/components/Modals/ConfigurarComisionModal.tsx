@@ -91,6 +91,8 @@ export default function ConfigurarComisionModal({
         porcentaje_comision: parseFloat(porcentajeComision),
         sueldo: parseFloat(sueldo),
         observaciones: observaciones.trim() || undefined,
+        mes: selectedMes,
+        anio: selectedAnio,
       });
 
       // Guardar gasto publicitario del mes (siempre, crea o actualiza el registro mensual)

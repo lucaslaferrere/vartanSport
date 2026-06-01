@@ -7,4 +7,6 @@ export interface IUsuarioComisionConfigRequest {
     gasto_publicitario?: number;
     sueldo: number;
     observaciones?: string;
+    mes: number;
+    anio: number;
 }
