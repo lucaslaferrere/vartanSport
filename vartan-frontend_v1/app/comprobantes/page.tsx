@@ -117,41 +117,54 @@ export default function ComprobantesPage() {
     fetchComprobantes();
   }, [fetchComprobantes]);
 
+  const matchComp = (c: IComprobante, comp: IComprobante) =>
+    comp.pago_id != null ? c.pago_id === comp.pago_id : c.venta_id === comp.venta_id && c.pago_id == null;
+
   const handleRevisar = async (comp: IComprobante) => {
     const nuevoEstado = !comp.revisado;
-    // Optimistic update
-    setComprobantes(prev =>
-      prev.map(c => c.venta_id === comp.venta_id ? { ...c, revisado: nuevoEstado } : c)
-    );
+    setComprobantes(prev => prev.map(c => matchComp(c, comp) ? { ...c, revisado: nuevoEstado } : c));
     setPendientes(prev => nuevoEstado ? prev - 1 : prev + 1);
     try {
       await comprobanteService.marcarRevisado(comp.venta_id, nuevoEstado, comp.pago_id);
       addNotification(nuevoEstado ? 'Comprobante marcado como revisado' : 'Comprobante marcado como pendiente', 'success');
     } catch {
-      // Revertir
-      setComprobantes(prev =>
-        prev.map(c => c.venta_id === comp.venta_id ? { ...c, revisado: comp.revisado } : c)
-      );
+      setComprobantes(prev => prev.map(c => matchComp(c, comp) ? { ...c, revisado: comp.revisado } : c));
       setPendientes(prev => nuevoEstado ? prev + 1 : prev - 1);
       addNotification('Error al actualizar el comprobante', 'error');
     }
   };
 
+  const descargarDesdeUrl = async (url: string, nombre: string) => {
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+    const normalized = url.replace(/\\/g, '/').replace(/^\/+/, '');
+    const response = await fetch(`${apiUrl}/${normalized}`);
+    const blob = await response.blob();
+    const objectUrl = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = objectUrl;
+    link.setAttribute('download', nombre);
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(objectUrl);
+  };
+
   const handleDescargar = async (comp: IComprobante) => {
     const ext = comp.comprobante_url.split('.').pop()?.toLowerCase() ?? 'pdf';
-    const nombre = `comprobante_sena_venta_${comp.venta_id}.${ext}`;
+    const nombre = `comprobante_venta_${comp.venta_id}${comp.pago_id ? `_pago_${comp.pago_id}` : ''}.${ext}`;
     try {
-      await comprobanteService.descargar(comp.venta_id, nombre);
+      await descargarDesdeUrl(comp.comprobante_url, nombre);
     } catch {
       addNotification('Error al descargar el comprobante', 'error');
     }
   };
 
   const handleDescargarSaldo = async (comp: IComprobante) => {
-    const ext = comp.comprobante_saldo_url?.split('.').pop()?.toLowerCase() ?? 'pdf';
+    if (!comp.comprobante_saldo_url) return;
+    const ext = comp.comprobante_saldo_url.split('.').pop()?.toLowerCase() ?? 'pdf';
     const nombre = `comprobante_saldo_venta_${comp.venta_id}.${ext}`;
     try {
-      await comprobanteService.descargarSaldo(comp.venta_id, nombre);
+      await descargarDesdeUrl(comp.comprobante_saldo_url, nombre);
     } catch {
       addNotification('Error al descargar el comprobante de saldo', 'error');
     }
