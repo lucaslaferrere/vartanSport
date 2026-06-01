@@ -345,8 +345,13 @@ func GetMiResumenComision(c *gin.Context) {
 		porcentaje = comisionPeriodo.PorcentajeComision
 	}
 
+	sueldoBase := usuario.Sueldo
+	if comisionRegistrada && comisionPeriodo.ID != 0 {
+		sueldoBase = comisionPeriodo.Sueldo
+	}
+
 	comisionNeta := totalVentas * (porcentaje / 100.0)
-	totalACobrar := usuario.Sueldo + comisionNeta
+	totalACobrar := sueldoBase + comisionNeta
 
 	// Historial: últimos 12 meses desde el mes real actual (no el consultado)
 	var historial []models.Comision
@@ -379,7 +384,7 @@ func GetMiResumenComision(c *gin.Context) {
 			"comision_bruta":         comisionNeta,
 			"gasto_publicitario":     gastoPublicitario,
 			"comision_neta":          comisionNeta,
-			"sueldo_base":            usuario.Sueldo,
+			"sueldo_base":            sueldoBase,
 			"total_a_cobrar":         totalACobrar,
 			"comision_registrada":    comisionRegistrada,
 			"observaciones_comision": comisionPeriodo.Observaciones,
