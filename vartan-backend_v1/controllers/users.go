@@ -85,7 +85,7 @@ func UpdateComisionConfig(c *gin.Context) {
 		return
 	}
 
-	log.Printf("[DEBUG] UpdateComisionConfig — empleado_id=%d mes=%d anio=%d", usuario.ID, req.Mes, req.Anio)
+	log.Printf("[DEBUG] UpdateComisionConfig — empleado_id=%d mes=%d anio=%d sueldo=%.2f", usuario.ID, req.Mes, req.Anio, req.Sueldo)
 
 	// Actualizar configuración
 	usuario.PorcentajeComision = req.PorcentajeComision
