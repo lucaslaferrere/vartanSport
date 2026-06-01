@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"errors"
+	"log"
 	"net/http"
 	"time"
 	"vartan-backend/config"
@@ -83,6 +84,8 @@ func UpdateComisionConfig(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Datos inválidos"})
 		return
 	}
+
+	log.Printf("[DEBUG] UpdateComisionConfig — empleado_id=%d mes=%d anio=%d", usuario.ID, req.Mes, req.Anio)
 
 	// Actualizar configuración
 	usuario.PorcentajeComision = req.PorcentajeComision
