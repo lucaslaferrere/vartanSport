@@ -8,6 +8,7 @@ import (
 	"vartan-backend/models"
 
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 )
 
 type DashboardMensualResponse struct {
@@ -71,27 +72,33 @@ func GetDashboardMensual(c *gin.Context) {
 
 	var cantidadVentas int64
 	var facturacion float64
-	var gananciaReal float64
+	var costoProductos float64
 
 	ventasQuery := config.DB.Model(&models.Venta{}).
 		Where("fecha_venta >= ? AND fecha_venta < ?", fechaInicio, fechaFin)
 
-	if err := ventasQuery.Count(&cantidadVentas).Error; err != nil {
+	if err := ventasQuery.Session(&gorm.Session{}).Count(&cantidadVentas).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error al contar ventas"})
 		return
 	}
 
-	if err := ventasQuery.Select("COALESCE(SUM(total_final), 0)").Scan(&facturacion).Error; err != nil {
+	if err := ventasQuery.Session(&gorm.Session{}).Select("COALESCE(SUM(total_final), 0)").Scan(&facturacion).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error al calcular facturación"})
 		return
 	}
 
-	if err := ventasQuery.Select("COALESCE(SUM(ganancia), 0)").Scan(&gananciaReal).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error al calcular ganancia real"})
+	// Costo calculado desde venta_detalles × costo_unitario del producto (correcto para ventas viejas y nuevas)
+	if err := config.DB.Table("venta_detalles").
+		Joins("JOIN venta ON venta.id = venta_detalles.venta_id").
+		Joins("JOIN productos ON productos.id = venta_detalles.producto_id").
+		Where("venta.fecha_venta >= ? AND venta.fecha_venta < ?", fechaInicio, fechaFin).
+		Select("COALESCE(SUM(venta_detalles.cantidad * productos.costo_unitario), 0)").
+		Scan(&costoProductos).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error al calcular costo de productos"})
 		return
 	}
 
-	costoProductos := facturacion - gananciaReal
+	gananciaReal := facturacion - costoProductos
 
 	var publicidad float64
 	if err := config.DB.Model(&models.Comision{}).
