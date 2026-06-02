@@ -540,7 +540,10 @@ func processVenta(c *gin.Context, usuarioID *int, clienteID int, formaPagoID int
 
 	var costo float64
 	for _, detalle := range detalles {
-		costo += detalle.PrecioUnitario * float64(detalle.Cantidad)
+		var producto models.Producto
+		if err := config.DB.Select("costo_unitario").First(&producto, detalle.ProductoID).Error; err == nil {
+			costo += producto.CostoUnitario * float64(detalle.Cantidad)
+		}
 	}
 
 	if precioVenta == 0 {
