@@ -209,7 +209,11 @@ func CalcularComisionesMesActual(c *gin.Context) {
 		comisionNeta := base * porcentaje
 
 		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
-			// No existe, crear nueva — snapshot de sueldo, porcentaje y gasto del mes actual
+			// Snapshot de sueldo: usar el bono mensual si existe, sino el global
+			sueldoSnapshot := usuario.Sueldo
+			if s, ok := getSueldoMensual(int(usuario.ID), mes, anio); ok && s > 0 {
+				sueldoSnapshot = s
+			}
 			gastoSnapshot := gastoPublicitario
 			nuevaComision := models.Comision{
 				UsuarioID:          usuario.ID,
@@ -217,7 +221,7 @@ func CalcularComisionesMesActual(c *gin.Context) {
 				Anio:               anio,
 				TotalVentas:        totalVentas,
 				TotalComision:      comisionNeta,
-				Sueldo:             usuario.Sueldo,
+				Sueldo:             sueldoSnapshot,
 				PorcentajeComision: usuario.PorcentajeComision,
 				GastoPublicitario:  &gastoSnapshot,
 			}
@@ -500,6 +504,12 @@ func GetComisionPublicitariaDelMes(c *gin.Context) {
 		anio = a
 	}
 
+	var usuario models.Usuario
+	if err := config.DB.Select("sueldo").First(&usuario, empleadoID).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Empleado no encontrado"})
+		return
+	}
+
 	var rec models.ComisionPublicitariaMensual
 	result := config.DB.Where("empleado_id = ? AND mes = ? AND anio = ?", empleadoID, mes, anio).First(&rec)
 
@@ -509,6 +519,7 @@ func GetComisionPublicitariaDelMes(c *gin.Context) {
 			"mes":            mes,
 			"anio":           anio,
 			"valor_comision": 0,
+			"sueldo":         usuario.Sueldo,
 			"not_set":        true,
 		})
 		return
@@ -518,11 +529,17 @@ func GetComisionPublicitariaDelMes(c *gin.Context) {
 		return
 	}
 
+	sueldoVal := rec.Sueldo
+	if sueldoVal == 0 {
+		sueldoVal = usuario.Sueldo
+	}
+
 	c.JSON(http.StatusOK, gin.H{
 		"empleado_id":    rec.EmpleadoID,
 		"mes":            rec.Mes,
 		"anio":           rec.Anio,
 		"valor_comision": rec.ValorComision,
+		"sueldo":         sueldoVal,
 		"not_set":        false,
 	})
 }
