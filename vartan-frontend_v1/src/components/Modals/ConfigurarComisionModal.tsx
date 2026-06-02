@@ -35,12 +35,15 @@ export default function ConfigurarComisionModal({
   const [selectedMes, setSelectedMes] = useState(mesInicial ?? new Date().getMonth() + 1);
   const [selectedAnio, setSelectedAnio] = useState(anioInicial ?? new Date().getFullYear());
 
-  const fetchGastoPublicitario = async (userId: number, mes: number, anio: number) => {
+  const fetchConfigMes = async (userId: number, mes: number, anio: number) => {
     setLoadingGasto(true);
     try {
       const data = await comisionService.getComisionPublicitaria(userId, mes, anio);
       setGastoPublicitario(String(data.valor_comision));
       setGastoNotSet(data.not_set === true || data.valor_comision === 0);
+      if (data.sueldo !== undefined) {
+        setSueldo(String(data.sueldo));
+      }
     } catch {
       setGastoPublicitario('0');
       setGastoNotSet(true);
@@ -56,7 +59,7 @@ export default function ConfigurarComisionModal({
       setObservaciones(vendedor.observaciones_config || '');
       const mes = mesInicial ?? new Date().getMonth() + 1;
       const anio = anioInicial ?? new Date().getFullYear();
-      fetchGastoPublicitario(vendedor.id, mes, anio);
+      fetchConfigMes(vendedor.id, mes, anio);
     }
   }, [vendedor]);
 
@@ -67,7 +70,7 @@ export default function ConfigurarComisionModal({
 
   useEffect(() => {
     if (vendedor) {
-      fetchGastoPublicitario(vendedor.id, selectedMes, selectedAnio);
+      fetchConfigMes(vendedor.id, selectedMes, selectedAnio);
     }
   }, [selectedMes, selectedAnio]);
 

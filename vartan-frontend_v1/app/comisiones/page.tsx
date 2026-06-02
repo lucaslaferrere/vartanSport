@@ -117,9 +117,15 @@ const [miResumen, setMiResumen] = useState<IMiResumenComision | null>(null);
                 )
             );
             const gastoMap = new Map<number, number>();
+            const sueldoMap = new Map<number, number>();
             usuariosBase.forEach((u, i) => {
                 const r = gastosResults[i];
-                if (r.status === 'fulfilled') gastoMap.set(u.id, r.value.valor_comision ?? 0);
+                if (r.status === 'fulfilled') {
+                    gastoMap.set(u.id, r.value.valor_comision ?? 0);
+                    sueldoMap.set(u.id, r.value.sueldo ?? u.sueldo ?? 0);
+                } else {
+                    sueldoMap.set(u.id, u.sueldo ?? 0);
+                }
             });
 
             const mesActual = calcularMes;
@@ -133,7 +139,7 @@ const [miResumen, setMiResumen] = useState<IMiResumenComision | null>(null);
 
                 const ventas = comActual?.total_ventas || 0;
                 const comisionEst = comActual?.total_comision || 0;
-                const sueldoBase = v.sueldo || 0;
+                const sueldoBase = sueldoMap.get(v.id) ?? v.sueldo ?? 0;
                 const sueldoTotal = sueldoBase + comisionEst;
 
                 const historial = comisionesData

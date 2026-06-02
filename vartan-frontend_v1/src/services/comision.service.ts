@@ -4,6 +4,7 @@ import { IComisionObservacionesRequest } from '@models/request/IComisionRequest'
 
 export interface IComisionPublicitariaResponse {
     valor_comision: number;
+    sueldo?: number;
     not_set?: boolean;
 }
 

@@ -2,7 +2,6 @@
 
 import React, { useEffect, useState } from 'react';
 import { Dialog, DialogTitle, DialogContent, Box, IconButton, Typography } from '@mui/material';
-import { comprobanteService } from '@services/comprobante.service';
 
 interface ComprobantePreviewModalProps {
   open: boolean;
@@ -42,14 +41,23 @@ export default function ComprobantePreviewModal({
     }
   }, [open, comprobanteUrl, apiUrl]);
 
-  const handleDescargar = () => {
-    if (!ventaId) return;
-    if (esSaldo) {
-      const nombre = `comprobante_saldo_venta_${ventaId}.${ext}`;
-      comprobanteService.descargarSaldo(ventaId, nombre);
-    } else {
-      const nombre = `comprobante_sena_venta_${ventaId}.${ext}`;
-      comprobanteService.descargar(ventaId, nombre);
+  const handleDescargar = async () => {
+    if (!comprobanteUrl) return;
+    const normalized = comprobanteUrl.replace(/\\/g, '/').replace(/^\/+/, '');
+    const nombre = `comprobante_venta_${ventaId}.${ext}`;
+    try {
+      const response = await fetch(`${apiUrl}/${normalized}`);
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', nombre);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch {
+      window.open(`${apiUrl}/${normalized}`, '_blank');
     }
   };
 
