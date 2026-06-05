@@ -200,13 +200,8 @@ func CalcularComisionesMesActual(c *gin.Context) {
 		// Usar el porcentaje actual configurado para el vendedor.
 		porcentajeComision := usuario.PorcentajeComision
 
-		// Bug 1 fix: base de comisión = ventas - gasto publicitario (mínimo 0)
 		porcentaje := porcentajeComision / 100.0
-		base := totalVentas - gastoPublicitario
-		if base < 0 {
-			base = 0
-		}
-		comisionNeta := base * porcentaje
+		comisionNeta := totalVentas * porcentaje
 
 		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 			// Snapshot de sueldo: usar el bono mensual si existe, sino el global
