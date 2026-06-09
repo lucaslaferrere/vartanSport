@@ -94,6 +94,30 @@ func SetupRoutes(router *gin.Engine) {
 		public.POST("/clientes/registro", controllers.RegistroClientePublico)
 	}
 
+	// Catálogo mayorista — público, sin auth
+	catalogo := router.Group("/api/catalogo")
+	{
+		catalogo.GET("/productos", controllers.GetCatalogoProductos)
+		catalogo.GET("/productos/:id", controllers.GetCatalogoProducto)
+		catalogo.POST("/ordenes", controllers.CreateCatalogoOrden)
+	}
+
+	// Catálogo mayorista — admin (solo dueño)
+	adminCatalogo := router.Group("/api/admin/catalogo")
+	adminCatalogo.Use(middleware.AuthMiddleware(), middleware.RequireDueno())
+	{
+		adminCatalogo.GET("/productos", controllers.AdminGetCatalogoProductos)
+		adminCatalogo.POST("/productos", controllers.AdminCreateCatalogoProducto)
+		adminCatalogo.PUT("/productos/:id", controllers.AdminUpdateCatalogoProducto)
+		adminCatalogo.DELETE("/productos/:id", controllers.AdminDeleteCatalogoProducto)
+		adminCatalogo.POST("/productos/:id/imagen", controllers.AdminUploadCatalogoImagen)
+
+		adminCatalogo.GET("/ordenes", controllers.AdminGetCatalogoOrdenes)
+		adminCatalogo.GET("/ordenes/:id", controllers.AdminGetCatalogoOrden)
+		adminCatalogo.PUT("/ordenes/:id", controllers.AdminUpdateCatalogoOrden)
+		adminCatalogo.POST("/ordenes/:id/confirmar", controllers.AdminConfirmarCatalogoOrden)
+	}
+
 	owner := router.Group("/api/owner")
 	owner.Use(middleware.AuthMiddleware(), middleware.RequireDueno())
 	{

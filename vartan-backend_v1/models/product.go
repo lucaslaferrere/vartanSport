@@ -72,6 +72,28 @@ var ColoresValidos = map[ColorEnum]bool{
 	ColorNaranja:  true,
 }
 
+// ImagenArray - Tipo para array de URLs de imágenes (para GORM)
+type ImagenArray []string
+
+func (i ImagenArray) Value() (driver.Value, error) {
+	if i == nil {
+		return json.Marshal([]string{})
+	}
+	return json.Marshal(i)
+}
+
+func (i *ImagenArray) Scan(value interface{}) error {
+	if value == nil {
+		*i = ImagenArray{}
+		return nil
+	}
+	bytes, ok := value.([]byte)
+	if !ok {
+		return nil
+	}
+	return json.Unmarshal(bytes, i)
+}
+
 // TalleArray - Tipo para array de talles (para GORM)
 type TalleArray []TalleEnum
 
@@ -122,6 +144,11 @@ type Producto struct {
 	TipoProducto       *TipoProducto `gorm:"foreignKey:TipoProductoID" json:"tipo_producto,omitempty"`
 	EquipoID           *int          `gorm:"index" json:"equipo_id"`
 	Equipo             *Equipo       `gorm:"foreignKey:EquipoID" json:"equipo,omitempty"`
+	// Campos catálogo mayorista
+	Descripcion      string      `gorm:"type:text" json:"descripcion"`
+	Imagenes         ImagenArray `gorm:"type:json" json:"imagenes"`
+	PrecioMayorista  float64     `gorm:"type:decimal(10,2);default:0" json:"precio_mayorista"`
+	VisibleCatalogo  bool        `gorm:"default:false" json:"visible_catalogo"`
 }
 
 // ProductoResponse - Response con stock total calculado

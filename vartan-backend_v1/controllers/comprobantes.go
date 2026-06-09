@@ -57,8 +57,9 @@ type revisarComprobanteRequest struct {
 }
 
 type revisarTodosRequest struct {
-	VentaIDs []int `json:"venta_ids"`
-	Revisado bool  `json:"revisado"`
+	VentaIDs []int  `json:"venta_ids"`
+	PagoIDs  []uint `json:"pago_ids"`
+	Revisado bool   `json:"revisado"`
 }
 
 func parsePeriodo(c *gin.Context) (string, error) {
@@ -311,6 +312,7 @@ func GetComprobantes(c *gin.Context) {
 	if err := query.Session(&gorm.Session{}).
 		Preload("Usuario").
 		Preload("Cliente").
+		Preload("FormaPago").
 		Order("fecha_venta DESC").
 		Find(&ventas).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error al obtener comprobantes"})
@@ -330,7 +332,7 @@ func GetComprobantes(c *gin.Context) {
 		if venta.ComprobanteURL != nil {
 			url = *venta.ComprobanteURL
 		}
-		items = append(items, comprobanteItem{
+		item := comprobanteItem{
 			VentaID:        venta.ID,
 			ComprobanteURL: url,
 			FechaVenta:     venta.FechaVenta,
@@ -346,7 +348,11 @@ func GetComprobantes(c *gin.Context) {
 			Revisado:   venta.ComprobanteRevisado,
 			RevisadoAt: venta.ComprobanteRevisadoAt,
 			Origen:     "venta",
-		})
+		}
+		if venta.FormaPago.ID != 0 {
+			item.FormaPago = &miniFormaPago{ID: venta.FormaPago.ID, Nombre: venta.FormaPago.Nombre}
+		}
+		items = append(items, item)
 	}
 
 	for i := range pagosRows {
@@ -519,24 +525,45 @@ func PutComprobanteRevisado(c *gin.Context) {
 // @Router /api/owner/comprobantes/revisar-todos [put]
 func PutComprobantesRevisarTodos(c *gin.Context) {
 	var req revisarTodosRequest
-	if err := c.ShouldBindJSON(&req); err != nil || len(req.VentaIDs) == 0 {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Datos invÃ¡lidos"})
+	if err := c.ShouldBindJSON(&req); err != nil || (len(req.VentaIDs) == 0 && len(req.PagoIDs) == 0) {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Datos inválidos"})
 		return
 	}
 
-	updates := map[string]interface{}{
-		"comprobante_revisado": req.Revisado,
-	}
-	if req.Revisado {
-		updates["comprobante_revisado_at"] = time.Now()
-	} else {
-		updates["comprobante_revisado_at"] = gorm.Expr("NULL")
+	var totalActualizados int64
+
+	if len(req.VentaIDs) > 0 {
+		ventaUpdates := map[string]interface{}{
+			"comprobante_revisado": req.Revisado,
+		}
+		if req.Revisado {
+			ventaUpdates["comprobante_revisado_at"] = time.Now()
+		} else {
+			ventaUpdates["comprobante_revisado_at"] = gorm.Expr("NULL")
+		}
+		result := config.DB.Model(&models.Venta{}).Where("id IN ?", req.VentaIDs).Updates(ventaUpdates)
+		if result.Error != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error al actualizar comprobantes de venta"})
+			return
+		}
+		totalActualizados += result.RowsAffected
 	}
 
-	result := config.DB.Model(&models.Venta{}).Where("id IN ?", req.VentaIDs).Updates(updates)
-	if result.Error != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error al actualizar comprobantes"})
-		return
+	if len(req.PagoIDs) > 0 {
+		pagoUpdates := map[string]interface{}{
+			"revisado": req.Revisado,
+		}
+		if req.Revisado {
+			pagoUpdates["revisado_at"] = time.Now()
+		} else {
+			pagoUpdates["revisado_at"] = gorm.Expr("NULL")
+		}
+		result := config.DB.Model(&models.PagoVenta{}).Where("id IN ?", req.PagoIDs).Updates(pagoUpdates)
+		if result.Error != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error al actualizar comprobantes de pago"})
+			return
+		}
+		totalActualizados += result.RowsAffected
 	}
 
 	action := "marcados como revisados"
@@ -544,8 +571,8 @@ func PutComprobantesRevisarTodos(c *gin.Context) {
 		action = "marcados como no revisados"
 	}
 	c.JSON(http.StatusOK, gin.H{
-		"message":      strconv.FormatInt(result.RowsAffected, 10) + " comprobantes " + action,
-		"actualizados": result.RowsAffected,
+		"message":      strconv.FormatInt(totalActualizados, 10) + " comprobantes " + action,
+		"actualizados": totalActualizados,
 	})
 }
 
