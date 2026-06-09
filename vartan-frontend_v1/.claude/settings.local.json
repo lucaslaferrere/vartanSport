@@ -8,7 +8,16 @@
       "Bash(git -C .. stash pop)",
       "Bash(git -C .. checkout -- vartan-frontend_v1/.claude/settings.local.json)",
       "Bash(git -C .. merge origin/main_v2)",
-      "Bash(git -C .. stash)"
+      "Bash(git -C .. stash)",
+      "Bash(Get-ChildItem -Recurse -File -Filter \"*.go\")",
+      "Bash(Select-Object FullName)",
+      "Bash(Sort-Object FullName)",
+      "Bash(awk -F/ '{for\\(i=1;i<NF;i++\\)printf \"  \"; print \"├── \"$NF}')",
+      "Bash(go build *)"
+    ],
+    "additionalDirectories": [
+      "C:\\Users\\lafer\\vartanSport\\vartan-backend_v1\\models",
+      "C:\\Users\\lafer\\vartanSport\\vartan-backend_v1\\routes"
     ]
   }
 }
