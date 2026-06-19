@@ -190,7 +190,7 @@ export default function DetalleVentaModal({ open, onClose, venta }: DetalleVenta
         </head>
         <body>
           <div class="etiqueta">
-            <div class="header">VARTAN SPORTS</div>
+            <div class="header">MAYOREA - LR SOLUTIONS</div>
 
             <div class="campo">
               <span class="label">DESTINATARIO</span>

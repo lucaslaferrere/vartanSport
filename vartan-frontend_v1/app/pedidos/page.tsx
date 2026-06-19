@@ -159,7 +159,7 @@ function PedidosPage() {
         </head>
         <body>
           <div class="etiqueta">
-            <div class="header">VARTAN SPORTS</div>
+            <div class="header">MAYOREA - LR SOLUTIONS</div>
             <div class="campo"><span class="label">DESTINATARIO</span><span class="valor">${cliente?.nombre || '-'}</span></div>
             <div class="campo"><span class="label">DNI</span><span class="valor">${cliente?.dni || '-'}</span></div>
             <div class="campo"><span class="label">TELÉFONO</span><span class="valor">${cliente?.telefono || '-'}</span></div>
