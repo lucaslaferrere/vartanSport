@@ -7,8 +7,8 @@ export const layoutConfig = {
     height: 64,
   },
   logos: {
-    expanded: '/icono.png',
-    collapsed: '/iconoSmall.png',
+    expanded: '/LOGOLR.jpg',
+    collapsed: '/LOGOLRSOLUTIONS.jpg',
   },
   // Menú base (común para todos los roles)
   menuItems: [

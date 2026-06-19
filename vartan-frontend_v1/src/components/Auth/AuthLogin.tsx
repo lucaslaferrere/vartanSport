@@ -55,7 +55,7 @@ export default function AuthLogin() {
       <Grid container spacing={3}>
         <Grid size={{ xs: 12 }}>
           <Box sx={{ display: 'flex', justifyContent: 'center', mb: 2 }}>
-            <img src="/icono.png" alt="Vartan Sport" style={{ height: 80, width: 'auto', objectFit: 'contain' }} />
+            <img src="/LOGOLR.jpg" alt="Vartan Sport" style={{ height: 80, width: 'auto', objectFit: 'contain' }} />
           </Box>
         </Grid>
 

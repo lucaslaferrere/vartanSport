@@ -13,8 +13,8 @@ const initialState: CustomizationState = {
   mode: 'light',
   drawerOpen: true,
   fontFamily: `'Roboto', sans-serif`,
-  logo: '/icono.png',
-  icon: '/iconoSmall.png',
+  logo: '/LOGOLR.jpg',
+  icon: '/LOGOLRSOLUTIONS.jpg',
 };
 
 export const customizationSlice = createSlice({
