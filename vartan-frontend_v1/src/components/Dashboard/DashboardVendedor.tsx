@@ -256,7 +256,7 @@ export default function DashboardVendedor() {
               <LineChart data={ventasPorDia}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
                 <XAxis dataKey="name" stroke="#6B7280" style={{ fontSize: '12px' }} />
-                <YAxis yAxisId="left" stroke="#588a9e" style={{ fontSize: '12px' }} />
+                <YAxis yAxisId="left" stroke="#1385c3" style={{ fontSize: '12px' }} />
                 <YAxis yAxisId="right" orientation="right" stroke="#285283" style={{ fontSize: '12px' }} />
                 <Tooltip contentStyle={{ borderRadius: '8px', border: '1px solid #E5E7EB', fontSize: '12px' }} formatter={(value: number | undefined, name: string | undefined) => {
                   if (!value) return ['0', name || ''];
@@ -264,7 +264,7 @@ export default function DashboardVendedor() {
                   return [value, 'Ventas'];
                 }} />
                 <Legend wrapperStyle={{ fontSize: '12px' }} />
-                <Line yAxisId="left" type="monotone" dataKey="ventas" stroke="#588a9e" strokeWidth={2} name="Mis Ventas" />
+                <Line yAxisId="left" type="monotone" dataKey="ventas" stroke="#1385c3" strokeWidth={2} name="Mis Ventas" />
                 <Line yAxisId="right" type="monotone" dataKey="ingresos" stroke="#285283" strokeWidth={2} name="Ingresos" />
               </LineChart>
             </ResponsiveContainer>
@@ -281,7 +281,7 @@ export default function DashboardVendedor() {
                 <Box key={venta.id} sx={{ p: 1.5, bgcolor: '#F9FAFB', borderRadius: '8px', border: '1px solid #E5E7EB' }}>
                   <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 0.5 }}>
                     <Typography sx={{ fontSize: '12px', fontWeight: 600 }}>{venta.cliente?.nombre || 'Cliente'}</Typography>
-                    <Typography sx={{ fontSize: '13px', fontWeight: 700, color: '#588a9e' }}>{formatCurrency(venta.total)}</Typography>
+                    <Typography sx={{ fontSize: '13px', fontWeight: 700, color: '#1385c3' }}>{formatCurrency(venta.total)}</Typography>
                   </Stack>
                   <Typography sx={{ fontSize: '10px', color: '#6B7280' }}>
                     {new Date(venta.fecha_venta).toLocaleDateString('es-AR')} • {venta.detalles?.length || 0} items

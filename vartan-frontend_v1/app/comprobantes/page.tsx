@@ -214,7 +214,7 @@ export default function ComprobantesPage() {
       {/* Header */}
       <Box sx={{ mb: 3 }}>
         <Typography sx={{ fontSize: { xs: '20px', sm: '24px' }, fontWeight: 700, color: '#111827' }}>
-          <i className="fa-solid fa-file-invoice" style={{ marginRight: 10, color: '#588a9e' }} />
+          <i className="fa-solid fa-file-invoice" style={{ marginRight: 10, color: '#1385c3' }} />
           Comprobantes
         </Typography>
       </Box>

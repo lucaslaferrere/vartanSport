@@ -349,7 +349,7 @@ const handleSubmit = async () => {
                   outline: 'none',
                   backgroundColor: 'white',
                   '&:focus': {
-                    borderColor: '#588a9e'
+                    borderColor: '#1385c3'
                   }
                 }}
               />

@@ -28,7 +28,7 @@ const btnBase: React.CSSProperties = {
   lineHeight: 1.4,
 };
 const btnDisabled: React.CSSProperties = { ...btnBase, opacity: 0.4, cursor: 'default' };
-const btnActive: React.CSSProperties = { ...btnBase, backgroundColor: '#588a9e', color: 'white', borderColor: '#588a9e' };
+const btnActive: React.CSSProperties = { ...btnBase, backgroundColor: '#1385c3', color: 'white', borderColor: '#1385c3' };
 
 export default function PagosPendientes({ onRefresh }: PagosPendientesProps) {
   const router = useRouter();

@@ -121,7 +121,7 @@ export default function ComprobanteCard({ comprobante, onVer, onDescargar, onVer
           {formatCurrency(total_final)}
         </Typography>
         <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap', mt: 0.25 }}>
-          <Typography sx={{ fontSize: '10px', color: '#588a9e', fontWeight: 600 }}>
+          <Typography sx={{ fontSize: '10px', color: '#1385c3', fontWeight: 600 }}>
             {forma_pago?.nombre ?? '—'}
           </Typography>
           {forma_pago_saldo && (

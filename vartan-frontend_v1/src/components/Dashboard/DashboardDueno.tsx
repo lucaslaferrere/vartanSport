@@ -25,7 +25,7 @@ const MESES = [
   'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre',
 ];
 const ANIOS = Array.from({ length: 4 }, (_, i) => new Date().getFullYear() - i);
-const CHART_COLORS = ['#588a9e', '#10B981', '#7C3AED', '#D97706', '#DC2626', '#2563EB', '#EC4899', '#06B6D4'];
+const CHART_COLORS = ['#1385c3', '#10B981', '#7C3AED', '#D97706', '#DC2626', '#2563EB', '#EC4899', '#06B6D4'];
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -442,7 +442,7 @@ export default function DashboardDueno() {
             <Box>
               <Stack direction="row" spacing={2} sx={{ mb: 1 }}>
                 <Stack direction="row" alignItems="center" spacing={0.75}>
-                  <Box sx={{ width: 20, height: 2, bgcolor: '#588a9e', borderRadius: 1 }} />
+                  <Box sx={{ width: 20, height: 2, bgcolor: '#1385c3', borderRadius: 1 }} />
                   <Typography sx={{ fontSize: '11px', color: '#374151' }}>{mesLabel}</Typography>
                 </Stack>
                 <Stack direction="row" alignItems="center" spacing={0.75}>
@@ -454,7 +454,7 @@ export default function DashboardDueno() {
                 <AreaChart data={derived.dailyData} margin={{ top: 4, right: 12, left: 4, bottom: 0 }}>
                   <defs>
                     <linearGradient id="gradActual" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#588a9e" stopOpacity={0.25} /><stop offset="95%" stopColor="#588a9e" stopOpacity={0.02} />
+                      <stop offset="5%" stopColor="#1385c3" stopOpacity={0.25} /><stop offset="95%" stopColor="#1385c3" stopOpacity={0.02} />
                     </linearGradient>
                     <linearGradient id="gradAnterior" x1="0" y1="0" x2="0" y2="1">
                       <stop offset="5%" stopColor="#D97706" stopOpacity={0.15} /><stop offset="95%" stopColor="#D97706" stopOpacity={0.02} />
@@ -465,7 +465,7 @@ export default function DashboardDueno() {
                   <YAxis tick={{ fontSize: 10, fill: '#9CA3AF' }} axisLine={false} tickLine={false} tickFormatter={fmtShort} width={52} />
                   <Tooltip content={<TooltipArea />} />
                   <Area type="monotone" dataKey="anterior" stroke="#D97706" strokeWidth={1.5} strokeDasharray="4 2" fill="url(#gradAnterior)" name={prevMesLabel} dot={false} isAnimationActive />
-                  <Area type="monotone" dataKey="actual" stroke="#588a9e" strokeWidth={2} fill="url(#gradActual)" name={mesLabel} dot={false} isAnimationActive />
+                  <Area type="monotone" dataKey="actual" stroke="#1385c3" strokeWidth={2} fill="url(#gradActual)" name={mesLabel} dot={false} isAnimationActive />
                 </AreaChart>
               </ResponsiveContainer>
             </Box>
@@ -510,7 +510,7 @@ export default function DashboardDueno() {
                 <XAxis type="number" tick={{ fontSize: 10, fill: '#9CA3AF' }} axisLine={false} tickLine={false} />
                 <YAxis type="category" dataKey="nombre" tick={{ fontSize: 10, fill: '#374151' }} width={108} axisLine={false} tickLine={false} />
                 <Tooltip content={<TooltipBar />} />
-                <Bar dataKey="cantidad" fill="#588a9e" name="Unidades" radius={[0, 3, 3, 0]} isAnimationActive />
+                <Bar dataKey="cantidad" fill="#1385c3" name="Unidades" radius={[0, 3, 3, 0]} isAnimationActive />
               </BarChart>
             </ResponsiveContainer>
           )}

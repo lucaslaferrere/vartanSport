@@ -389,7 +389,7 @@ export default function AgregarVentaModal({ open, onClose, onSuccess }: AgregarV
                         backgroundColor: 'white',
                         '& fieldset': { borderColor: '#D1D5DB' },
                         '&:hover fieldset': { borderColor: '#9CA3AF' },
-                        '&.Mui-focused fieldset': { borderColor: '#588a9e' },
+                        '&.Mui-focused fieldset': { borderColor: '#1385c3' },
                       }
                     }}
                   />
@@ -445,7 +445,7 @@ export default function AgregarVentaModal({ open, onClose, onSuccess }: AgregarV
                             backgroundColor: 'white',
                             '& fieldset': { borderColor: '#D1D5DB' },
                             '&:hover fieldset': { borderColor: '#9CA3AF' },
-                            '&.Mui-focused fieldset': { borderColor: '#588a9e' },
+                            '&.Mui-focused fieldset': { borderColor: '#1385c3' },
                           }
                         }}
                       />
@@ -767,7 +767,7 @@ export default function AgregarVentaModal({ open, onClose, onSuccess }: AgregarV
                     outline: 'none',
                     backgroundColor: 'white',
                     '&:focus': {
-                      borderColor: '#588a9e'
+                      borderColor: '#1385c3'
                     },
                     '&::-webkit-outer-spin-button, &::-webkit-inner-spin-button': {
                       WebkitAppearance: 'none',

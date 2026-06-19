@@ -11,7 +11,7 @@ export default function AuthWrapper({ children }: { children: React.ReactNode })
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        background: `linear-gradient(135deg, ${colors.primary} 0%, ${colors.primaryDark} 100%)`,
+        background: colors.primaryGradient,
         p: 2,
       }}
     >

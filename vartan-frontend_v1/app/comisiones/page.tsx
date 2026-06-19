@@ -19,7 +19,7 @@ import { useMounted } from '@hooks/useMounted';
 import { useNotification } from '@components/Notifications';
 
 const meses = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
-const VENDOR_COLORS = ['#588a9e', '#285283', '#10B981', '#F59E0B', '#8B5CF6', '#EF4444', '#06B6D4', '#F97316'];
+const VENDOR_COLORS = ['#1385c3', '#285283', '#10B981', '#F59E0B', '#8B5CF6', '#EF4444', '#06B6D4', '#F97316'];
 
 interface IHistorialRow extends IComision {
     nombre: string;
