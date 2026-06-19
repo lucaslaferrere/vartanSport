@@ -61,7 +61,7 @@ export default function AuthLogin() {
 
         <Grid size={{ xs: 12 }}>
           <Box sx={{ mb: 1, textAlign: 'center' }}>
-            <Typography variant="h4" fontWeight={700} gutterBottom sx={{ color: colors.textPrimary }}>Bienvenido a Vartan Sport</Typography>
+            <Typography variant="h4" fontWeight={700} gutterBottom sx={{ color: colors.textPrimary }}>Bienvenido a L & R Solutions</Typography>
             <Typography variant="body2" sx={{ color: colors.textSecondary }}>Inicia sesión para continuar</Typography>
           </Box>
         </Grid>

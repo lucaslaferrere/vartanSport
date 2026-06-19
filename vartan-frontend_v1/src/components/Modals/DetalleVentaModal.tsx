@@ -600,7 +600,7 @@ export default function DetalleVentaModal({ open, onClose, venta }: DetalleVenta
           <Box sx={{ border: '2px solid #000', borderRadius: '4px', p: 1.5, fontFamily: 'Arial, sans-serif', width: '100%', bgcolor: 'white' }}>
 
             <Typography sx={{ textAlign: 'center', fontWeight: 700, fontSize: '14px', letterSpacing: '2px', borderBottom: '1px solid #000', pb: 0.75, mb: 1 }}>
-              VARTAN SPORTS
+              L & R SOLUTIONS
             </Typography>
 
             <Box sx={{ mb: 0.5 }}>
