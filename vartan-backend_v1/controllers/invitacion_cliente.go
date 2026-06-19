@@ -31,7 +31,7 @@ func GenerarInvitacionCliente(c *gin.Context) {
 
 	baseURL := os.Getenv("BASE_URL")
 	if baseURL == "" {
-		baseURL = ""
+		baseURL = "https://mayorea.lrsolutions.com.ar"
 	}
 
 	c.JSON(http.StatusOK, models.InvitacionResponse{
