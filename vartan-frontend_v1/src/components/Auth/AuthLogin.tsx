@@ -25,7 +25,7 @@ export default function AuthLogin() {
       return;
     }
     const trimmed = usuario.trim();
-    const email = trimmed.includes('@') ? trimmed : `${trimmed}@vartan.com`;
+    const email = trimmed.includes('@') ? trimmed : `${trimmed}@mayorea.com`;
     setLoading(true);
     setError(null);
     try {
@@ -55,7 +55,7 @@ export default function AuthLogin() {
       <Grid container spacing={3}>
         <Grid size={{ xs: 12 }}>
           <Box sx={{ display: 'flex', justifyContent: 'center', mb: 2 }}>
-            <img src="/LOGOLR.jpg" alt="Vartan Sport" style={{ height: 80, width: 'auto', objectFit: 'contain' }} />
+            <img src="/LOGOLR.jpg" style={{ height: 80, width: 'auto', objectFit: 'contain' }} />
           </Box>
         </Grid>
 
@@ -90,7 +90,7 @@ export default function AuthLogin() {
                 input: {
                   startAdornment: <InputAdornment position="start"><Person sx={{ color: colors.textSecondary }} /></InputAdornment>,
                   endAdornment: !usuario.includes('@') && usuario.length > 0
-                    ? <InputAdornment position="end"><Typography sx={{ color: colors.textSecondary, fontSize: 14 }}>@vartan.com</Typography></InputAdornment>
+                    ? <InputAdornment position="end"><Typography sx={{ color: colors.textSecondary, fontSize: 14 }}>@mayorea.com</Typography></InputAdornment>
                     : null,
                 },
               }}
