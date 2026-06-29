@@ -315,8 +315,8 @@ func UpdateVentaDetalles(c *gin.Context) {
 
 	descuento := 0.0
 	usaFinanciera := false
-	if request.UsaDescuentoFinanciera && formaPago.Nombre == "Transferencia Financiera" {
-		descuento = request.PrecioVenta * 0.03
+	if request.UsaDescuentoFinanciera && formaPago.Nombre == "Financiera" {
+		descuento = request.PrecioVenta * financieraRate
 		usaFinanciera = true
 	}
 
@@ -581,8 +581,8 @@ func processVenta(c *gin.Context, usuarioID *int, clienteID int, formaPagoID int
 	}
 
 	// El 3% de financiera afecta la GANANCIA, no lo que paga el cliente
-	if usaDescuentoFinanciera && formaPago.Nombre == "Transferencia Financiera" {
-		descuento = total * 0.03 // 3% del precio de venta
+	if usaDescuentoFinanciera && formaPago.Nombre == "Financiera" {
+		descuento = total * financieraRate
 		usaFinanciera = true
 	}
 
@@ -1152,8 +1152,8 @@ func UpdateVenta(c *gin.Context) {
 		saldo = venta.PrecioVenta - senaValue
 	}
 
-	if venta.UsaFinanciera && formaPago.Nombre == "Transferencia Financiera" {
-		venta.Descuento = venta.PrecioVenta * 0.03
+	if venta.UsaFinanciera && formaPago.Nombre == "Financiera" {
+		venta.Descuento = venta.PrecioVenta * financieraRate
 		venta.UsaFinanciera = true
 	} else {
 		venta.Descuento = 0
@@ -1263,7 +1263,7 @@ func UpdateVentaPago(c *gin.Context) {
 
 	// La financiera impacta solo en la ganancia.
 	if venta.UsaFinanciera {
-		venta.Descuento = venta.PrecioVenta * 0.03
+		venta.Descuento = venta.PrecioVenta * financieraRate
 	} else {
 		venta.Descuento = 0
 	}
@@ -1273,7 +1273,7 @@ func UpdateVentaPago(c *gin.Context) {
 	ganancia := venta.PrecioVenta - venta.Costo - venta.Descuento
 	pagoDeHoy := nuevaSena - senaActual
 	if venta.FormaPagoSaldoID != nil && *venta.FormaPagoSaldoID == 1 && pagoDeHoy > 0 {
-		descuentoFinanciera := pagoDeHoy * 0.03
+		descuentoFinanciera := pagoDeHoy * financieraRate
 		ganancia -= descuentoFinanciera
 	}
 	venta.Ganancia = ganancia
