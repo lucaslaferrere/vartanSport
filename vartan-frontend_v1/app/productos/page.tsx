@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState, useCallback } from 'react';
-import { Box, Typography, Chip, CircularProgress, Grid, Stack } from '@mui/material';
+import { Box, Typography, Chip, CircularProgress, Grid, Stack, FormControlLabel, Switch } from '@mui/material';
 import { ColumnDef } from '@tanstack/react-table';
 import TableClientSide from '@components/Tables/TableClientSide';
 import StatCard from '@components/Cards/StatCard';
@@ -54,6 +54,7 @@ export default function ProductosPage() {
   const [productoDetalleStock, setProductoDetalleStock] = useState<IProducto | null>(null);
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
   const [productoToDelete, setProductoToDelete] = useState<IProductoDisplay | null>(null);
+  const [includeInactive, setIncludeInactive] = useState(false);
   const { user } = useAuthStore();
 
   const transformProducto = (producto: IProducto): IProductoDisplay => ({
@@ -77,7 +78,8 @@ export default function ProductosPage() {
     setLoading(true);
     setError(null);
     try {
-      const response = await api.get('/api/productos');
+      const url = includeInactive ? '/api/productos?include_inactive=true' : '/api/productos';
+      const response = await api.get(url);
       const productosData = response.data || []; // 👈 AGREGADO || []
       setProductos(productosData.map(transformProducto));
       setStats(calcularStats(productosData));
@@ -91,7 +93,7 @@ export default function ProductosPage() {
     } finally {
       setLoading(false);
     }
-  }, [mounted]);
+  }, [mounted, includeInactive]);
 
   useEffect(() => {
     if (mounted) {
@@ -228,7 +230,17 @@ export default function ProductosPage() {
   ];
 
   const headerActions = user?.rol === 'dueño' ? (
-      <Stack direction="row" spacing={2}>
+      <Stack direction="row" spacing={2} alignItems="center">
+        <FormControlLabel
+          control={
+            <Switch
+              checked={includeInactive}
+              onChange={(e) => setIncludeInactive(e.target.checked)}
+              size="small"
+            />
+          }
+          label={<Typography sx={{ fontSize: '13px', color: '#6B7280' }}>Mostrar inactivos</Typography>}
+        />
         <OutlineButton
             icon="fa-solid fa-boxes-stacked"
             onClick={() => setAgregarStockModalOpen(true)}
