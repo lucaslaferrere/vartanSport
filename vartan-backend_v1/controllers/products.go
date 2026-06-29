@@ -77,7 +77,11 @@ func buildProductoResponse(producto models.Producto, includeCost bool) (models.P
 func GetProductos(c *gin.Context) {
 	var productos []models.Producto
 
-	if err := config.DB.Where("activo = ?", true).Find(&productos).Error; err != nil {
+	query := config.DB.Model(&models.Producto{})
+	if c.Query("include_inactive") != "true" {
+		query = query.Where("activo = ?", true)
+	}
+	if err := query.Find(&productos).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error al obtener productos"})
 		return
 	}
