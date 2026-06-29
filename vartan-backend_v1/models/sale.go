@@ -45,13 +45,14 @@ func (Venta) TableName() string {
 }
 
 type VentaDetalle struct {
-	ID             int     `gorm:"primaryKey;autoIncrement" json:"id"`
-	VentaID        int     `gorm:"not null" json:"venta_id"`
-	ProductoID     int     `gorm:"not null" json:"producto_id"`
-	Talle          string  `gorm:"type:varchar(10);not null" json:"talle"`
-	Cantidad       int     `gorm:"not null" json:"cantidad"`
-	PrecioUnitario float64 `gorm:"type:decimal(10,2);not null;default:0" json:"precio_unitario"`
-	Subtotal       float64 `gorm:"type:decimal(10,2);not null;default:0" json:"subtotal"`
+	ID              int     `gorm:"primaryKey;autoIncrement" json:"id"`
+	VentaID         int     `gorm:"not null" json:"venta_id"`
+	ProductoID      int     `gorm:"not null" json:"producto_id"`
+	Talle           string  `gorm:"type:varchar(10);not null" json:"talle"`
+	Cantidad        int     `gorm:"not null" json:"cantidad"`
+	PrecioUnitario  float64 `gorm:"type:decimal(10,2);not null;default:0" json:"precio_unitario"`
+	CostoUnitario   float64 `gorm:"type:decimal(10,2);not null;default:0" json:"costo_unitario"`
+	Subtotal        float64 `gorm:"type:decimal(10,2);not null;default:0" json:"subtotal"`
 
 	Producto Producto `gorm:"foreignKey:ProductoID" json:"producto,omitempty"`
 }

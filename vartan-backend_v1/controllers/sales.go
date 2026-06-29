@@ -268,6 +268,7 @@ func UpdateVentaDetalles(c *gin.Context) {
 			Talle:          detalle.Talle,
 			Cantidad:       detalle.Cantidad,
 			PrecioUnitario: detalle.PrecioUnitario,
+			CostoUnitario:  producto.CostoUnitario,
 			Subtotal:       subtotal,
 		}
 
@@ -650,12 +651,20 @@ func processVenta(c *gin.Context, usuarioID *int, clienteID int, formaPagoID int
 	for _, detalleReq := range detalles {
 		subtotal := detalleReq.PrecioUnitario * float64(detalleReq.Cantidad)
 
+		var productoSnap models.Producto
+		if err := tx.First(&productoSnap, detalleReq.ProductoID).Error; err != nil {
+			tx.Rollback()
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error al obtener producto"})
+			return
+		}
+
 		detalle := models.VentaDetalle{
 			VentaID:        venta.ID,
 			ProductoID:     detalleReq.ProductoID,
 			Talle:          detalleReq.Talle,
 			Cantidad:       detalleReq.Cantidad,
 			PrecioUnitario: detalleReq.PrecioUnitario,
+			CostoUnitario:  productoSnap.CostoUnitario,
 			Subtotal:       subtotal,
 		}
 

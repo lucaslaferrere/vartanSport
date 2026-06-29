@@ -9,13 +9,13 @@ import (
 	"gorm.io/gorm"
 )
 
-// RecalcularCostos recorre todas las ventas y recalcula costo, ganancia y detalles
-// usando el costo_unitario real de cada producto en la DB.
-// Solo ejecutable por el dueño. Idem al proceso en processVenta.
+// RecalcularCostos recorre todas las ventas y recalcula costo y ganancia
+// usando el costo_unitario snapshoteado en venta_detalles (no el precio actual del producto).
+// Solo ejecutable por el dueño.
 func RecalcularCostos(c *gin.Context) {
 	var ventas []models.Venta
 	if err := config.DB.
-		Preload("Detalles.Producto").
+		Preload("Detalles").
 		Find(&ventas).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error al obtener ventas"})
 		return
@@ -27,19 +27,7 @@ func RecalcularCostos(c *gin.Context) {
 	for _, venta := range ventas {
 		var costo float64
 		for _, detalle := range venta.Detalles {
-			costoUnitario := detalle.Producto.CostoUnitario
-			subtotal := costoUnitario * float64(detalle.Cantidad)
-			costo += subtotal
-
-			// Actualizar detalle
-			if err := config.DB.Model(&models.VentaDetalle{}).
-				Where("id = ?", detalle.ID).
-				Updates(map[string]interface{}{
-					"precio_unitario": costoUnitario,
-					"subtotal":        subtotal,
-				}).Error; err != nil {
-				errores++
-			}
+			costo += detalle.CostoUnitario * float64(detalle.Cantidad)
 		}
 
 		var descuento float64
@@ -52,8 +40,8 @@ func RecalcularCostos(c *gin.Context) {
 		if err := config.DB.Model(&models.Venta{}).
 			Where("id = ?", venta.ID).
 			Updates(map[string]interface{}{
-				"costo":    costo,
-				"ganancia": ganancia,
+				"costo":     costo,
+				"ganancia":  ganancia,
 				"descuento": descuento,
 			}).Error; err != nil {
 			errores++
@@ -63,10 +51,10 @@ func RecalcularCostos(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"mensaje":     "Recalculo completado",
+		"mensaje":      "Recalculo completado",
 		"actualizadas": actualizadas,
-		"errores":     errores,
-		"total":       len(ventas),
+		"errores":      errores,
+		"total":        len(ventas),
 	})
 }
 

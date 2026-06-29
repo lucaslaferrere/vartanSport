@@ -87,12 +87,10 @@ func GetDashboardMensual(c *gin.Context) {
 		return
 	}
 
-	// Costo calculado desde venta_detalles × costo_unitario del producto (correcto para ventas viejas y nuevas)
 	if err := config.DB.Table("venta_detalles").
 		Joins("JOIN venta ON venta.id = venta_detalles.venta_id").
-		Joins("JOIN productos ON productos.id = venta_detalles.producto_id").
 		Where("venta.fecha_venta >= ? AND venta.fecha_venta < ?", fechaInicio, fechaFin).
-		Select("COALESCE(SUM(venta_detalles.cantidad * productos.costo_unitario), 0)").
+		Select("COALESCE(SUM(venta_detalles.cantidad * venta_detalles.costo_unitario), 0)").
 		Scan(&costoProductos).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error al calcular costo de productos"})
 		return
