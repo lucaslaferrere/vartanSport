@@ -58,6 +58,40 @@ func RecalcularCostos(c *gin.Context) {
 	})
 }
 
+// BackfillCostoDetalles rellena costo_unitario en venta_detalles históricos (donde es 0)
+// usando el costo_unitario actual del producto. Ejecutar una sola vez después de agregar la columna.
+func BackfillCostoDetalles(c *gin.Context) {
+	var detalles []models.VentaDetalle
+	if err := config.DB.
+		Preload("Producto").
+		Where("costo_unitario = 0").
+		Find(&detalles).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error al obtener detalles"})
+		return
+	}
+
+	actualizados := 0
+	errores := 0
+
+	for _, detalle := range detalles {
+		costo := detalle.Producto.CostoUnitario
+		if err := config.DB.Model(&models.VentaDetalle{}).
+			Where("id = ?", detalle.ID).
+			Update("costo_unitario", costo).Error; err != nil {
+			errores++
+		} else {
+			actualizados++
+		}
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"mensaje":     "Backfill de costos completado",
+		"actualizados": actualizados,
+		"errores":     errores,
+		"total":       len(detalles),
+	})
+}
+
 // BackfillSueldos godoc
 // @Summary Backfill sueldos mensuales desde comisiones históricas
 // @Description Para cada fila en comisiones, inserta el sueldo en comisiones_publicitarias_mensuales si no existe ya un registro para ese empleado+mes+año.
