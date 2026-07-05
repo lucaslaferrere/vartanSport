@@ -16,6 +16,7 @@ func RecalcularCostos(c *gin.Context) {
 	var ventas []models.Venta
 	if err := config.DB.
 		Preload("Detalles").
+		Preload("FormaPago").
 		Find(&ventas).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error al obtener ventas"})
 		return
@@ -30,8 +31,9 @@ func RecalcularCostos(c *gin.Context) {
 			costo += detalle.CostoUnitario * float64(detalle.Cantidad)
 		}
 
+		esFinanciera := venta.FormaPago.Nombre == "Financiera"
 		var descuento float64
-		if venta.UsaFinanciera {
+		if esFinanciera {
 			descuento = venta.PrecioVenta * financieraRate
 		}
 
@@ -40,9 +42,10 @@ func RecalcularCostos(c *gin.Context) {
 		if err := config.DB.Model(&models.Venta{}).
 			Where("id = ?", venta.ID).
 			Updates(map[string]interface{}{
-				"costo":     costo,
-				"ganancia":  ganancia,
-				"descuento": descuento,
+				"costo":          costo,
+				"ganancia":       ganancia,
+				"descuento":      descuento,
+				"usa_financiera": esFinanciera,
 			}).Error; err != nil {
 			errores++
 		} else {
