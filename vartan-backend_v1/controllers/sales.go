@@ -315,7 +315,7 @@ func UpdateVentaDetalles(c *gin.Context) {
 
 	descuento := 0.0
 	usaFinanciera := false
-	if request.UsaDescuentoFinanciera && formaPago.Nombre == "Financiera" {
+	if formaPago.Nombre == "Financiera" {
 		descuento = request.PrecioVenta * financieraRate
 		usaFinanciera = true
 	}
@@ -580,8 +580,8 @@ func processVenta(c *gin.Context, usuarioID *int, clienteID int, formaPagoID int
 		saldo = 0
 	}
 
-	// El 3% de financiera afecta la GANANCIA, no lo que paga el cliente
-	if usaDescuentoFinanciera && formaPago.Nombre == "Financiera" {
+	// La financiera afecta la GANANCIA, no lo que paga el cliente
+	if formaPago.Nombre == "Financiera" {
 		descuento = total * financieraRate
 		usaFinanciera = true
 	}
