@@ -790,7 +790,7 @@ export default function AgregarVentaModal({ open, onClose, onSuccess }: AgregarV
                 mb: 1.5
               }}>
                 <Typography sx={{ fontSize: '13px', color: calcularGananciaDisplay() >= 0 ? '#047857' : '#DC2626', fontWeight: 600 }}>
-                  Precio Venta:
+                  Ganancia Estimada:
                 </Typography>
                 <Typography sx={{ fontSize: '18px', fontWeight: 700, color: calcularGananciaDisplay() >= 0 ? '#059669' : '#DC2626' }}>
                   ${calcularGananciaDisplay().toLocaleString('es-AR', { minimumFractionDigits: 2 })}
