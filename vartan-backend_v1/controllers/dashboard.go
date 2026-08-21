@@ -96,7 +96,13 @@ func GetDashboardMensual(c *gin.Context) {
 		return
 	}
 
-	gananciaReal := facturacion - costoProductos
+	var comisionFinanciera float64
+	if err := ventasQuery.Session(&gorm.Session{}).Select("COALESCE(SUM(descuento), 0)").Scan(&comisionFinanciera).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error al calcular comisión de financiera"})
+		return
+	}
+
+	gananciaReal := facturacion - costoProductos - comisionFinanciera
 
 	var publicidad float64
 	if err := config.DB.Model(&models.Comision{}).
@@ -125,7 +131,7 @@ func GetDashboardMensual(c *gin.Context) {
 		return
 	}
 
-	gananciaNeta := facturacion - costoProductos - publicidad - comisionVendedores - gastosFijos
+	gananciaNeta := gananciaReal - publicidad - comisionVendedores - gastosFijos
 	margen := 0.0
 	if facturacion != 0 {
 		margen = gananciaNeta / facturacion
