@@ -9,9 +9,7 @@ import {
 import { colors } from '@/src/theme/colors';
 import { useAuthStore } from '@libraries/store';
 import { dashboardService } from '@services/dashboard.service';
-import { ventaService } from '@services/venta.service';
-import { IDashboardMensual } from '@models/entities/dashboardEntity';
-import { IVenta } from '@models/entities/ventaEntity';
+import { IDashboardMensual, IDashboardVentaReciente } from '@models/entities/dashboardEntity';
 import { useMounted } from '@hooks/useMounted';
 import {
   AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell,
@@ -65,71 +63,21 @@ function useCountUp(target: number, duration = 1200): number {
 
 // ─── Data derivation ─────────────────────────────────────────────────────────
 
-function calcDailyData(ventasMes: IVenta[], ventasPrev: IVenta[], mes: number, anio: number) {
-  const days = new Date(anio, mes, 0).getDate();
-  return Array.from({ length: days }, (_, i) => {
-    const day = i + 1;
-    const actual = ventasMes.filter(v => new Date(v.fecha_venta).getDate() === day).reduce((s, v) => s + v.total, 0);
-    const anterior = ventasPrev.filter(v => new Date(v.fecha_venta).getDate() === day).reduce((s, v) => s + v.total, 0);
-    return { dia: String(day), actual, anterior };
-  });
-}
-
-function calcTopProductos(ventas: IVenta[]) {
-  const map = new Map<string, { cantidad: number; facturacion: number; nombreFull: string }>();
-  ventas.forEach(v =>
-    v.detalles?.forEach(d => {
-      const key = d.producto?.nombre || 'Desconocido';
-      const cur = map.get(key) || { cantidad: 0, facturacion: 0, nombreFull: key };
-      map.set(key, { cantidad: cur.cantidad + d.cantidad, facturacion: cur.facturacion + d.subtotal, nombreFull: key });
-    })
-  );
-  return Array.from(map.entries())
-    .map(([k, d]) => ({
-      nombre: k.length > 16 ? k.substring(0, 14) + '…' : k,
-      nombreFull: d.nombreFull,
-      cantidad: d.cantidad,
-      facturacion: d.facturacion,
-      precioPromedio: d.cantidad > 0 ? Math.round(d.facturacion / d.cantidad) : 0,
-    }))
-    .sort((a, b) => b.cantidad - a.cantidad)
-    .slice(0, 10);
-}
-
-function calcMetodosPago(ventas: IVenta[]) {
-  const map = new Map<string, { count: number; total: number }>();
-  ventas.forEach(v => {
-    const m = v.forma_pago?.nombre || 'Otro';
-    const cur = map.get(m) || { count: 0, total: 0 };
-    map.set(m, { count: cur.count + 1, total: cur.total + v.total });
-  });
-  const totalCount = [...map.values()].reduce((s, d) => s + d.count, 0);
-  return Array.from(map.entries()).map(([name, d]) => ({
-    name, value: d.count, amount: d.total,
-    pct: totalCount > 0 ? Math.round((d.count / totalCount) * 100) : 0,
-  }));
-}
-
-function calcVendedores(ventas: IVenta[]) {
-  const map = new Map<string, { ventas: number; facturacion: number }>();
-  ventas.forEach(v => {
-    const nombre = v.usuario?.nombre || 'Sin asignar';
-    const cur = map.get(nombre) || { ventas: 0, facturacion: 0 };
-    map.set(nombre, { ventas: cur.ventas + 1, facturacion: cur.facturacion + v.total });
-  });
-  return Array.from(map.entries()).map(([nombre, d]) => ({ nombre, ...d })).sort((a, b) => b.facturacion - a.facturacion);
-}
-
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 interface PrevMetrics { cantidad_ventas: number; facturacion: number; ticket_promedio: number; }
 
+interface DailyPoint { dia: string; actual: number; anterior: number; }
+interface TopProducto { nombre: string; nombreFull: string; cantidad: number; facturacion: number; precioPromedio: number; }
+interface MetodoPagoSlice { name: string; value: number; amount: number; pct: number; }
+interface VendedorRow { nombre: string; ventas: number; facturacion: number; }
+
 interface DerivedData {
-  dailyData: ReturnType<typeof calcDailyData>;
-  topProductos: ReturnType<typeof calcTopProductos>;
-  metodosPago: ReturnType<typeof calcMetodosPago>;
-  vendedores: ReturnType<typeof calcVendedores>;
-  ventasRecientes: IVenta[];
+  dailyData: DailyPoint[];
+  topProductos: TopProducto[];
+  metodosPago: MetodoPagoSlice[];
+  vendedores: VendedorRow[];
+  ventasRecientes: IDashboardVentaReciente[];
   prevMetrics: PrevMetrics;
 }
 
@@ -225,7 +173,7 @@ const FinDivider = () => <Box sx={{ borderTop: '1px dashed #E5E7EB' }} />;
 
 // ─── Tooltips ─────────────────────────────────────────────────────────────────
 
-function TooltipDonut({ active, payload }: { active?: boolean; payload?: Array<{ payload: ReturnType<typeof calcMetodosPago>[number] }> }) {
+function TooltipDonut({ active, payload }: { active?: boolean; payload?: Array<{ payload: MetodoPagoSlice }> }) {
   if (!active || !payload?.length) return null;
   const d = payload[0].payload;
   return (
@@ -249,7 +197,7 @@ function TooltipArea({ active, payload, label }: { active?: boolean; payload?: A
   );
 }
 
-function TooltipBar({ active, payload }: { active?: boolean; payload?: Array<{ payload: ReturnType<typeof calcTopProductos>[number] }> }) {
+function TooltipBar({ active, payload }: { active?: boolean; payload?: Array<{ payload: TopProducto }> }) {
   if (!active || !payload?.length) return null;
   const d = payload[0].payload;
   return (
@@ -262,7 +210,7 @@ function TooltipBar({ active, payload }: { active?: boolean; payload?: Array<{ p
   );
 }
 
-function TooltipVendedor({ active, payload }: { active?: boolean; payload?: Array<{ payload: ReturnType<typeof calcVendedores>[number] }> }) {
+function TooltipVendedor({ active, payload }: { active?: boolean; payload?: Array<{ payload: VendedorRow }> }) {
   if (!active || !payload?.length) return null;
   const d = payload[0].payload;
   return (
@@ -321,39 +269,24 @@ export default function DashboardDueno() {
     setLoading(true);
     setError(null);
     try {
-      const [kpis, ventas] = await Promise.all([
-        dashboardService.getMensual(mes, anio),
-        ventaService.getAllUnpaginated(),
-      ]);
-
-      const ventasMes = ventas.filter(v => {
-        const f = new Date(v.fecha_venta);
-        return f.getMonth() + 1 === mes && f.getFullYear() === anio;
-      });
-
-      const { mes: pMes, anio: pAnio } = prevMesInfo(mes, anio);
-      const ventasPrev = ventas.filter(v => {
-        const f = new Date(v.fecha_venta);
-        return f.getMonth() + 1 === pMes && f.getFullYear() === pAnio;
-      });
-
-      const prevFacturacion = ventasPrev.reduce((s, v) => s + v.total, 0);
-      const prevCantidad = ventasPrev.length;
+      const kpis = await dashboardService.getMensual(mes, anio);
 
       setData(kpis);
       setDerived({
-        dailyData: calcDailyData(ventasMes, ventasPrev, mes, anio),
-        topProductos: calcTopProductos(ventasMes),
-        metodosPago: calcMetodosPago(ventasMes),
-        vendedores: calcVendedores(ventasMes),
-        ventasRecientes: [...ventasMes]
-          .sort((a, b) => new Date(b.fecha_venta).getTime() - new Date(a.fecha_venta).getTime())
-          .slice(0, 15),
-        prevMetrics: {
-          cantidad_ventas: prevCantidad,
-          facturacion: prevFacturacion,
-          ticket_promedio: prevCantidad > 0 ? prevFacturacion / prevCantidad : 0,
-        },
+        dailyData: kpis.daily,
+        topProductos: kpis.top_productos.map(p => ({
+          nombre: p.nombre.length > 16 ? p.nombre.substring(0, 14) + '…' : p.nombre,
+          nombreFull: p.nombre,
+          cantidad: p.cantidad,
+          facturacion: p.facturacion,
+          precioPromedio: p.precio_promedio,
+        })),
+        metodosPago: kpis.metodos_pago.map(m => ({
+          name: m.nombre, value: m.cantidad, amount: m.monto, pct: m.porcentaje,
+        })),
+        vendedores: kpis.vendedores,
+        ventasRecientes: kpis.ventas_recientes,
+        prevMetrics: kpis.prev_metrics,
       });
     } catch {
       setError('Error al cargar los datos del dashboard');
@@ -384,7 +317,7 @@ export default function DashboardDueno() {
     let av: string | number = a.fecha_venta;
     let bv: string | number = b.fecha_venta;
     if (sortField === 'total') { av = a.total; bv = b.total; }
-    if (sortField === 'cliente') { av = a.cliente?.nombre || ''; bv = b.cliente?.nombre || ''; }
+    if (sortField === 'cliente') { av = a.cliente || ''; bv = b.cliente || ''; }
     if (av < bv) return sortDir === 'asc' ? -1 : 1;
     if (av > bv) return sortDir === 'asc' ? 1 : -1;
     return 0;
@@ -592,12 +525,12 @@ export default function DashboardDueno() {
                     '& .MuiTableCell-root': { borderBottom: '1px solid #F3F4F6', py: 0.75 },
                   }}>
                     <TableCell sx={{ fontSize: '12px', color: '#374151', whiteSpace: 'nowrap' }}>{fmtDate(v.fecha_venta)}</TableCell>
-                    <TableCell sx={{ fontSize: '12px', color: '#1F2937', fontWeight: 500 }}>{v.cliente?.nombre || '—'}</TableCell>
+                    <TableCell sx={{ fontSize: '12px', color: '#1F2937', fontWeight: 500 }}>{v.cliente || '—'}</TableCell>
                     <TableCell sx={{ fontSize: '11px', color: '#6B7280' }}>
-                      {v.detalles && v.detalles.length > 0 ? (v.detalles.length === 1 ? (v.detalles[0].producto?.nombre?.substring(0, 22) || '1 producto') : `${v.detalles.length} productos`) : '—'}
+                      {v.cantidad_items > 0 ? (v.cantidad_items === 1 ? (v.primer_producto.substring(0, 22) || '1 producto') : `${v.cantidad_items} productos`) : '—'}
                     </TableCell>
                     <TableCell>
-                      <Chip label={v.forma_pago?.nombre || 'N/D'} size="small" sx={{ fontSize: '10px', height: '20px', bgcolor: colors.primaryLight, color: colors.primaryDark, fontWeight: 500 }} />
+                      <Chip label={v.forma_pago || 'N/D'} size="small" sx={{ fontSize: '10px', height: '20px', bgcolor: colors.primaryLight, color: colors.primaryDark, fontWeight: 500 }} />
                     </TableCell>
                     <TableCell sx={{ fontSize: '12px', fontWeight: 700, color: '#1F2937', fontVariantNumeric: 'tabular-nums' }}>{fmtPesos(v.total)}</TableCell>
                     <TableCell>
