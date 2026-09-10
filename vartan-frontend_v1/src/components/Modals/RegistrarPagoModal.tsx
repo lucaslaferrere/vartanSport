@@ -88,10 +88,23 @@ export default function RegistrarPagoModal({ open, onClose, onSuccess, venta }: 
 
     try {
       await ventaService.registrarPago(venta.id, pagoDeHoy, formaPagoSaldoId, comprobante || undefined);
+    } catch (err: unknown) {
+      console.error('Error registrando pago:', err);
+      const error = err as { response?: { data?: { error?: string } } };
+      const errorMessage = error.response?.data?.error || 'Error al registrar el pago';
+      addNotification(errorMessage, 'error');
+      setError(errorMessage);
+      setLoading(false);
+      return;
+    }
 
+    // The payment is recorded from here on. Refreshing the sale is a separate
+    // concern: reporting its failure as a failed payment would invite a retry
+    // and charge the client twice.
+    addNotification('Pago registrado exitosamente', 'success');
+
+    try {
       const ventaActualizada = await ventaService.getById(venta.id);
-
-      addNotification('Pago registrado exitosamente', 'success');
 
       if (ventaActualizada.saldo === 0) {
         addNotification('Venta pagada completamente', 'success');
@@ -102,11 +115,9 @@ export default function RegistrarPagoModal({ open, onClose, onSuccess, venta }: 
       handleClose();
       onSuccess(ventaActualizada);
     } catch (err: unknown) {
-      console.error('Error registrando pago:', err);
-      const error = err as { response?: { data?: { error?: string } } };
-      const errorMessage = error.response?.data?.error || 'Error al registrar el pago';
-      addNotification(errorMessage, 'error');
-      setError(errorMessage);
+      console.error('Error actualizando la venta tras el pago:', err);
+      addNotification('El pago se registró. No se pudo actualizar la pantalla: recargá para ver el saldo.', 'info');
+      handleClose();
     } finally {
       setLoading(false);
     }

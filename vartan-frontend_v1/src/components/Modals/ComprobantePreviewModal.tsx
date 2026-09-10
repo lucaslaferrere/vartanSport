@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { Dialog, DialogTitle, DialogContent, Box, IconButton, Typography } from '@mui/material';
+import { buildComprobanteUrl } from '@libraries/api';
 
 interface ComprobantePreviewModalProps {
   open: boolean;
@@ -27,26 +28,19 @@ export default function ComprobantePreviewModal({
 
   const ext = comprobanteUrl?.split('.').pop()?.toLowerCase() ?? '';
   const isPdf = ext === 'pdf';
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
 
   useEffect(() => {
     if (!open) return;
     setError(false);
-
-    if (comprobanteUrl) {
-      const normalized = comprobanteUrl.replace(/\\/g, '/').replace(/^\/+/, '');
-      setDisplayUrl(`${apiUrl}/${normalized}`);
-    } else {
-      setDisplayUrl(null);
-    }
-  }, [open, comprobanteUrl, apiUrl]);
+    setDisplayUrl(comprobanteUrl ? buildComprobanteUrl(comprobanteUrl) : null);
+  }, [open, comprobanteUrl]);
 
   const handleDescargar = async () => {
     if (!comprobanteUrl) return;
-    const normalized = comprobanteUrl.replace(/\\/g, '/').replace(/^\/+/, '');
+    const fileUrl = buildComprobanteUrl(comprobanteUrl);
     const nombre = `comprobante_venta_${ventaId}.${ext}`;
     try {
-      const response = await fetch(`${apiUrl}/${normalized}`);
+      const response = await fetch(fileUrl);
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
@@ -57,7 +51,7 @@ export default function ComprobantePreviewModal({
       link.remove();
       window.URL.revokeObjectURL(url);
     } catch {
-      window.open(`${apiUrl}/${normalized}`, '_blank');
+      window.open(fileUrl, '_blank');
     }
   };
 

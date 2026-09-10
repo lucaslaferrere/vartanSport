@@ -19,6 +19,30 @@ import (
 
 const financieraRate = 0.025
 
+// VentasStats carries the sales-page headline figures, aggregated over the whole
+// filtered set so paging does not change them.
+type VentasStats struct {
+	VentasHoy int     `json:"ventas_hoy"`
+	TotalHoy  float64 `json:"total_hoy"`
+	VentasMes int     `json:"ventas_mes"`
+	TotalMes  float64 `json:"total_mes"`
+}
+
+type periodoTotales struct {
+	Cantidad int
+	Monto    float64
+}
+
+// puedeAccederVenta reports whether the caller may act on this sale. Owners reach
+// every sale; employees are limited to their own, because each sale feeds the
+// commission of the seller who created it.
+func puedeAccederVenta(c *gin.Context, venta *models.Venta) bool {
+	if normalizeRegistroRol(c.GetString("rol")) == "dueño" {
+		return true
+	}
+	return venta.UsuarioID == c.GetInt("user_id")
+}
+
 // CreateVenta godoc
 // @Summary Crear venta
 // @Description Crea una nueva venta con descuentos automáticos y opcionalmente un comprobante
@@ -60,8 +84,9 @@ func DeleteVenta(c *gin.Context) {
 	for _, detalle := range venta.Detalles {
 		var stock models.ProductoStock
 		if err := tx.Where("producto_id = ? AND talle = ?", detalle.ProductoID, detalle.Talle).First(&stock).Error; err == nil {
-			stock.Cantidad += detalle.Cantidad
-			if err := tx.Save(&stock).Error; err != nil {
+			if err := tx.Model(&models.ProductoStock{}).
+				Where("id = ?", stock.ID).
+				UpdateColumn("cantidad", gorm.Expr("cantidad + ?", detalle.Cantidad)).Error; err != nil {
 				tx.Rollback()
 				c.JSON(http.StatusInternalServerError, gin.H{"error": "Error al restaurar stock"})
 				return
@@ -134,6 +159,11 @@ func GetVenta(c *gin.Context) {
 		Preload("Pagos.FormaPago").
 		First(&venta, ventaID).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Venta no encontrada"})
+		return
+	}
+
+	if !puedeAccederVenta(c, &venta) {
+		c.JSON(http.StatusForbidden, gin.H{"error": "No tenés permisos para ver esta venta"})
 		return
 	}
 
@@ -681,16 +711,19 @@ func processVenta(c *gin.Context, usuarioID *int, clienteID int, formaPagoID int
 			return
 		}
 
-		if stock.Cantidad < detalleReq.Cantidad {
-			tx.Rollback()
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Stock insuficiente"})
-			return
-		}
-
-		stock.Cantidad -= detalleReq.Cantidad
-		if err := tx.Save(&stock).Error; err != nil {
+		// Conditional update instead of read-modify-write: two concurrent sales
+		// would otherwise both pass an in-memory check and oversell the same units.
+		result := tx.Model(&models.ProductoStock{}).
+			Where("id = ? AND cantidad >= ?", stock.ID, detalleReq.Cantidad).
+			UpdateColumn("cantidad", gorm.Expr("cantidad - ?", detalleReq.Cantidad))
+		if result.Error != nil {
 			tx.Rollback()
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error al actualizar stock"})
+			return
+		}
+		if result.RowsAffected == 0 {
+			tx.Rollback()
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Stock insuficiente"})
 			return
 		}
 	}
@@ -814,12 +847,47 @@ func GetVentas(c *gin.Context) {
 		return
 	}
 
+	// Totals run over the whole filtered set, not the page. Summing the returned
+	// rows made the figures change when the user merely paged.
+	loc, err := time.LoadLocation(dashboardTZ)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error al cargar zona horaria"})
+		return
+	}
+	ahora := time.Now().In(loc)
+	inicioHoy := time.Date(ahora.Year(), ahora.Month(), ahora.Day(), 0, 0, 0, 0, loc)
+	inicioMes, finMes := monthRange(int(ahora.Month()), ahora.Year(), loc)
+
+	var hoy, mes periodoTotales
+	if err := query.Session(&gorm.Session{}).
+		Where("fecha_venta >= ? AND fecha_venta < ?", inicioHoy, inicioHoy.AddDate(0, 0, 1)).
+		Select("COUNT(*) AS cantidad, COALESCE(SUM(total_final), 0) AS monto").
+		Scan(&hoy).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error al calcular totales del día"})
+		return
+	}
+	if err := query.Session(&gorm.Session{}).
+		Where("fecha_venta >= ? AND fecha_venta < ?", inicioMes, finMes).
+		Select("COUNT(*) AS cantidad, COALESCE(SUM(total_final), 0) AS monto").
+		Scan(&mes).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error al calcular totales del mes"})
+		return
+	}
+
+	stats := VentasStats{
+		VentasHoy: hoy.Cantidad,
+		TotalHoy:  hoy.Monto,
+		VentasMes: mes.Cantidad,
+		TotalMes:  mes.Monto,
+	}
+
 	c.JSON(http.StatusOK, gin.H{
 		"ventas":      ventas,
 		"total":       total,
 		"page":        page,
 		"limit":       limit,
 		"total_pages": (int(total) + limit - 1) / limit,
+		"stats":       stats,
 	})
 }
 

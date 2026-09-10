@@ -82,10 +82,12 @@ type VentaCreateFormRequest struct {
 }
 
 type VentaDetalleCreateRequest struct {
-	ProductoID     int     `json:"producto_id" binding:"required"`
-	Talle          string  `json:"talle" binding:"required"`
-	Cantidad       int     `json:"cantidad" binding:"required"`
-	PrecioUnitario float64 `json:"precio_unitario" binding:"required"`
+	ProductoID int    `json:"producto_id" binding:"required"`
+	Talle      string `json:"talle" binding:"required"`
+	// min=1 is load-bearing: "required" alone rejects only the zero value, so a
+	// negative quantity would pass validation and add phantom stock on subtract.
+	Cantidad       int     `json:"cantidad" binding:"required,min=1"`
+	PrecioUnitario float64 `json:"precio_unitario" binding:"required,min=0"`
 }
 
 type VentaUpdateRequest struct {

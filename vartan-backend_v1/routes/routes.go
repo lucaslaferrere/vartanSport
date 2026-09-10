@@ -16,10 +16,24 @@ func SetupRoutes(router *gin.Engine) {
 		c.JSON(200, gin.H{"status": "ok", "message": "Servidor funcionando correctamente"})
 	})
 
+	// Product images back the public catalog, so they are served openly.
+	// Comprobantes are private: they go through an authenticated handler, with the
+	// token in the query string because a browser cannot attach an Authorization
+	// header to <img>, <iframe> or window.open.
+	router.Static("/uploads/products", "./uploads/products")
+	router.GET("/uploads/comprobantes/:filename", middleware.QueryTokenAuthMiddleware(), controllers.ServeComprobante)
+
 	auth := router.Group("/auth")
 	{
 		auth.POST("/login", controllers.Login)
-		auth.POST("/register", controllers.Register)
+	}
+
+	// User creation is owner-only. The first owner of a new deployment is
+	// bootstrapped out-of-band with cmd/tools/create-owner.
+	authAdmin := router.Group("/auth")
+	authAdmin.Use(middleware.AuthMiddleware(), middleware.RequireDueno())
+	{
+		authAdmin.POST("/register", controllers.Register)
 	}
 
 	api := router.Group("/api")
@@ -56,7 +70,7 @@ func SetupRoutes(router *gin.Engine) {
 		api.PUT("/ventas/:id", middleware.RequireWrite(), controllers.UpdateVenta)
 		api.PUT("/ventas/:id/pago", middleware.RequireWrite(), controllers.UpdateVentaPago)
 		api.PUT("/ventas/:id/detalles", middleware.RequireWrite(), controllers.UpdateVentaDetalles)
-		api.DELETE("/ventas/:id", middleware.RequireWrite(), controllers.DeleteVenta)
+		api.DELETE("/ventas/:id", middleware.RequireDueno(), controllers.DeleteVenta)
 		api.GET("/ventas/:id/comprobante", controllers.GetVentaComprobante)
 		api.GET("/ventas/:id/comprobante-saldo", controllers.GetVentaComprobanteSaldo)
 		api.GET("/ventas/:id/comprobantes", controllers.GetVentaComprobantes)

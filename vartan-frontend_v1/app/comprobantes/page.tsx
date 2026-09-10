@@ -7,6 +7,7 @@ import { useUserPermissions } from '@components/Validators/UserPermissionsContex
 import { comprobanteService, IComprobante, IFiltrosComprobantes } from '@services/comprobante.service';
 import { usuarioService } from '@services/usuario.service';
 import { ventaService } from '@services/venta.service';
+import { buildComprobanteUrl } from '@libraries/api';
 import { IFormaPago } from '@models/entities/ventaEntity';
 import { useNotification } from '@components/Notifications';
 import ComprobanteCard from '@components/Cards/ComprobanteCard';
@@ -135,9 +136,7 @@ export default function ComprobantesPage() {
   };
 
   const descargarDesdeUrl = async (url: string, nombre: string) => {
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
-    const normalized = url.replace(/\\/g, '/').replace(/^\/+/, '');
-    const response = await fetch(`${apiUrl}/${normalized}`);
+    const response = await fetch(buildComprobanteUrl(url));
     const blob = await response.blob();
     const objectUrl = window.URL.createObjectURL(blob);
     const link = document.createElement('a');

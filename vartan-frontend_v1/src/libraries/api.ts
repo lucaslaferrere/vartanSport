@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { useAuthStore } from './store';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
 
@@ -8,6 +9,16 @@ export const api = axios.create({
         'Content-Type': 'application/json',
     },
 });
+
+// Comprobantes are served by an authenticated route, and a browser cannot attach
+// an Authorization header to <img>, <iframe> or window.open, so the token travels
+// as a query parameter.
+export const buildComprobanteUrl = (comprobanteUrl: string): string => {
+    const normalized = comprobanteUrl.replace(/\\/g, '/').replace(/^\/+/, '');
+    const base = `${API_URL}/${normalized}`;
+    const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+    return token ? `${base}?token=${encodeURIComponent(token)}` : base;
+};
 
 api.interceptors.request.use((config) => {
     if (typeof window !== 'undefined') {
@@ -56,8 +67,10 @@ api.interceptors.response.use(
 
         if (error.response?.status === 401) {
             if (typeof window !== 'undefined') {
-                localStorage.removeItem('token');
-                localStorage.removeItem('user');
+                // Delegating to the store also clears the auth-token cookie. Clearing
+                // only localStorage leaves the cookie behind, and the middleware then
+                // treats the session as alive and bounces /login back to /dashboard.
+                useAuthStore.getState().logout();
                 window.location.href = '/login';
             }
         }

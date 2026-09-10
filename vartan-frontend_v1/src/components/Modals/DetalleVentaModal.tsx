@@ -4,6 +4,8 @@ import React, { useState, useEffect } from 'react';
 import { Dialog, DialogTitle, DialogContent, DialogActions, Box, Typography, Grid, Divider, CircularProgress, Tabs, Tab } from '@mui/material';
 import { IVenta, IPagoVenta } from '@models/entities/ventaEntity';
 import { ventaService } from '@services/venta.service';
+import { buildComprobanteUrl } from '@libraries/api';
+import { escapeHtml } from '@libraries/html';
 import TabPanel from '@components/Tabs/TabPanel';
 
 interface DetalleVentaModalProps {
@@ -66,12 +68,6 @@ export default function DetalleVentaModal({ open, onClose, venta }: DetalleVenta
       : []),
   ];
 
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
-
-  const buildComprobanteUrl = (comprobanteUrl: string) => {
-    const normalized = comprobanteUrl.replace(/\\/g, '/').replace(/^\/+/, '');
-    return `${apiUrl}/${normalized}`;
-  };
 
   const formatFechaPago = (iso: string) => {
     const date = new Date(iso);
@@ -194,42 +190,42 @@ export default function DetalleVentaModal({ open, onClose, venta }: DetalleVenta
 
             <div class="campo">
               <span class="label">DESTINATARIO</span>
-              <span class="valor">${cliente?.nombre || '-'}</span>
+              <span class="valor">${escapeHtml(cliente?.nombre) || '-'}</span>
             </div>
             <div class="campo">
               <span class="label">DNI</span>
-              <span class="valor">${cliente?.dni || '-'}</span>
+              <span class="valor">${escapeHtml(cliente?.dni) || '-'}</span>
             </div>
             <div class="campo">
               <span class="label">TELÉFONO</span>
-              <span class="valor">${cliente?.telefono || '-'}</span>
+              <span class="valor">${escapeHtml(cliente?.telefono) || '-'}</span>
             </div>
             <div class="campo">
               <span class="label">EMAIL</span>
-              <span class="valor">${cliente?.email || '-'}</span>
+              <span class="valor">${escapeHtml(cliente?.email) || '-'}</span>
             </div>
 
             <div class="divider"></div>
 
             <div class="campo">
               <span class="label">DIRECCIÓN</span>
-              <span class="valor">${cliente?.direccion || '-'}</span>
+              <span class="valor">${escapeHtml(cliente?.direccion) || '-'}</span>
             </div>
             <div class="campo">
               <span class="label">LOCALIDAD</span>
-              <span class="valor">${cliente?.ciudad || '-'}</span>
+              <span class="valor">${escapeHtml(cliente?.ciudad) || '-'}</span>
             </div>
             <div class="campo">
               <span class="label">PROVINCIA</span>
-              <span class="valor">${cliente?.provincia || '-'}</span>
+              <span class="valor">${escapeHtml(cliente?.provincia) || '-'}</span>
             </div>
             <div class="campo">
               <span class="label">CÓDIGO POSTAL</span>
-              <span class="valor">${cliente?.codigo_postal || '-'}</span>
+              <span class="valor">${escapeHtml(cliente?.codigo_postal) || '-'}</span>
             </div>
 
             <div class="transporte">
-              🚚 ${transporteActual || 'Sin transporte especificado'}
+              🚚 ${escapeHtml(transporteActual) || 'Sin transporte especificado'}
             </div>
 
             <div class="pedido">Pedido #${venta.id}</div>

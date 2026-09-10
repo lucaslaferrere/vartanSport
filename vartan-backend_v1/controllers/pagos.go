@@ -13,6 +13,7 @@ import (
 	"vartan-backend/models"
 
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 )
 
 // CreatePagoVenta godoc
@@ -42,6 +43,11 @@ func CreatePagoVenta(c *gin.Context) {
 	var venta models.Venta
 	if err := config.DB.First(&venta, ventaID).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Venta no encontrada"})
+		return
+	}
+
+	if !puedeAccederVenta(c, &venta) {
+		c.JSON(http.StatusForbidden, gin.H{"error": "No tenés permisos para registrar pagos en esta venta"})
 		return
 	}
 
@@ -152,16 +158,26 @@ func CreatePagoVenta(c *gin.Context) {
 		return
 	}
 
-	venta.Saldo = venta.Saldo - monto
-	if venta.Saldo < 0 {
-		venta.Saldo = 0
-	}
-	if err := tx.Model(&models.Venta{}).Where("id = ?", venta.ID).Update("saldo", venta.Saldo).Error; err != nil {
+	// The saldo check above reads outside this transaction, so two concurrent
+	// payments can both pass it. The WHERE clause makes the database the
+	// arbiter: whichever payment loses the race updates zero rows.
+	result := tx.Model(&models.Venta{}).
+		Where("id = ? AND saldo >= ?", venta.ID, monto).
+		UpdateColumn("saldo", gorm.Expr("saldo - ?", monto))
+	if result.Error != nil {
 		tx.Rollback()
 		if comprobanteURL != nil {
 			os.Remove(*comprobanteURL)
 		}
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error al actualizar saldo de la venta"})
+		return
+	}
+	if result.RowsAffected == 0 {
+		tx.Rollback()
+		if comprobanteURL != nil {
+			os.Remove(*comprobanteURL)
+		}
+		c.JSON(http.StatusBadRequest, gin.H{"error": "El monto excede el saldo pendiente de la venta"})
 		return
 	}
 

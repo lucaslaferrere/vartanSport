@@ -15,6 +15,7 @@ import { IVenta } from '@models/entities/ventaEntity';
 import { useAuthStore } from '@libraries/store';
 import { useMounted } from '@hooks/useMounted';
 import { useNotification } from '@components/Notifications';
+import { escapeHtml } from '@libraries/html';
 // import { debugAuth } from '@/src/utils/debugAuth'; // Descomentar para debugging
 
 interface IPedidoDisplay {
@@ -160,16 +161,16 @@ function PedidosPage() {
         <body>
           <div class="etiqueta">
             <div class="header">MAYOREA - LR SOLUTIONS</div>
-            <div class="campo"><span class="label">DESTINATARIO</span><span class="valor">${cliente?.nombre || '-'}</span></div>
-            <div class="campo"><span class="label">DNI</span><span class="valor">${cliente?.dni || '-'}</span></div>
-            <div class="campo"><span class="label">TELÉFONO</span><span class="valor">${cliente?.telefono || '-'}</span></div>
-            <div class="campo"><span class="label">EMAIL</span><span class="valor">${cliente?.email || '-'}</span></div>
+            <div class="campo"><span class="label">DESTINATARIO</span><span class="valor">${escapeHtml(cliente?.nombre) || '-'}</span></div>
+            <div class="campo"><span class="label">DNI</span><span class="valor">${escapeHtml(cliente?.dni) || '-'}</span></div>
+            <div class="campo"><span class="label">TELÉFONO</span><span class="valor">${escapeHtml(cliente?.telefono) || '-'}</span></div>
+            <div class="campo"><span class="label">EMAIL</span><span class="valor">${escapeHtml(cliente?.email) || '-'}</span></div>
             <div class="divider"></div>
-            <div class="campo"><span class="label">DIRECCIÓN</span><span class="valor">${cliente?.direccion || '-'}</span></div>
-            <div class="campo"><span class="label">LOCALIDAD</span><span class="valor">${cliente?.ciudad || '-'}</span></div>
-            <div class="campo"><span class="label">PROVINCIA</span><span class="valor">${cliente?.provincia || '-'}</span></div>
-            <div class="campo"><span class="label">CÓDIGO POSTAL</span><span class="valor">${cliente?.codigo_postal || '-'}</span></div>
-            <div class="transporte">🚚 ${transporteTexto}</div>
+            <div class="campo"><span class="label">DIRECCIÓN</span><span class="valor">${escapeHtml(cliente?.direccion) || '-'}</span></div>
+            <div class="campo"><span class="label">LOCALIDAD</span><span class="valor">${escapeHtml(cliente?.ciudad) || '-'}</span></div>
+            <div class="campo"><span class="label">PROVINCIA</span><span class="valor">${escapeHtml(cliente?.provincia) || '-'}</span></div>
+            <div class="campo"><span class="label">CÓDIGO POSTAL</span><span class="valor">${escapeHtml(cliente?.codigo_postal) || '-'}</span></div>
+            <div class="transporte">🚚 ${escapeHtml(transporteTexto)}</div>
             <div class="pedido">Pedido #${row.id}</div>
           </div>
           <script>window.onload = () => { window.print(); window.onafterprint = () => window.close(); }</script>
