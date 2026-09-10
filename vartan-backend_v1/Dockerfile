@@ -13,9 +13,6 @@ RUN go mod download
 # Copiar todo el código
 COPY . .
 
-# Eliminar archivos con funciones main adicionales que causan conflicto
-RUN rm -f create_owner.go register_employees.go verify_employees.go register_all_employees.go create_user.go
-
 # Compilar la aplicación
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="-s -w" -o app .
 

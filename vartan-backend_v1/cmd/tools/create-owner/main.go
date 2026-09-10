@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"log"
 	"vartan-backend/config"
@@ -11,12 +12,19 @@ import (
 )
 
 func main() {
-	// Cargar variables de entorno
+	nombre := flag.String("nombre", "", "Nombre del dueño (requerido)")
+	email := flag.String("email", "", "Email del dueño (requerido)")
+	password := flag.String("password", "admin123", "Password inicial (cambiarla después del primer login)")
+	flag.Parse()
+
+	if *nombre == "" || *email == "" {
+		log.Fatal("❌ -nombre y -email son requeridos. Uso: create-owner -nombre \"Juan Perez\" -email juan@ejemplo.com [-password miClave]")
+	}
+
 	if err := godotenv.Load(); err != nil {
 		log.Println("⚠️  No se encontró archivo .env")
 	}
 
-	// Conectar a la base de datos
 	config.ConnectDatabase()
 
 	fmt.Println("========================================")
@@ -24,7 +32,6 @@ func main() {
 	fmt.Println("========================================")
 	fmt.Println()
 
-	// Verificar si ya existe un dueño
 	var existente models.Usuario
 	result := config.DB.Where("rol = ?", "dueño").First(&existente)
 
@@ -37,17 +44,15 @@ func main() {
 		return
 	}
 
-	// Crear el usuario dueño
-	password := "admin123"
-	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(*password), bcrypt.DefaultCost)
 	if err != nil {
 		fmt.Printf("❌ Error al hashear contraseña: %v\n", err)
 		return
 	}
 
 	usuario := models.Usuario{
-		Nombre:             "Admin VartanSport",
-		Email:              "admin@vartansport.com",
+		Nombre:             *nombre,
+		Email:              *email,
 		PasswordHash:       string(hashedPassword),
 		Rol:                "dueño",
 		Activo:             true,
@@ -63,7 +68,7 @@ func main() {
 	fmt.Println("✅ Usuario dueño creado exitosamente")
 	fmt.Printf("   Nombre: %s\n", usuario.Nombre)
 	fmt.Printf("   Email: %s\n", usuario.Email)
-	fmt.Printf("   Password: %s\n", password)
+	fmt.Printf("   Password: %s\n", *password)
 	fmt.Printf("   ID: %d\n", usuario.ID)
 	fmt.Println()
 }
