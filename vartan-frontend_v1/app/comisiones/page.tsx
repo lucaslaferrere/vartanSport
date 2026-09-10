@@ -390,7 +390,7 @@ const [miResumen, setMiResumen] = useState<IMiResumenComision | null>(null);
                                             title="Ganancias"
                                             value={formatCurrency(miResumen.mes_actual.total_ganancia ?? 0)}
                                             icon="fa-solid fa-money-bill"
-                                            subtitle="Precio venta - costo"
+                                            subtitle="Precio venta - costo - financiera"
                                         />
                                     </Grid>
                                     <Grid size={{ xs: 12, sm: 6, md: 3 }}>
@@ -398,7 +398,7 @@ const [miResumen, setMiResumen] = useState<IMiResumenComision | null>(null);
                                             title="Comisión Neta"
                                             value={formatCurrency(miResumen.mes_actual.comision_neta)}
                                             icon="fa-solid fa-percent"
-                                            subtitle={`${miResumen.configuracion.porcentaje_comision}% sobre ganancia`}
+                                            subtitle={`${miResumen.configuracion.porcentaje_comision}% sobre facturado`}
                                         />
                                         <Box sx={{ mt: 1, p: 1.5, bgcolor: '#F0FDF4', borderRadius: '8px', border: '1px solid #A7F3D0' }}>
                                             <Typography sx={{ fontSize: '11px', color: '#6B7280' }}>Bonos:</Typography>
