@@ -7,6 +7,14 @@ interface IVentaCreateResponse {
     venta: IVenta;
 }
 
+// Aggregated over the whole filtered set by the backend, not over the page.
+export interface IVentasStatsResponse {
+    ventas_hoy: number;
+    total_hoy: number;
+    ventas_mes: number;
+    total_mes: number;
+}
+
 export const ventaService = {
     getMisVentas: async (): Promise<IVenta[]> => {
         const response = await api.get<IVenta[]>('/api/mis-ventas');
@@ -115,10 +123,10 @@ export const ventaService = {
         return response.data;
     },
 
-    getAllPaginated: async (page: number, pageSize: number, filters: Record<string, string> = {}): Promise<{ ventas: IVenta[]; total: number }> => {
+    getAllPaginated: async (page: number, pageSize: number, filters: Record<string, string> = {}): Promise<{ ventas: IVenta[]; total: number; stats: IVentasStatsResponse }> => {
         const params = new URLSearchParams({ page: String(page), limit: String(pageSize), ...filters });
-        const response = await api.get<{ ventas: IVenta[]; total: number }>(`/api/owner/ventas?${params.toString()}`);
-        return { ventas: response.data.ventas, total: response.data.total };
+        const response = await api.get<{ ventas: IVenta[]; total: number; stats: IVentasStatsResponse }>(`/api/owner/ventas?${params.toString()}`);
+        return { ventas: response.data.ventas, total: response.data.total, stats: response.data.stats };
     },
 
     getByUsuario: async (usuarioId: number): Promise<IVenta[]> => {

@@ -53,6 +53,11 @@ export default function VentasPage() {
   const [totalVentas, setTotalVentas] = useState(0);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(50);
+  const [filtros, setFiltros] = useState<Record<string, string>>({});
+  // The figures follow the active filters, so the cards have to say so — a total
+  // that silently narrows is worse than one that is plainly wrong.
+  const hayFiltros = Object.values(filtros).some((v) => v.trim() !== '');
+  const subtituloStats = hayFiltros ? 'Sobre el filtro aplicado' : undefined;
   const [stats, setStats] = useState<IVentasStats>({
     ventasHoy: 0,
     totalHoy: 0,
@@ -110,17 +115,25 @@ export default function VentasPage() {
     };
   };
 
-  const fetchVentas = useCallback(async (currentPage = page, currentPageSize = pageSize, currentFilters: Record<string, string> = {}) => {
+  // Page, size and filters are read from state rather than passed in, so every
+  // fetch carries the full query. Passing them per call let a page change fire a
+  // request with no filters, which raced with and overwrote the filtered results.
+  const fetchVentas = useCallback(async () => {
     if (!mounted) return;
 
     setError(null);
     try {
       if (user?.rol === 'dueño') {
-        const result = await ventaService.getAllPaginated(currentPage, currentPageSize, currentFilters);
+        const result = await ventaService.getAllPaginated(page, pageSize, filtros);
         setVentasRaw(result.ventas);
         setVentas(result.ventas.map(transformVenta));
         setTotalVentas(result.total);
-        setStats(calcularStats(result.ventas));
+        setStats({
+          ventasHoy: result.stats.ventas_hoy,
+          totalHoy: result.stats.total_hoy,
+          ventasMes: result.stats.ventas_mes,
+          totalMes: result.stats.total_mes,
+        });
       } else {
         const ventasData = await ventaService.getMisVentas();
         setVentasRaw(ventasData);
@@ -129,7 +142,7 @@ export default function VentasPage() {
         setStats(calcularStats(ventasData));
       }
     } catch (err: unknown) {
-      console.error('Error fetching ventas (filtros:', currentFilters, '):', err);
+      console.error('Error fetching ventas (filtros:', filtros, '):', err);
       const errorMessage = err instanceof Error && err.message.includes('Network')
         ? 'No se puede conectar al servidor'
         : 'Error al cargar las ventas';
@@ -137,7 +150,7 @@ export default function VentasPage() {
     } finally {
       setInitialLoading(false);
     }
-  }, [mounted, user?.rol, page, pageSize]);
+  }, [mounted, user?.rol, page, pageSize, filtros]);
 
   useEffect(() => {
     if (mounted) {
@@ -306,16 +319,16 @@ export default function VentasPage() {
         {/* Stats Cards */}
         <Grid container spacing={3} sx={{ mb: 4 }}>
           <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-            <StatCard title="Ventas Hoy" value={stats.ventasHoy} icon="fa-solid fa-shopping-bag" />
+            <StatCard title="Ventas Hoy" value={stats.ventasHoy} icon="fa-solid fa-shopping-bag" subtitle={subtituloStats} />
           </Grid>
           <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-            <StatCard title="Total Hoy" value={formatCurrency(stats.totalHoy)} icon="fa-solid fa-dollar-sign" />
+            <StatCard title="Total Hoy" value={formatCurrency(stats.totalHoy)} icon="fa-solid fa-dollar-sign" subtitle={subtituloStats} />
           </Grid>
           <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-            <StatCard title="Ventas del Mes" value={stats.ventasMes} icon="fa-solid fa-calendar" />
+            <StatCard title="Ventas del Mes" value={stats.ventasMes} icon="fa-solid fa-calendar" subtitle={subtituloStats} />
           </Grid>
           <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-            <StatCard title="Total del Mes" value={formatCurrency(stats.totalMes)} icon="fa-solid fa-chart-line" />
+            <StatCard title="Total del Mes" value={formatCurrency(stats.totalMes)} icon="fa-solid fa-chart-line" subtitle={subtituloStats} />
           </Grid>
         </Grid>
 
@@ -339,16 +352,14 @@ export default function VentasPage() {
             pageSize,
             onPageChange: (newPage) => {
               setPage(newPage);
-              fetchVentas(newPage, pageSize);
             },
             onPageSizeChange: (newSize) => {
               setPageSize(newSize);
               setPage(1);
-              fetchVentas(1, newSize);
             },
             onFiltersChange: (filters) => {
               setPage(1);
-              fetchVentas(1, pageSize, filters);
+              setFiltros(filters);
             },
           } : undefined}
         />
