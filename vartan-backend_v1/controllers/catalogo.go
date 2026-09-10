@@ -35,7 +35,7 @@ func buildCatalogoProductoResponse(p models.Producto, variantes []models.Product
 		Nombre:          p.Nombre,
 		Descripcion:     p.Descripcion,
 		Imagenes:        p.Imagenes,
-		PrecioMayorista: p.PrecioMayorista,
+		PrecioCatalogo: p.PrecioCatalogo,
 		TipoProducto:    p.TipoProducto,
 		Equipo:          p.Equipo,
 		Variantes:       vars,
@@ -206,7 +206,7 @@ func AdminCreateCatalogoProducto(c *gin.Context) {
 	var req struct {
 		Nombre          string  `json:"nombre" binding:"required"`
 		Descripcion     string  `json:"descripcion"`
-		PrecioMayorista float64 `json:"precio_mayorista"`
+		PrecioCatalogo float64 `json:"precio_catalogo"`
 		CostoUnitario   float64 `json:"costo_unitario"`
 		VisibleCatalogo bool    `json:"visible_catalogo"`
 		TipoProductoID  *int    `json:"tipo_producto_id"`
@@ -220,7 +220,7 @@ func AdminCreateCatalogoProducto(c *gin.Context) {
 	producto := models.Producto{
 		Nombre:          req.Nombre,
 		Descripcion:     req.Descripcion,
-		PrecioMayorista: req.PrecioMayorista,
+		PrecioCatalogo: req.PrecioCatalogo,
 		CostoUnitario:   req.CostoUnitario,
 		VisibleCatalogo: req.VisibleCatalogo,
 		TipoProductoID:  req.TipoProductoID,
@@ -257,7 +257,7 @@ func AdminUpdateCatalogoProducto(c *gin.Context) {
 	var req struct {
 		Nombre          *string  `json:"nombre"`
 		Descripcion     *string  `json:"descripcion"`
-		PrecioMayorista *float64 `json:"precio_mayorista"`
+		PrecioCatalogo *float64 `json:"precio_catalogo"`
 		CostoUnitario   *float64 `json:"costo_unitario"`
 		VisibleCatalogo *bool    `json:"visible_catalogo"`
 		TipoProductoID  *int     `json:"tipo_producto_id"`
@@ -275,8 +275,8 @@ func AdminUpdateCatalogoProducto(c *gin.Context) {
 	if req.Descripcion != nil {
 		updates["descripcion"] = *req.Descripcion
 	}
-	if req.PrecioMayorista != nil {
-		updates["precio_mayorista"] = *req.PrecioMayorista
+	if req.PrecioCatalogo != nil {
+		updates["precio_catalogo"] = *req.PrecioCatalogo
 	}
 	if req.CostoUnitario != nil {
 		updates["costo_unitario"] = *req.CostoUnitario

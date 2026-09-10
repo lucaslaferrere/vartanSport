@@ -147,7 +147,7 @@ type Producto struct {
 	// Campos catálogo mayorista
 	Descripcion      string      `gorm:"type:text" json:"descripcion"`
 	Imagenes         ImagenArray `gorm:"type:json" json:"imagenes"`
-	PrecioMayorista  float64     `gorm:"type:decimal(10,2);default:0" json:"precio_mayorista"`
+	PrecioCatalogo   float64     `gorm:"type:decimal(10,2);default:0" json:"precio_catalogo"`
 	VisibleCatalogo  bool        `gorm:"default:false" json:"visible_catalogo"`
 }
 

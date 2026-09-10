@@ -83,7 +83,7 @@ type CatalogoProductoResponse struct {
 	Nombre           string                  `json:"nombre"`
 	Descripcion      string                  `json:"descripcion"`
 	Imagenes         ImagenArray             `json:"imagenes"`
-	PrecioMayorista  float64                 `json:"precio_mayorista"`
+	PrecioCatalogo   float64                 `json:"precio_catalogo"`
 	TipoProducto     *TipoProducto           `json:"tipo_producto,omitempty"`
 	Equipo           *Equipo                 `json:"equipo,omitempty"`
 	Variantes        []CatalogoVarianteStock `json:"variantes"`
