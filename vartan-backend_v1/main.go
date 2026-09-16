@@ -25,6 +25,7 @@ import (
 	"github.com/joho/godotenv"
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
+	"gorm.io/gorm"
 )
 
 func main() {
@@ -50,12 +51,16 @@ func main() {
 		&models.ComisionPublicitariaMensual{},
 		&models.Tarea{},
 		&models.InvitacionCliente{},
+		&models.MigracionAplicada{},
 	)
 	MigrarGastos()
 
 	SeedTiposProducto()
 	SeedEquipos()
 	SeedFormasPago()
+	if err := BackfillComisionFormaPago(); err != nil {
+		log.Fatal("Error aplicando backfill de comisión por forma de pago:", err)
+	}
 
 	gin.SetMode(gin.DebugMode)
 
@@ -72,8 +77,8 @@ func main() {
 			"http://localhost:3000",
 			"http://localhost:5173",
 			"http://localhost:5174",
-			"http://45.55.194.246:3001",               // Frontend en producción
-			"http://45.55.194.246:8001",               // Backend en producción
+			"http://45.55.194.246:3001", // Frontend en producción
+			"http://45.55.194.246:8001", // Backend en producción
 			"https://vartansports.lrsolutions.com.ar",
 			"https://mayorea.lrsolutions.com.ar",
 			"https://demo.lrsolutions.com.ar",
@@ -152,20 +157,52 @@ func SeedFormasPago() {
 		}
 	}
 
-	formasPago := []string{
-		"Señas",
-		"Financiera",
-		"Valu Tahiel",
-		"Cuenta 0",
-		"Efectivo",
+	formasPago := []models.FormaPago{
+		{Nombre: "Señas", ComisionPorcentaje: 0},
+		{Nombre: "Financiera", ComisionPorcentaje: 2.5},
+		{Nombre: "Valu Tahiel", ComisionPorcentaje: 0},
+		{Nombre: "Cuenta 0", ComisionPorcentaje: 0},
+		{Nombre: "Efectivo", ComisionPorcentaje: 0},
 	}
 
-	for _, nombre := range formasPago {
+	for _, formaPago := range formasPago {
 		var count int64
-		config.DB.Model(&models.FormaPago{}).Where("nombre = ?", nombre).Count(&count)
+		config.DB.Model(&models.FormaPago{}).Where("nombre = ?", formaPago.Nombre).Count(&count)
 		if count == 0 {
-			config.DB.Create(&models.FormaPago{Nombre: nombre})
+			config.DB.Create(&formaPago)
 		}
 	}
 	log.Println("Formas de pago verificadas/creadas")
+}
+
+const migracionComisionFormaPago = "20260910_comision_forma_pago"
+
+// BackfillComisionFormaPago congela la regla histórica una única vez. El seed
+// nunca actualiza filas existentes, para que futuros cambios de tasa sobrevivan
+// reinicios y deploys.
+func BackfillComisionFormaPago() error {
+	return config.DB.Transaction(func(tx *gorm.DB) error {
+		var aplicada int64
+		if err := tx.Model(&models.MigracionAplicada{}).
+			Where("id = ?", migracionComisionFormaPago).
+			Count(&aplicada).Error; err != nil {
+			return err
+		}
+		if aplicada > 0 {
+			return nil
+		}
+
+		if err := tx.Model(&models.FormaPago{}).
+			Where("nombre = ?", "Financiera").
+			Update("comision_porcentaje", 2.5).Error; err != nil {
+			return err
+		}
+		if err := tx.Model(&models.Venta{}).
+			Where("usa_financiera = ?", true).
+			Update("comision_porcentaje_aplicado", 2.5).Error; err != nil {
+			return err
+		}
+
+		return tx.Create(&models.MigracionAplicada{ID: migracionComisionFormaPago}).Error
+	})
 }

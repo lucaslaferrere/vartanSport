@@ -16,7 +16,6 @@ func RecalcularCostos(c *gin.Context) {
 	var ventas []models.Venta
 	if err := config.DB.
 		Preload("Detalles").
-		Preload("FormaPago").
 		Find(&ventas).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error al obtener ventas"})
 		return
@@ -31,10 +30,10 @@ func RecalcularCostos(c *gin.Context) {
 			costo += detalle.CostoUnitario * float64(detalle.Cantidad)
 		}
 
-		esFinanciera := venta.FormaPago.Nombre == "Financiera"
-		var descuento float64
-		if esFinanciera {
-			descuento = venta.PrecioVenta * financieraRate
+		descuento, err := calcularComisionFormaPago(venta.PrecioVenta, venta.ComisionPorcentajeAplicado)
+		if err != nil {
+			errores++
+			continue
 		}
 
 		ganancia := venta.PrecioVenta - costo - descuento
@@ -45,7 +44,7 @@ func RecalcularCostos(c *gin.Context) {
 				"costo":          costo,
 				"ganancia":       ganancia,
 				"descuento":      descuento,
-				"usa_financiera": esFinanciera,
+				"usa_financiera": venta.ComisionPorcentajeAplicado > 0,
 			}).Error; err != nil {
 			errores++
 		} else {
@@ -88,10 +87,10 @@ func BackfillCostoDetalles(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"mensaje":     "Backfill de costos completado",
+		"mensaje":      "Backfill de costos completado",
 		"actualizados": actualizados,
-		"errores":     errores,
-		"total":       len(detalles),
+		"errores":      errores,
+		"total":        len(detalles),
 	})
 }
 

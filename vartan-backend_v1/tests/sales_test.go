@@ -23,6 +23,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -394,8 +395,8 @@ func TestComisionGastoPublicitarioNoSeActualizaEnRecalculo(t *testing.T) {
 	// Paso 1: Setear gasto publicitario = 1000 en comisiones_publicitarias_mensuales
 	gastoInicial := 1000.0
 	body1, _ := json.Marshal(map[string]interface{}{
-		"mes":           mes,
-		"anio":          anio,
+		"mes":            mes,
+		"anio":           anio,
 		"valor_comision": gastoInicial,
 	})
 	req1, _ := http.NewRequest("POST",
@@ -438,8 +439,8 @@ func TestComisionGastoPublicitarioNoSeActualizaEnRecalculo(t *testing.T) {
 	// Paso 3: Actualizar el gasto a 2000 en comisiones_publicitarias_mensuales
 	gastoNuevo := 2000.0
 	body3, _ := json.Marshal(map[string]interface{}{
-		"mes":           mes,
-		"anio":          anio,
+		"mes":            mes,
+		"anio":           anio,
 		"valor_comision": gastoNuevo,
 	})
 	req3, _ := http.NewRequest("POST",
@@ -586,8 +587,8 @@ func TestComisionFormulaNoDescontaGastoPublicitario(t *testing.T) {
 	// Setear gasto publicitario = 2000
 	gastoPublicitario := 2000.0
 	body, _ := json.Marshal(map[string]interface{}{
-		"mes":           mes,
-		"anio":          anio,
+		"mes":            mes,
+		"anio":           anio,
 		"valor_comision": gastoPublicitario,
 	})
 	req, _ := http.NewRequest("POST",
@@ -794,4 +795,113 @@ func abs(x float64) float64 {
 		return -x
 	}
 	return x
+}
+
+func TestEditarPrecioUsaComisionCongelada(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	setupSalesTestDB(t)
+
+	owner := seedUsuario(t, "comision-congelada")
+	cliente := seedCliente(t, owner.ID)
+	fp := seedFormaPago(t)
+	tasaOriginal := fp.ComisionPorcentaje
+	t.Cleanup(func() {
+		config.DB.Model(&fp).Update("comision_porcentaje", tasaOriginal)
+	})
+	fp.ComisionPorcentaje = 2.5
+	if err := config.DB.Save(&fp).Error; err != nil {
+		t.Fatalf("no se pudo configurar forma de pago: %v", err)
+	}
+
+	venta := seedVenta(t, owner.ID, cliente.ID, fp.ID, time.Now().UTC())
+	venta.PrecioVenta = 1000
+	venta.Total = 1000
+	venta.TotalFinal = 1000
+	venta.Costo = 400
+	venta.Descuento = 25
+	venta.Ganancia = 575
+	venta.ComisionPorcentajeAplicado = 2.5
+	venta.UsaFinanciera = true
+	if err := config.DB.Save(&venta).Error; err != nil {
+		t.Fatalf("no se pudo preparar venta: %v", err)
+	}
+
+	if err := config.DB.Model(&fp).Update("comision_porcentaje", 3).Error; err != nil {
+		t.Fatalf("no se pudo cambiar tasa maestra: %v", err)
+	}
+
+	r := gin.New()
+	r.PUT("/api/ventas/:id", controllers.UpdateVenta)
+	body, _ := json.Marshal(map[string]any{"precio_venta": 2000})
+	req, _ := http.NewRequest(http.MethodPut, fmt.Sprintf("/api/ventas/%d", venta.ID), bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+	if w.Code != http.StatusOK {
+		t.Fatalf("status esperado 200, obtuve %d: %s", w.Code, w.Body.String())
+	}
+
+	if err := config.DB.First(&venta, venta.ID).Error; err != nil {
+		t.Fatalf("no se pudo releer venta: %v", err)
+	}
+	if venta.ComisionPorcentajeAplicado != 2.5 {
+		t.Fatalf("la tasa histórica cambió: %.2f", venta.ComisionPorcentajeAplicado)
+	}
+	if venta.Descuento != 50 {
+		t.Fatalf("descuento esperado 50 con tasa congelada, obtenido %.2f", venta.Descuento)
+	}
+}
+
+func TestPagarSaldoNoModificaComisionNiGanancia(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	setupSalesTestDB(t)
+
+	owner := seedUsuario(t, "pago-sin-comision")
+	cliente := seedCliente(t, owner.ID)
+	fpVenta := seedFormaPago(t)
+	venta := seedVenta(t, owner.ID, cliente.ID, fpVenta.ID, time.Now().UTC())
+	sena := 500.0
+	venta.PrecioVenta = 1000
+	venta.Total = 1000
+	venta.TotalFinal = 1000
+	venta.Costo = 400
+	venta.Sena = &sena
+	venta.Saldo = 500
+	venta.Descuento = 25
+	venta.Ganancia = 575
+	venta.ComisionPorcentajeAplicado = 2.5
+	venta.UsaFinanciera = true
+	if err := config.DB.Save(&venta).Error; err != nil {
+		t.Fatalf("no se pudo preparar venta: %v", err)
+	}
+
+	fpSaldo := models.FormaPago{Nombre: fmt.Sprintf("Pago saldo %d", time.Now().UnixNano()), ComisionPorcentaje: 9}
+	if err := config.DB.Create(&fpSaldo).Error; err != nil {
+		t.Fatalf("no se pudo crear forma de pago de saldo: %v", err)
+	}
+	t.Cleanup(func() { config.DB.Unscoped().Delete(&fpSaldo) })
+
+	var body bytes.Buffer
+	writer := multipart.NewWriter(&body)
+	_ = writer.WriteField("sena", "1000")
+	_ = writer.WriteField("forma_pago_saldo_id", fmt.Sprint(fpSaldo.ID))
+	_ = writer.Close()
+
+	r := gin.New()
+	r.PUT("/api/ventas/:id/pago", controllers.UpdateVentaPago)
+	req, _ := http.NewRequest(http.MethodPut, fmt.Sprintf("/api/ventas/%d/pago", venta.ID), &body)
+	req.Header.Set("Content-Type", writer.FormDataContentType())
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+	if w.Code != http.StatusOK {
+		t.Fatalf("status esperado 200, obtuve %d: %s", w.Code, w.Body.String())
+	}
+
+	if err := config.DB.First(&venta, venta.ID).Error; err != nil {
+		t.Fatalf("no se pudo releer venta: %v", err)
+	}
+	if venta.Descuento != 25 || venta.Ganancia != 575 || venta.ComisionPorcentajeAplicado != 2.5 || !venta.UsaFinanciera {
+		t.Fatalf("el pago alteró la comisión: tasa=%.2f descuento=%.2f ganancia=%.2f flag=%v",
+			venta.ComisionPorcentajeAplicado, venta.Descuento, venta.Ganancia, venta.UsaFinanciera)
+	}
 }

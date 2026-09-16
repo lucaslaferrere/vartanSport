@@ -17,8 +17,6 @@ import (
 	"gorm.io/gorm"
 )
 
-const financieraRate = 0.025
-
 // VentasStats carries the sales-page headline figures, aggregated over the whole
 // filtered set so paging does not change them.
 type VentasStats struct {
@@ -330,24 +328,21 @@ func UpdateVentaDetalles(c *gin.Context) {
 		return
 	}
 
-	var formaPago models.FormaPago
-	if err := tx.First(&formaPago, venta.FormaPagoID).Error; err != nil {
-		tx.Rollback()
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Forma de pago no encontrada"})
-		return
-	}
-
 	// Misma regla de alta: si seña=0, se considera contado y el saldo queda en 0.
 	saldo := 0.0
 	if request.Sena > 0 {
 		saldo = request.PrecioVenta - request.Sena
 	}
 
-	descuento := 0.0
-	usaFinanciera := false
-	if formaPago.Nombre == "Financiera" {
-		descuento = request.PrecioVenta * financieraRate
-		usaFinanciera = true
+	descuento := venta.Descuento
+	if request.PrecioVenta != venta.PrecioVenta {
+		var err error
+		descuento, err = calcularComisionFormaPago(request.PrecioVenta, venta.ComisionPorcentajeAplicado)
+		if err != nil {
+			tx.Rollback()
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "La venta tiene una comisión aplicada inválida"})
+			return
+		}
 	}
 
 	total := request.PrecioVenta
@@ -370,7 +365,7 @@ func UpdateVentaDetalles(c *gin.Context) {
 	venta.Saldo = saldo
 	venta.Descuento = descuento
 	venta.TotalFinal = totalFinal
-	venta.UsaFinanciera = usaFinanciera
+	venta.UsaFinanciera = venta.ComisionPorcentajeAplicado > 0
 
 	if request.Observaciones != "" {
 		venta.Observaciones = &request.Observaciones
@@ -442,7 +437,7 @@ func CreateVenta(c *gin.Context) {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "Datos inválidos: " + err.Error()})
 			return
 		}
-		processVenta(c, jsonReq.UsuarioID, jsonReq.ClienteID, jsonReq.FormaPagoID, jsonReq.Transporte, jsonReq.PrecioVenta, jsonReq.Sena, jsonReq.UsaDescuentoFinanciera, jsonReq.Observaciones, jsonReq.Detalles, nil)
+		processVenta(c, jsonReq.UsuarioID, jsonReq.ClienteID, jsonReq.FormaPagoID, jsonReq.Transporte, jsonReq.PrecioVenta, jsonReq.Sena, jsonReq.Observaciones, jsonReq.Detalles, nil)
 		return
 	}
 
@@ -540,19 +535,14 @@ func CreateVenta(c *gin.Context) {
 			}
 		}
 
-		usaDescuentoFinanciera := false
-		if formReq.UsaDescuentoFinanciera == "true" || formReq.UsaDescuentoFinanciera == "1" {
-			usaDescuentoFinanciera = true
-		}
-
-		processVenta(c, usuarioID, clienteID, formaPagoID, formReq.Transporte, precioVenta, sena, usaDescuentoFinanciera, formReq.Observaciones, detalles, comprobanteURL)
+		processVenta(c, usuarioID, clienteID, formaPagoID, formReq.Transporte, precioVenta, sena, formReq.Observaciones, detalles, comprobanteURL)
 		return
 	}
 
 	c.JSON(http.StatusBadRequest, gin.H{"error": "Content-Type no soportado. Use application/json o multipart/form-data"})
 }
 
-func processVenta(c *gin.Context, usuarioID *int, clienteID int, formaPagoID int, transporte string, precioVenta float64, sena float64, usaDescuentoFinanciera bool, observaciones string, detalles []models.VentaDetalleCreateRequest, comprobanteURL *string) {
+func processVenta(c *gin.Context, usuarioID *int, clienteID int, formaPagoID int, transporte string, precioVenta float64, sena float64, observaciones string, detalles []models.VentaDetalleCreateRequest, comprobanteURL *string) {
 	var vendedorID int
 	if usuarioID != nil && *usuarioID > 0 {
 		var usuario models.Usuario
@@ -588,9 +578,7 @@ func processVenta(c *gin.Context, usuarioID *int, clienteID int, formaPagoID int
 		senaValue = sena
 	}
 
-	var descuento float64
 	var formaPago models.FormaPago
-	var usaFinanciera bool
 
 	if err := config.DB.First(&formaPago, formaPagoID).Error; err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Forma de pago no encontrada"})
@@ -610,10 +598,10 @@ func processVenta(c *gin.Context, usuarioID *int, clienteID int, formaPagoID int
 		saldo = 0
 	}
 
-	// La financiera afecta la GANANCIA, no lo que paga el cliente
-	if formaPago.Nombre == "Financiera" {
-		descuento = total * financieraRate
-		usaFinanciera = true
+	descuento, err := calcularComisionFormaPago(total, formaPago.ComisionPorcentaje)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
 	}
 
 	// Ganancia = precio venta - costo - comisión financiera
@@ -634,22 +622,23 @@ func processVenta(c *gin.Context, usuarioID *int, clienteID int, formaPagoID int
 	}()
 
 	venta := models.Venta{
-		UsuarioID:      vendedorID,
-		ClienteID:      clienteID,
-		FormaPagoID:    formaPagoID,
-		Transporte:     transporte,
-		Costo:          costo,
-		PrecioVenta:    precioVenta,
-		Ganancia:       ganancia,
-		Total:          total,
-		Sena:           senaPtr,
-		SenaInicial:    senaValue,
-		Saldo:          saldo,
-		Descuento:      descuento,
-		TotalFinal:     totalFinal,
-		UsaFinanciera:  usaFinanciera,
-		ComprobanteURL: comprobanteURL,
-		Observaciones:  obs,
+		UsuarioID:                  vendedorID,
+		ClienteID:                  clienteID,
+		FormaPagoID:                formaPagoID,
+		Transporte:                 transporte,
+		Costo:                      costo,
+		PrecioVenta:                precioVenta,
+		Ganancia:                   ganancia,
+		Total:                      total,
+		Sena:                       senaPtr,
+		SenaInicial:                senaValue,
+		Saldo:                      saldo,
+		Descuento:                  descuento,
+		ComisionPorcentajeAplicado: formaPago.ComisionPorcentaje,
+		TotalFinal:                 totalFinal,
+		UsaFinanciera:              formaPago.ComisionPorcentaje > 0,
+		ComprobanteURL:             comprobanteURL,
+		Observaciones:              obs,
 	}
 
 	if err := tx.Create(&venta).Error; err != nil {
@@ -1160,13 +1149,16 @@ func UpdateVenta(c *gin.Context) {
 		venta.ClienteID = *req.ClienteID
 	}
 
-	if req.FormaPagoID != nil {
+	recalcularComision := false
+	if req.FormaPagoID != nil && *req.FormaPagoID != venta.FormaPagoID {
 		var formaPago models.FormaPago
 		if err := config.DB.First(&formaPago, *req.FormaPagoID).Error; err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "Forma de pago no encontrada"})
 			return
 		}
 		venta.FormaPagoID = *req.FormaPagoID
+		venta.ComisionPorcentajeAplicado = formaPago.ComisionPorcentaje
+		recalcularComision = true
 	}
 
 	if req.Transporte != nil {
@@ -1177,6 +1169,9 @@ func UpdateVenta(c *gin.Context) {
 		if *req.PrecioVenta < 0 {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "precio_venta no puede ser negativo"})
 			return
+		}
+		if *req.PrecioVenta != venta.PrecioVenta {
+			recalcularComision = true
 		}
 		venta.PrecioVenta = *req.PrecioVenta
 	}
@@ -1189,21 +1184,8 @@ func UpdateVenta(c *gin.Context) {
 		venta.Sena = req.Sena
 	}
 
-	if req.UsaDescuentoFinanciera != nil {
-		venta.UsaFinanciera = *req.UsaDescuentoFinanciera
-	}
-	if req.UsaFinanciera != nil {
-		venta.UsaFinanciera = *req.UsaFinanciera
-	}
-
 	if req.Observaciones != nil {
 		venta.Observaciones = req.Observaciones
-	}
-
-	var formaPago models.FormaPago
-	if err := config.DB.First(&formaPago, venta.FormaPagoID).Error; err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Forma de pago no encontrada"})
-		return
 	}
 
 	senaValue := float64(0)
@@ -1220,13 +1202,15 @@ func UpdateVenta(c *gin.Context) {
 		saldo = venta.PrecioVenta - senaValue
 	}
 
-	if venta.UsaFinanciera && formaPago.Nombre == "Financiera" {
-		venta.Descuento = venta.PrecioVenta * financieraRate
-		venta.UsaFinanciera = true
-	} else {
-		venta.Descuento = 0
-		venta.UsaFinanciera = false
+	if recalcularComision {
+		descuento, err := calcularComisionFormaPago(venta.PrecioVenta, venta.ComisionPorcentajeAplicado)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "La venta tiene una comisión aplicada inválida"})
+			return
+		}
+		venta.Descuento = descuento
 	}
+	venta.UsaFinanciera = venta.ComisionPorcentajeAplicado > 0
 	venta.Total = venta.PrecioVenta
 	venta.TotalFinal = venta.PrecioVenta
 	venta.Saldo = saldo
@@ -1329,22 +1313,9 @@ func UpdateVentaPago(c *gin.Context) {
 	// El saldo depende solo de precio_venta - seña.
 	saldo := venta.PrecioVenta - nuevaSena
 
-	// La financiera impacta solo en la ganancia.
-	if venta.UsaFinanciera {
-		venta.Descuento = venta.PrecioVenta * financieraRate
-	} else {
-		venta.Descuento = 0
-	}
-
 	venta.TotalFinal = venta.PrecioVenta
 	venta.Saldo = saldo
-	ganancia := venta.PrecioVenta - venta.Costo - venta.Descuento
 	pagoDeHoy := nuevaSena - senaActual
-	if venta.FormaPagoSaldoID != nil && *venta.FormaPagoSaldoID == 1 && pagoDeHoy > 0 {
-		descuentoFinanciera := pagoDeHoy * financieraRate
-		ganancia -= descuentoFinanciera
-	}
-	venta.Ganancia = ganancia
 
 	var newComprobanteURL *string
 
