@@ -6,7 +6,6 @@ export interface IVentaCreateRequest {
     transporte?: string;
     precio_venta: number;
     sena: number;
-    usa_descuento_financiera?: boolean;
     comprobante?: File | null;
     observaciones?: string;
     detalles: IVentaDetalleCreateRequest[];

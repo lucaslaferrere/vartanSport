@@ -5,6 +5,7 @@ import { IProducto } from './productoEntity';
 export interface IFormaPago {
     id: number;
     nombre: string;
+    comision_porcentaje?: number;
 }
 
 export interface IVenta {
@@ -22,6 +23,7 @@ export interface IVenta {
     sena_inicial?: number;
     saldo: number;
     descuento: number;
+    comision_porcentaje_aplicado?: number;
     total_final: number;
     usa_financiera: boolean;
     comprobante_url?: string | null;

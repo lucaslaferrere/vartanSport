@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { Grid, Box, Typography, Checkbox, FormControlLabel } from '@mui/material';
+import { Grid, Box, Typography } from '@mui/material';
 import BaseModal from './BaseModal';
 import FormField from '@components/Forms/FormField';
 import { IVenta } from '@models/entities/ventaEntity';
@@ -31,7 +31,6 @@ export default function EditarVentaModal({ open, onClose, onSuccess, venta }: Ed
   const [tallesActuales, setTallesActuales] = useState<Record<string, number>>({});
   const [precioVenta, setPrecioVenta] = useState<string>(''); // NUEVO
   const [sena, setSena] = useState<string>('');
-  const [usaDescuentoFinanciera, setUsaDescuentoFinanciera] = useState(false); // NUEVO
   const [observaciones, setObservaciones] = useState('');
   const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -57,7 +56,6 @@ export default function EditarVentaModal({ open, onClose, onSuccess, venta }: Ed
     setTallesActuales({});
     setPrecioVenta('');
     setSena('');
-    setUsaDescuentoFinanciera(false);
     setObservaciones('');
     setError(null);
     setInitialized(false);
@@ -69,7 +67,6 @@ export default function EditarVentaModal({ open, onClose, onSuccess, venta }: Ed
   loadProductos();
   setPrecioVenta(venta.precio_venta?.toString() || venta.total.toString());
   setSena(venta.sena != null ? venta.sena.toString() : '0');
-  setUsaDescuentoFinanciera(venta.usa_financiera || false);
   setObservaciones(venta.observaciones || '');
 
   if (venta.detalles) {
@@ -141,25 +138,6 @@ export default function EditarVentaModal({ open, onClose, onSuccess, venta }: Ed
     setProductosSeleccionados(prev => prev.filter((_, i) => i !== index));
   };
 
-  const calcularCosto = () => {
-    let costo = 0;
-    productosSeleccionados.forEach(item => {
-      item.talles.forEach(t => {
-        costo += (item.producto.costo_unitario ?? 0) * t.cantidad;
-      });
-    });
-    return costo;
-  };
-
-
-  const calcularGanancia = () => {
-  const costo = calcularCosto();
-  const precio = parseFloat(precioVenta) || 0;
-  // Si es financiera, descontar el 3% de la ganancia
-  const descuentoFinanciera = (venta?.forma_pago?.nombre?.toLowerCase().includes('financiera')) ? precio * 0.025 : 0;
-  return precio - costo - descuentoFinanciera;
-};
-
 const handleSubmit = async () => {
   setError(null);
 
@@ -190,7 +168,6 @@ const handleSubmit = async () => {
     await ventaService.updateDetalles(venta.id, {
       precio_venta: parseFloat(precioVenta),
       sena: parseFloat(sena) || 0,
-      usa_descuento_financiera: usaDescuentoFinanciera,
       observaciones: observaciones || '',
       detalles
     });
@@ -215,7 +192,6 @@ const handleSubmit = async () => {
     setTallesActuales({});
     setPrecioVenta('');
     setSena('');
-    setUsaDescuentoFinanciera(false);
     setObservaciones('');
     setError(null);
     setInitialized(false);
@@ -355,35 +331,6 @@ const handleSubmit = async () => {
               />
             </Box>
 
-            {/* Ganancia (Calculada)  
-            <Box sx={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              p: 1.5,
-              bgcolor: calcularGanancia() >= 0 ? '#ECFDF5' : '#FEF2F2',
-              borderRadius: '6px',
-              border: calcularGanancia() >= 0 ? '1px solid #A7F3D0' : '1px solid #FECACA',
-              mb: 1.5
-            }}>
-              <Typography sx={{ fontSize: '13px', color: calcularGanancia() >= 0 ? '#047857' : '#DC2626', fontWeight: 600 }}>
-                Ganancia:
-              </Typography>
-              <Typography sx={{ fontSize: '18px', fontWeight: 700, color: calcularGanancia() >= 0 ? '#059669' : '#DC2626' }}>
-                ${calcularGanancia().toLocaleString('es-AR', { minimumFractionDigits: 2 })}
-              </Typography>
-            </Box> */}
-
-            
-            {/* Mensaje informativo de financiera 
-            {venta?.forma_pago_id === 1 && (
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.5 }}>
-            <i className="fa-solid fa-circle-info" style={{ color: '#D97706', fontSize: '12px' }} />
-            {/*<Typography sx={{ fontSize: '12px', color: '#D97706', fontWeight: 500 }}>
-            Comisión financiera (3%) aplicada automáticamente a la ganancia
-            </Typography>
-              </Box>
-)}  */}
           </Box>
         </Grid>
 

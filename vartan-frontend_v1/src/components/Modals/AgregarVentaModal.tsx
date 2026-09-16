@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { Grid, Box, Typography, Checkbox, FormControlLabel, Divider, IconButton, Autocomplete, TextField } from '@mui/material';
+import { Grid, Box, Typography, Divider, IconButton, Autocomplete, TextField } from '@mui/material';
 import BaseModal from './BaseModal';
 import { IVentaCreateRequest, IVentaDetalleCreateRequest } from '@models/request/IVentaRequest';
 import { ventaService } from '@services/venta.service';
@@ -37,7 +37,6 @@ export default function AgregarVentaModal({ open, onClose, onSuccess }: AgregarV
   const [formaPagoId, setFormaPagoId] = useState<number>(0);
   const [precioVenta, setPrecioVenta] = useState<string>('');
   const [sena, setSena] = useState<string>('');
-  const [usaDescuentoFinanciera, setUsaDescuentoFinanciera] = useState(false);
   const [observaciones, setObservaciones] = useState('');
   const [comprobante, setComprobante] = useState<File | null>(null);
   const [isDragging, setIsDragging] = useState(false);
@@ -63,8 +62,8 @@ export default function AgregarVentaModal({ open, onClose, onSuccess }: AgregarV
 
   const tallesDisponibles = Object.values(TalleEnum);
 
-  const isFinanciera = (id: number) =>
-    formasPago.find(fp => fp.id === id)?.nombre?.toLowerCase().includes('financiera') ?? false;
+  const getComisionPorcentaje = (id: number) =>
+    formasPago.find(fp => fp.id === id)?.comision_porcentaje ?? 0;
 
   const loadData = useCallback(async () => {
     try {
@@ -81,7 +80,6 @@ export default function AgregarVentaModal({ open, onClose, onSuccess }: AgregarV
       if (formasFiltradas.length) {
         const primera = formasFiltradas[0];
         setFormaPagoId(primera.id);
-        setUsaDescuentoFinanciera(primera.nombre.toLowerCase().includes('financiera'));
       }
     } catch (err) {
       console.error('Error cargando datos:', err);
@@ -173,8 +171,8 @@ export default function AgregarVentaModal({ open, onClose, onSuccess }: AgregarV
   const calcularGanancia = () => {
     const costo = calcularCosto();
     const precio = parseFloat(precioVenta) || 0;
-    const descuentoFinanciera = isFinanciera(formaPagoId) ? precio * 0.025 : 0;
-    return precio - costo - descuentoFinanciera;
+    const descuento = Math.round(precio * getComisionPorcentaje(formaPagoId)) / 100;
+    return precio - costo - descuento;
   };
 
   const calcularGananciaDisplay = () => {
@@ -235,7 +233,6 @@ export default function AgregarVentaModal({ open, onClose, onSuccess }: AgregarV
         transporte: transporte || undefined,  //AGREGO TRANSPORTE
         precio_venta: parseFloat(precioVenta), // NUEVO
         sena: senaNumero,
-        usa_descuento_financiera: usaDescuentoFinanciera, // NUEVO
         observaciones: observaciones || '',
         detalles
       };
@@ -269,7 +266,6 @@ export default function AgregarVentaModal({ open, onClose, onSuccess }: AgregarV
     setPrecioVenta('');
     setTransporte('');
     setSena('');
-    setUsaDescuentoFinanciera(false);
     setObservaciones('');
     setComprobante(null);
     setProductosSeleccionados([]);
@@ -594,7 +590,6 @@ export default function AgregarVentaModal({ open, onClose, onSuccess }: AgregarV
                 onChange={(e) => {
                   const id = Number(e.target.value);
                   setFormaPagoId(id);
-                  setUsaDescuentoFinanciera(isFinanciera(id));
                   }}
                 style={{
                   width: '100%',
@@ -797,11 +792,11 @@ export default function AgregarVentaModal({ open, onClose, onSuccess }: AgregarV
                 </Typography>
               </Box>
 
-              {isFinanciera(formaPagoId) && isDueno && (
+              {getComisionPorcentaje(formaPagoId) > 0 && isDueno && (
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.5 }}>
                   <i className="fa-solid fa-circle-info" style={{ color: '#D97706', fontSize: '12px' }} />
                   <Typography sx={{ fontSize: '12px', color: '#D97706', fontWeight: 500 }}>
-                    Comisión financiera (2.5%) aplicada automáticamente
+                    Comisión ({getComisionPorcentaje(formaPagoId)}%) aplicada automáticamente
                   </Typography>
                 </Box>
               )}

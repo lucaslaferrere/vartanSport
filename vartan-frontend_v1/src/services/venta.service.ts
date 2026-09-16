@@ -36,10 +36,6 @@ export const ventaService = {
             const senaValue = Number(data.sena);
             formData.append('sena', (isNaN(senaValue) ? 0 : senaValue).toString());
 
-            if (data.usa_descuento_financiera !== undefined) {
-                formData.append('usa_descuento_financiera', data.usa_descuento_financiera.toString());
-            }
-
             if (data.observaciones) {
                 formData.append('observaciones', data.observaciones);
             }
@@ -64,7 +60,6 @@ export const ventaService = {
                 forma_pago_id: Number(data.forma_pago_id),
                 precio_venta: Number(data.precio_venta),
                 sena: isNaN(senaValue) ? 0 : senaValue,
-                usa_descuento_financiera: data.usa_descuento_financiera || false,
                 observaciones: data.observaciones || '',
                 transporte: data.transporte || '',
                 detalles: data.detalles
@@ -210,7 +205,6 @@ updateDetalles: async (id: number, data: {
   precio_venta: number;
   transporte?: string;
   sena?: number;
-  usa_descuento_financiera: boolean;
   observaciones?: string;
   detalles: Array<{
     producto_id: number;

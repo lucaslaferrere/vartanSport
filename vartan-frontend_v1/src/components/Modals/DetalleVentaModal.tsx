@@ -280,8 +280,12 @@ export default function DetalleVentaModal({ open, onClose, venta }: DetalleVenta
               <Typography sx={{ fontSize: '13px' }}>{venta.usuario?.nombre || 'N/A'}</Typography>
             </Grid>
             <Grid size={{ xs: 6, md: 3 }}>
-              <Typography sx={{ fontSize: '11px', fontWeight: 600, color: '#6B7280', mb: 0.5 }}>Financiera</Typography>
-              <Typography sx={{ fontSize: '13px' }}>{venta.usa_financiera ? 'Sí (-3%)' : 'No'}</Typography>
+              <Typography sx={{ fontSize: '11px', fontWeight: 600, color: '#6B7280', mb: 0.5 }}>Comisión aplicada</Typography>
+              <Typography sx={{ fontSize: '13px' }}>
+                {venta.usa_financiera
+                  ? `${venta.comision_porcentaje_aplicado ?? 0}% ($${venta.descuento.toLocaleString('es-AR', { minimumFractionDigits: 2 })})`
+                  : 'No'}
+              </Typography>
             </Grid>
 
             {/* Productos */}
